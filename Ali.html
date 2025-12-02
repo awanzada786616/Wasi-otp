@@ -3,67 +3,147 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OTPGET Test</title>
+  <title>OTP Panel</title>
 
-  <!-- CDN for React/JSX (your existing setup) -->
   <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: white;
+    body { font-family: Arial; background:#111; color:#fff; }
+    .box { background:#000; padding:15px; border-radius:10px; margin-top:15px; }
+    select, button {
+      padding:10px; margin:5px 0; border-radius:8px;
+      font-size:16px;
     }
+    button { background:#6366f1; color:white; border:none; cursor:pointer; }
   </style>
 </head>
 
 <body>
 
-  <!-- ⭐⭐ ADDED OTPGET TEST UI ⭐⭐ -->
-  <div id="otpget-test" style="padding:20px;">
-    <button onclick="testOtpGet()" 
-      style="padding:12px 20px;background:#6366f1;color:white;border:none;border-radius:10px;font-weight:bold;cursor:pointer">
-      Test OTPGET API
-    </button>
+  <!-- ⭐⭐ FULL OTP-BUY PANEL ⭐⭐ -->
+  <div style="padding:20px">
 
-    <pre id="otpget-result" 
-      style="background:#000;color:#00ff00;padding:15px;margin-top:15px;border-radius:10px;white-space:pre-wrap;min-height:50px">
-      Click button to test API...
-    </pre>
+    <h2>OTPGET — Buy Number Panel</h2>
+
+    <!-- COUNTRY SELECT -->
+    <label>Select Country:</label><br>
+    <select id="countryBox" onchange="loadServices()">
+      <option value="">Loading countries...</option>
+    </select>
+
+    <br><br>
+
+    <!-- SERVICE SELECT -->
+    <label>Select Service:</label><br>
+    <select id="serviceBox">
+      <option value="">Select country first</option>
+    </select>
+
+    <br><br>
+
+    <button onclick="buyNumber()">Buy Number</button>
+
+    <!-- Result -->
+    <div id="buyResult" class="box">Number will appear here...</div>
+
+    <h3>SMS Status</h3>
+    <button onclick="checkStatus()">Check Status Manually</button>
+    <div id="statusBox" class="box">No status yet.</div>
+
   </div>
 
-  <!-- React App Container -->
-  <div id="root"></div>
-
-  <!-- ⭐⭐ ADDED TEST FUNCTION (CALLS api/otpget.js) ⭐⭐ -->
+  <!-- ⭐⭐ BACKEND CALLS ⭐⭐ -->
   <script>
-    async function testOtpGet() {
-      const box = document.getElementById("otpget-result");
-      box.innerHTML = "Loading...";
+    let currentID = null;
 
-      try {
-        const res = await fetch("/api/otpget?action=getCountries");
-        const data = await res.json();
-        box.innerHTML = JSON.stringify(data, null, 2);
-      } catch (e) {
-        box.innerHTML = "ERROR: " + e.message;
+    // Load Countries Automatically
+    async function loadCountries() {
+      const res = await fetch("/api/otpget?action=getCountries");
+      const data = await res.json();
+      const raw = data.raw;
+
+      const arr = raw.split(",");
+
+      let html = "";
+      arr.forEach(c => {
+        const parts = c.split(":");
+        const id = parts[0];
+        const name = parts[1];
+        html += `<option value="${id}">${name}</option>`;
+      });
+
+      document.getElementById("countryBox").innerHTML = html;
+    }
+
+    // Load services when country selected
+    async function loadServices() {
+      const country = document.getElementById("countryBox").value;
+
+      const res = await fetch(`/api/otpget?action=getServices&country=${country}`);
+      const data = await res.json();
+      const raw = data.raw;
+
+      const arr = raw.split(",");
+
+      let html = "";
+      arr.forEach(s => {
+        const parts = s.split(":");
+        const code = parts[0];
+        const name = parts[1];
+        html += `<option value="${code}">${name}</option>`;
+      });
+
+      document.getElementById("serviceBox").innerHTML = html;
+    }
+
+    // Buy Number
+    async function buyNumber() {
+      const service = document.getElementById("serviceBox").value;
+      const country = document.getElementById("countryBox").value;
+
+      const res = await fetch(`/api/otpget?action=getNumber&service=${service}&country=${country}`);
+      const data = await res.json();
+
+      document.getElementById("buyResult").innerText = data.raw;
+
+      // Example: ACCESS_NUMBER:1234567:923000111222
+      if (data.raw.includes("ACCESS_NUMBER")) {
+        const parts = data.raw.split(":");
+        currentID = parts[1]; // store ID for SMS check
       }
     }
+
+    // Check Status
+    async function checkStatus() {
+      if (!currentID) {
+        document.getElementById("statusBox").innerText = "No ID yet.";
+        return;
+      }
+
+      const res = await fetch(`/api/otpget?action=getStatus&id=${currentID}`);
+      const data = await res.json();
+
+      document.getElementById("statusBox").innerText = data.raw;
+    }
+
+    // Auto Load countries on page open
+    loadCountries();
   </script>
 
-  <!-- Your Existing React + JSX Code -->
+  <!-- EXISTING REACT APP (KEEP AS-IS) -->
+  <div id="root"></div>
+
   <script type="text/babel">
     function App() {
       return (
         <div style={{ padding: "30px" }}>
-          <h1>Your Existing Website Content</h1>
-          <p>React app still works normally</p>
+          <h2>Your Existing React App</h2>
+          <p>Still working normally.</p>
         </div>
       );
     }
-
     ReactDOM.render(<App />, document.getElementById("root"));
   </script>
 
