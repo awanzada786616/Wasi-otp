@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OTPGET Test</title>
+
+  <!-- CDN for React/JSX (your existing setup) -->
+  <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ⭐⭐ ADDED OTPGET TEST UI ⭐⭐ -->
+  <div id="otpget-test" style="padding:20px;">
+    <button onclick="testOtpGet()" 
+      style="padding:12px 20px;background:#6366f1;color:white;border:none;border-radius:10px;font-weight:bold;cursor:pointer">
+      Test OTPGET API
+    </button>
+
+    <pre id="otpget-result" 
+      style="background:#000;color:#00ff00;padding:15px;margin-top:15px;border-radius:10px;white-space:pre-wrap;min-height:50px">
+      Click button to test API...
+    </pre>
+  </div>
+
+  <!-- React App Container -->
+  <div id="root"></div>
+
+  <!-- ⭐⭐ ADDED TEST FUNCTION (CALLS api/otpget.js) ⭐⭐ -->
+  <script>
+    async function testOtpGet() {
+      const box = document.getElementById("otpget-result");
+      box.innerHTML = "Loading...";
+
+      try {
+        const res = await fetch("/api/otpget?action=getCountries");
+        const data = await res.json();
+        box.innerHTML = JSON.stringify(data, null, 2);
+      } catch (e) {
+        box.innerHTML = "ERROR: " + e.message;
+      }
+    }
+  </script>
+
+  <!-- Your Existing React + JSX Code -->
+  <script type="text/babel">
+    function App() {
+      return (
+        <div style={{ padding: "30px" }}>
+          <h1>Your Existing Website Content</h1>
+          <p>React app still works normally</p>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById("root"));
+  </script>
+
+</body>
+</html>
