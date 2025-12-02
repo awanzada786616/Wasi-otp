@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASI OTP - Master Admin</title>
+
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: { primary: '#6366f1', secondary: '#ec4899', dark: '#0f172a', darker: '#020617', card: '#1e293b' }
+                }
+            }
+        }
+    </script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { background-color: #0f172a; color: white; font-family: sans-serif; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .blink { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- FIREBASE CONFIG (Must match User Panel) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyA43N49sPsPs5NDfBUI4O2Zh_X_oLsl-dQ",
+            authDomain: "wasi-otp.firebaseapp.com",
+            projectId: "wasi-otp",
+            storageBucket: "wasi-otp.firebasestorage.app",
+            messagingSenderId: "992311938758",
+            appId: "1:992311938758:web:20502825dd689293bf91c7"
+        };
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // --- COMPONENTS ---
+
+        // 1. DASHBOARD
+        const Dashboard = ({ users, deposits, orders }) => {
+            const totalRevenue = orders.filter(o => o.status === 'RECEIVED').reduce((acc, curr) => acc + (curr.price || 0), 0);
+            const pendingOrders = orders.filter(o => o.status === 'WAITING').length;
+            const pendingDeposits = deposits.filter(d => d.status === 'pending').length;
+
+            const Card = ({ title, value, icon, color, blink }) => (
+                <div className={`bg-card p-6 rounded-xl border border-gray-700 shadow-lg flex items-center justify-between ${blink ? 'animate-pulse border-red-500' : ''}`}>
+                    <div>
+                        <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">{title}</p>
+                        <h3 className="text-3xl font-bold mt-1">{value}</h3>
+                    </div>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white ${color}`}>
+                        <i className={`fa-solid ${icon} text-xl`}></i>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <Card title="Pending Orders (OTP)" value={pendingOrders} icon="fa-bell" color="bg-red-500" blink={pendingOrders > 0} />
+                    <Card title="Pending Deposits" value={pendingDeposits} icon="fa-money-bill-wave" color="bg-yellow-500" blink={pendingDeposits > 0} />
+                    <Card title="Total Users" value={users.length} icon="fa-users" color="bg-blue-600" />
+                    <Card title="Total Sales" value={`Rs ${totalRevenue.toLocaleString()}`} icon="fa-chart-line" color="bg-green-600" />
+                </div>
+            );
+        };
+
+        // 2. ORDER MANAGER (OTP SYSTEM)
+        const OrderManager = ({ orders }) => {
+            const [otpInputs, setOtpInputs] = useState({});
+
+            // Sort: Waiting orders first, then by time
+            const sortedOrders = [...orders].sort((a, b) => {
+                if (a.status === 'WAITING' && b.status !== 'WAITING') return -1;
+                if (a.status !== 'WAITING' && b.status === 'WAITING') return 1;
+                return b.timestamp - a.timestamp;
+            });
+
+            const sendOtp = async (order) => {
+                const code = otpInputs[order.id];
+                if(!code) return alert("Please enter OTP code first!");
+
+                try {
+                    await db.collection('orders').doc(order.id).update({
+                        status: 'RECEIVED',
+                        code: code,
+                        completedAt: Date.now()
+                    });
+                    // Clear input
+                    setOtpInputs({...otpInputs, [order.id]: ''});
+                    // Note: No alert needed, UI updates automatically
+                } catch(e) { alert("Error sending OTP: " + e.message); }
+            };
+
+            const cancelOrder = async (order) => {
+                if(!confirm(`Cancel order for ${order.number} and Refund Rs ${order.price}?`)) return;
+                
+                try {
+                    const batch = db.batch();
+                    const orderRef = db.collection('orders').doc(order.id);
+                    const userRef = db.collection('users').doc(order.userId);
+
+                    batch.update(orderRef, { status: 'CANCELLED' });
+                    // Refund Money
+                    batch.update(userRef, { balance: firebase.firestore.FieldValue.increment(order.price) });
+
+                    await batch.commit();
+                } catch(e) { alert("Error: " + e.message); }
+            };
+
+            return (
+                <div className="space-y-4">
+                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        <i className="fa-solid fa-list-check"></i> Manage Orders
+                    </h2>
+                    
+                    {sortedOrders.map(o => (
+                        <div key={o.id} className={`p-6 rounded-xl border flex flex-col md:flex-row gap-4 items-center transition-all ${o.status === 'WAITING' ? 'bg-yellow-900/20 border-yellow-500/50 shadow-lg shadow-yellow-500/10' : 'bg-card border-gray-700 opacity-60'}`}>
+                            
+                            {/* Order Info */}
+                            <div className="flex-1">
+                                <div className="flex items-center gap-3">
+                                    <h3 className="font-bold text-lg text-white">{o.service}</h3>
+                                    <span className="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">{o.country}</span>
+                                </div>
+                                <div className="font-mono text-2xl font-bold text-primary mt-1 tracking-wider">{o.number}</div>
+                                <div className="text-xs text-gray-500 mt-1">User ID: {o.userId} • Price: Rs {o.price}</div>
+                            </div>
+
+                            {/* Action Area */}
+                            <div className="w-full md:w-auto flex flex-col gap-2">
+                                {o.status === 'WAITING' ? (
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="text" 
+                                            placeholder="Enter OTP Code" 
+                                            value={otpInputs[o.id] || ''}
+                                            onChange={(e) => setOtpInputs({...otpInputs, [o.id]: e.target.value})}
+                                            className="bg-darker border border-gray-600 rounded-lg px-4 py-2 text-center font-bold tracking-widest text-lg w-40 outline-none focus:border-primary"
+                                        />
+                                        <button onClick={()=>sendOtp(o)} className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-bold shadow-lg transition">
+                                            SEND <i className="fa-solid fa-paper-plane ml-2"></i>
+                                        </button>
+                                        <button onClick={()=>cancelOrder(o)} className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-bold transition">
+                                            <i className="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="text-right">
+                                        <span className={`font-bold px-4 py-1 rounded-full text-sm ${o.status==='RECEIVED'?'bg-green-500/20 text-green-400':'bg-red-500/20 text-red-400'}`}>
+                                            {o.status}
+                                        </span>
+                                        {o.code && <p className="text-sm text-gray-400 mt-1">Code: {o.code}</p>}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        // 3. INVENTORY (ADD STOCK)
+        const InventoryManager = () => {
+            const [inv, setInv] = useState([]);
+            const [form, setForm] = useState({ country: "", service: "", price: "", numbers: "" });
+
+            useEffect(() => {
+                const unsub = db.collection('inventory').onSnapshot(snap => setInv(snap.docs.map(d => ({id: d.id, ...d.data()}))));
+                return () => unsub();
+            }, []);
+
+            const addStock = async () => {
+                if(!form.country || !form.service || !form.price || !form.numbers) return alert("Fill all fields");
+                const stock = form.numbers.split('\n').map(n => n.trim()).filter(n => n);
+                
+                await db.collection('inventory').add({
+                    country: form.country, service: form.service, price: parseFloat(form.price),
+                    stock: stock, timestamp: Date.now()
+                });
+                alert("Stock Added Successfully!");
+                setForm({ ...form, numbers: "" }); // Clear numbers only
+            };
+
+            const deletePkg = async (id) => { if(confirm("Delete Package?")) await db.collection('inventory').doc(id).delete(); };
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="bg-card p-6 rounded-xl border border-gray-700">
+                        <h3 className="font-bold text-lg mb-4">Add Manual Stock</h3>
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                            <input placeholder="Country (e.g. Pakistan)" value={form.country} onChange={e=>setForm({...form, country: e.target.value})} className="p-3 bg-dark border border-gray-600 rounded outline-none" />
+                            <input placeholder="Service (e.g. WhatsApp)" value={form.service} onChange={e=>setForm({...form, service: e.target.value})} className="p-3 bg-dark border border-gray-600 rounded outline-none" />
+                            <input type="number" placeholder="Price (PKR)" value={form.price} onChange={e=>setForm({...form, price: e.target.value})} className="col-span-2 p-3 bg-dark border border-gray-600 rounded outline-none" />
+                        </div>
+                        <textarea placeholder="Enter Numbers (One per line)&#10;+923001234567&#10;+923007654321" value={form.numbers} onChange={e=>setForm({...form, numbers: e.target.value})} className="w-full p-3 bg-dark border border-gray-600 rounded h-40 font-mono mb-4 outline-none"></textarea>
+                        <button onClick={addStock} className="w-full bg-primary hover:bg-indigo-500 py-3 rounded font-bold transition">Save to Inventory</button>
+                    </div>
+
+                    <div className="space-y-3 h-[600px] overflow-y-auto pr-2">
+                        {inv.map(i => (
+                            <div key={i.id} className="bg-card border border-gray-700 p-4 rounded-xl flex justify-between items-center">
+                                <div>
+                                    <h4 className="font-bold text-white">{i.service} <small className="text-gray-400">({i.country})</small></h4>
+                                    <span className={`text-xs px-2 py-0.5 rounded ${i.stock.length > 0 ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>{i.stock.length} Numbers</span>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-bold text-primary">Rs {i.price}</p>
+                                    <button onClick={()=>deletePkg(i.id)} className="text-red-500 text-xs hover:text-red-400 hover:underline">Delete</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // 4. DEPOSIT & USER MANAGER
+        const UserManager = ({ users, deposits }) => {
+            const [search, setSearch] = useState("");
+            const [editUser, setEditUser] = useState(null);
+            const [amt, setAmt] = useState("");
+
+            const processDeposit = async (d, status) => {
+                if(!confirm(`${status} Deposit?`)) return;
+                const batch = db.batch();
+                batch.update(db.collection('deposits').doc(d.id), { status: status.toLowerCase() });
+                if(status === 'APPROVED') {
+                    batch.update(db.collection('users').doc(d.userId), { balance: firebase.firestore.FieldValue.increment(parseFloat(d.amount)) });
+                }
+                await batch.commit();
+            };
+
+            const updateBalance = async () => {
+                if(!amt) return;
+                await db.collection('users').doc(editUser.id).update({ balance: (editUser.balance || 0) + parseFloat(amt) });
+                setEditUser(null); setAmt("");
+            };
+
+            return (
+                <div className="space-y-8">
+                    {/* Deposits */}
+                    <div className="bg-card rounded-xl border border-gray-700 overflow-hidden">
+                        <div className="p-4 bg-gray-800 border-b border-gray-700 font-bold">Pending Deposits</div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-900 text-gray-400 text-xs uppercase"><tr><th className="p-3">User</th><th className="p-3">Amount</th><th className="p-3">Sender</th><th className="p-3 text-right">Action</th></tr></thead>
+                                <tbody>
+                                    {deposits.filter(d=>d.status==='pending').length === 0 && <tr><td colSpan="4" className="p-4 text-center text-gray-500">No pending deposits</td></tr>}
+                                    {deposits.filter(d=>d.status==='pending').map(d => (
+                                        <tr key={d.id} className="border-t border-gray-700">
+                                            <td className="p-3">{d.userName}</td>
+                                            <td className="p-3 font-bold text-green-400">Rs {d.amount}</td>
+                                            <td className="p-3 text-sm">{d.senderName} ({d.senderNum})</td>
+                                            <td className="p-3 text-right gap-2 flex justify-end">
+                                                <button onClick={()=>processDeposit(d, 'APPROVED')} className="bg-green-600 px-3 py-1 rounded text-xs hover:bg-green-500">Approve</button>
+                                                <button onClick={()=>processDeposit(d, 'REJECTED')} className="bg-red-600 px-3 py-1 rounded text-xs hover:bg-red-500">Reject</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Users */}
+                    <div className="bg-card rounded-xl border border-gray-700 overflow-hidden">
+                        <div className="p-4 bg-gray-800 border-b border-gray-700 flex justify-between items-center">
+                            <span className="font-bold">All Users</span>
+                            <input placeholder="Search..." onChange={e=>setSearch(e.target.value)} className="bg-dark border border-gray-600 rounded px-2 py-1 text-sm outline-none" />
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-900 text-gray-400 text-xs uppercase"><tr><th className="p-3">Name</th><th className="p-3">Email</th><th className="p-3">Balance</th><th className="p-3 text-right">Edit</th></tr></thead>
+                                <tbody>
+                                    {users.filter(u=>(u.email||"").includes(search)).map(u => (
+                                        <tr key={u.id} className="border-t border-gray-700 hover:bg-gray-800">
+                                            <td className="p-3">{u.name}</td>
+                                            <td className="p-3 text-sm text-gray-400">{u.email}</td>
+                                            <td className="p-3 font-mono font-bold text-primary">Rs {u.balance}</td>
+                                            <td className="p-3 text-right">
+                                                <button onClick={()=>setEditUser(u)} className="text-blue-400 hover:text-white"><i className="fa-solid fa-pen-to-square"></i></button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {editUser && (
+                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+                            <div className="bg-card p-6 rounded-xl w-80 border border-gray-600">
+                                <h3 className="font-bold mb-2">Edit Balance</h3>
+                                <p className="text-sm text-gray-400 mb-4">{editUser.email}</p>
+                                <input type="number" placeholder="+ Add or - Deduct" value={amt} onChange={e=>setAmt(e.target.value)} className="w-full p-2 bg-dark border border-gray-600 rounded mb-4" />
+                                <div className="flex gap-2">
+                                    <button onClick={()=>setEditUser(null)} className="flex-1 bg-gray-600 py-2 rounded">Cancel</button>
+                                    <button onClick={updateBalance} className="flex-1 bg-primary py-2 rounded font-bold">Save</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- MAIN APP ---
+        const App = () => {
+            const [view, setView] = useState('orders');
+            const [users, setUsers] = useState([]);
+            const [deposits, setDeposits] = useState([]);
+            const [orders, setOrders] = useState([]);
+
+            useEffect(() => {
+                // Realtime Listeners
+                const u = db.collection('users').onSnapshot(snap => setUsers(snap.docs.map(d => ({id: d.id, ...d.data()}))));
+                const d = db.collection('deposits').onSnapshot(snap => setDeposits(snap.docs.map(d => ({id: d.id, ...d.data()}))));
+                const o = db.collection('orders').orderBy('timestamp', 'desc').onSnapshot(snap => setOrders(snap.docs.map(d => ({id: d.id, ...d.data()}))));
+                return () => { u(); d(); o(); };
+            }, []);
+
+            return (
+                <div className="flex h-screen overflow-hidden">
+                    <aside className="w-64 bg-darker border-r border-gray-800 flex flex-col z-20">
+                        <div className="h-20 flex items-center justify-center border-b border-gray-800 font-bold text-2xl text-primary">ADMIN</div>
+                        <nav className="p-4 space-y-2">
+                            <button onClick={()=>setView('orders')} className={`w-full text-left p-3 rounded-xl transition ${view==='orders'?'bg-primary text-white':'text-gray-400 hover:bg-card'}`}><i className="fa-solid fa-list-check mr-3"></i> Orders</button>
+                            <button onClick={()=>setView('inventory')} className={`w-full text-left p-3 rounded-xl transition ${view==='inventory'?'bg-primary text-white':'text-gray-400 hover:bg-card'}`}><i className="fa-solid fa-boxes-stacked mr-3"></i> Inventory</button>
+                            <button onClick={()=>setView('users')} className={`w-full text-left p-3 rounded-xl transition ${view==='users'?'bg-primary text-white':'text-gray-400 hover:bg-card'}`}><i className="fa-solid fa-users mr-3"></i> Users & Funds</button>
+                            <button onClick={()=>setView('dashboard')} className={`w-full text-left p-3 rounded-xl transition ${view==='dashboard'?'bg-primary text-white':'text-gray-400 hover:bg-card'}`}><i className="fa-solid fa-chart-pie mr-3"></i> Dashboard</button>
+                        </nav>
+                    </aside>
+                    <main className="flex-1 overflow-y-auto p-8 bg-dark">
+                        <header className="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
+                            <h2 className="text-2xl font-bold capitalize text-white">{view}</h2>
+                            <div className="bg-green-500/10 text-green-400 px-4 py-1 rounded-full text-sm font-bold border border-green-500/30 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-green-500 blink"></div> Live</div>
+                        </header>
+                        {view === 'dashboard' && <Dashboard users={users} deposits={deposits} orders={orders} />}
+                        {view === 'orders' && <OrderManager orders={orders} />}
+                        {view === 'inventory' && <InventoryManager />}
+                        {view === 'users' && <UserManager users={users} deposits={deposits} />}
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
