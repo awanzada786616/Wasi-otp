@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASI OTP - Admin (Fixed)</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: { primary: '#6366f1', secondary: '#ec4899', dark: '#0f172a', darker: '#020617', card: '#1e293b' }
+                }
+            }
+        }
+    </script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { background-color: #0f172a; color: white; font-family: sans-serif; }
+    </style>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- FIREBASE KEYS (Ensure these match User Panel) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyA43N49sPsPs5NDfBUI4O2Zh_X_oLsl-dQ",
+            authDomain: "wasi-otp.firebaseapp.com",
+            projectId: "wasi-otp",
+            storageBucket: "wasi-otp.firebasestorage.app",
+            messagingSenderId: "992311938758",
+            appId: "1:992311938758:web:20502825dd689293bf91c7"
+        };
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // --- COMPONENTS ---
+
+        const Dashboard = ({ orders, deposits, users }) => {
+            const pendingOrders = orders.filter(o => o.status === 'WAITING').length;
+            const revenue = orders.filter(o => o.status === 'RECEIVED').reduce((a, b) => a + (b.price || 0), 0);
+
+            return (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    <div className="bg-card p-5 rounded-lg border border-gray-700">
+                        <h3 className="text-gray-400 text-xs font-bold uppercase">Pending Orders</h3>
+                        <p className="text-3xl font-bold mt-1 text-yellow-400">{pendingOrders}</p>
+                    </div>
+                    <div className="bg-card p-5 rounded-lg border border-gray-700">
+                        <h3 className="text-gray-400 text-xs font-bold uppercase">Total Revenue</h3>
+                        <p className="text-3xl font-bold mt-1 text-green-400">Rs {revenue.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-card p-5 rounded-lg border border-gray-700">
+                        <h3 className="text-gray-400 text-xs font-bold uppercase">Total Users</h3>
+                        <p className="text-3xl font-bold mt-1 text-blue-400">{users.length}</p>
+                    </div>
+                    <div className="bg-card p-5 rounded-lg border border-gray-700">
+                        <h3 className="text-gray-400 text-xs font-bold uppercase">Deposits</h3>
+                        <p className="text-3xl font-bold mt-1 text-purple-400">{deposits.filter(d=>d.status==='pending').length}</p>
+                    </div>
+                </div>
+            )
+        };
+
+        const OrderManager = ({ orders }) => {
+            const [otpInputs, setOtpInputs] = useState({});
+
+            // Function to handle OTP send
+            const handleSendOtp = async (orderId) => {
+                const code = otpInputs[orderId];
+                if (!code) return alert("Please enter OTP code!");
+
+                try {
+                    // Update Database
+                    await db.collection('orders').doc(orderId).update({
+                        status: 'RECEIVED',
+                        code: code
+                    });
+                    
+                    alert("OTP Sent Successfully! User Panel Updated.");
+                    
+                    // Clear Input
+                    setOtpInputs(prev => ({ ...prev, [orderId]: '' }));
+                } catch (error) {
+                    alert("Error updating database: " + error.message);
+                    console.error("Firebase Error:", error);
+                }
+            };
+
+            const handleCancel = async (order) => {
+                if(!confirm("Cancel Order and Refund?")) return;
+                try {
+                    const batch = db.batch();
+                    batch.update(db.collection('orders').doc(order.id), { status: 'CANCELLED' });
+                    batch.update(db.collection('users').doc(order.userId), { balance: firebase.firestore.FieldValue.increment(order.price) });
+                    await batch.commit();
+                    alert("Order Cancelled & Refunded");
+                } catch(e) { alert(e.message); }
+            };
+
+            // Sort: Pending first
+            const sorted = [...orders].sort((a,b) => (a.status==='WAITING' ? -1 : 1));
+
+            return (
+                <div className="space-y-4">
+                    <h2 className="text-xl font-bold">Manage Orders</h2>
+                    {sorted.map(o => (
+                        <div key={o.id} className={`p-6 rounded-xl border flex flex-col md:flex-row items-center gap-6 ${o.status==='WAITING' ? 'bg-yellow-900/20 border-yellow-500/50' : 'bg-card border-gray-700 opacity-60'}`}>
+                            <div className="flex-1">
+                                <h3 className="font-bold text-lg">{o.service} <span className="text-sm text-gray-400">({o.country})</span></h3>
+                                <p className="text-2xl font-mono text-primary font-bold my-1">{o.number}</p>
+                                <p className="text-xs text-gray-500">Price: Rs {o.price} | User: {o.userId}</p>
+                            </div>
+                            
+                            <div className="w-full md:w-auto">
+                                {o.status === 'WAITING' ? (
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="text" 
+                                            placeholder="Enter OTP" 
+                                            value={otpInputs[o.id] || ''}
+                                            onChange={(e) => setOtpInputs({ ...otpInputs, [o.id]: e.target.value })}
+                                            className="bg-darker border border-gray-600 rounded px-4 py-2 text-center font-bold tracking-widest text-lg w-40 outline-none focus:border-yellow-500"
+                                        />
+                                        <button onClick={() => handleSendOtp(o.id)} className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded font-bold transition">SEND</button>
+                                        <button onClick={() => handleCancel(o)} className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded font-bold transition"><i className="fa-solid fa-ban"></i></button>
+                                    </div>
+                                ) : (
+                                    <div className="text-right">
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${o.status==='RECEIVED'?'bg-green-500/20 text-green-400':'bg-red-500/20 text-red-400'}`}>{o.status}</span>
+                                        {o.code && <p className="text-lg font-mono font-bold mt-1">{o.code}</p>}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        const InventoryManager = () => {
+            const [items, setItems] = useState([]);
+            const [form, setForm] = useState({ country: '', service: '', price: '', numbers: '' });
+
+            useEffect(() => db.collection('inventory').onSnapshot(s => setItems(s.docs.map(d => ({id: d.id, ...d.data()})))), []);
+
+            const add = async () => {
+                if(!form.country || !form.service || !form.numbers) return alert("Fill all fields");
+                const stock = form.numbers.split('\n').map(n => n.trim()).filter(n => n);
+                await db.collection('inventory').add({
+                    country: form.country, service: form.service, price: parseFloat(form.price), stock, timestamp: Date.now()
+                });
+                alert("Stock Added"); setForm({...form, numbers: ''});
+            };
+
+            const del = async (id) => { if(confirm("Delete?")) await db.collection('inventory').doc(id).delete(); };
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="bg-card p-6 rounded-xl border border-gray-700">
+                        <h3 className="font-bold mb-4">Add Stock</h3>
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                            <input placeholder="Country" value={form.country} onChange={e=>setForm({...form, country: e.target.value})} className="p-2 bg-dark border border-gray-600 rounded" />
+                            <input placeholder="Service" value={form.service} onChange={e=>setForm({...form, service: e.target.value})} className="p-2 bg-dark border border-gray-600 rounded" />
+                            <input type="number" placeholder="Price" value={form.price} onChange={e=>setForm({...form, price: e.target.value})} className="col-span-2 p-2 bg-dark border border-gray-600 rounded" />
+                        </div>
+                        <textarea placeholder="Numbers (One per line)" value={form.numbers} onChange={e=>setForm({...form, numbers: e.target.value})} className="w-full p-2 bg-dark border border-gray-600 rounded h-32 mb-4 font-mono"></textarea>
+                        <button onClick={add} className="w-full bg-primary py-2 rounded font-bold">Add Stock</button>
+                    </div>
+                    <div className="space-y-2 h-[500px] overflow-y-auto">
+                        {items.map(i => (
+                            <div key={i.id} className="bg-card p-3 rounded border border-gray-700 flex justify-between items-center">
+                                <div><b>{i.service}</b> ({i.country}) <span className="text-xs text-gray-400 ml-2">{i.stock.length} left</span></div>
+                                <button onClick={()=>del(i.id)} className="text-red-500 text-xs">Delete</button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const DepositManager = ({ deposits }) => {
+            const process = async (d, status) => {
+                if(!confirm(status + "?")) return;
+                const batch = db.batch();
+                batch.update(db.collection('deposits').doc(d.id), { status: status.toLowerCase() });
+                if(status === 'APPROVED') batch.update(db.collection('users').doc(d.userId), { balance: firebase.firestore.FieldValue.increment(parseFloat(d.amount)) });
+                await batch.commit();
+            };
+
+            return (
+                <div className="bg-card rounded-xl border border-gray-700 overflow-hidden">
+                    <div className="p-4 bg-gray-800 font-bold">Deposit Requests</div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-darker text-gray-400 text-xs uppercase"><tr><th className="p-3">User</th><th className="p-3">Amount</th><th className="p-3">Info</th><th className="p-3 text-right">Action</th></tr></thead>
+                            <tbody>
+                                {deposits.filter(d=>d.status==='pending').map(d => (
+                                    <tr key={d.id} className="border-t border-gray-700">
+                                        <td className="p-3">{d.userName}</td>
+                                        <td className="p-3 font-bold text-green-400">Rs {d.amount}</td>
+                                        <td className="p-3 text-sm">{d.senderName} <br/> {d.senderNum}</td>
+                                        <td className="p-3 text-right">
+                                            <button onClick={()=>process(d, 'APPROVED')} className="bg-green-600 px-2 py-1 rounded text-xs mr-2">Approve</button>
+                                            <button onClick={()=>process(d, 'REJECTED')} className="bg-red-600 px-2 py-1 rounded text-xs">Reject</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- APP ---
+        const App = () => {
+            const [view, setView] = useState('orders');
+            const [data, setData] = useState({ users: [], orders: [], deposits: [] });
+
+            useEffect(() => {
+                const u = db.collection('users').onSnapshot(s => setData(p => ({...p, users: s.docs.map(d => ({id: d.id, ...d.data()}))})));
+                const o = db.collection('orders').onSnapshot(s => setData(p => ({...p, orders: s.docs.map(d => ({id: d.id, ...d.data()}))})));
+                const d = db.collection('deposits').onSnapshot(s => setData(p => ({...p, deposits: s.docs.map(d => ({id: d.id, ...d.data()}))})));
+                return () => { u(); o(); d(); };
+            }, []);
+
+            return (
+                <div className="flex h-screen overflow-hidden bg-darker">
+                    <aside className="w-64 bg-dark border-r border-gray-800 flex flex-col z-20">
+                        <div className="h-16 flex items-center justify-center font-bold text-2xl text-primary border-b border-gray-800">ADMIN</div>
+                        <nav className="p-4 space-y-2">
+                            {['dashboard', 'orders', 'inventory', 'deposits'].map(v => (
+                                <button key={v} onClick={()=>setView(v)} className={`w-full text-left p-3 rounded capitalize ${view===v?'bg-primary text-white':'text-gray-400 hover:bg-white/10'}`}>{v}</button>
+                            ))}
+                        </nav>
+                    </aside>
+                    <main className="flex-1 p-8 overflow-y-auto bg-dark">
+                        <h2 className="text-2xl font-bold mb-6 capitalize">{view}</h2>
+                        {view === 'dashboard' && <Dashboard {...data} />}
+                        {view === 'orders' && <OrderManager orders={data.orders} />}
+                        {view === 'inventory' && <InventoryManager />}
+                        {view === 'deposits' && <DepositManager deposits={data.deposits} />}
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
