@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WASI OTP - Glass Portal</title>
+
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#ec4899',
+                        dark: '#0f172a',
+                        light: '#f8fafc'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; transition: background 0.3s ease; }
+        
+        /* Glassmorphism Styles */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        .dark .glass {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .dark .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Backgrounds */
+        .bg-light-mode {
+            background: radial-gradient(circle at top left, #e0e7ff, #f3e8ff, #ffffff);
+        }
+        .bg-dark-mode {
+            background: radial-gradient(circle at top left, #1e1b4b, #0f172a, #020617);
+        }
+
+        /* Utilities */
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark .custom-scroll::-webkit-scrollbar-thumb { background: #334155; }
+    </style>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyA43N49sPsPs5NDfBUI4O2Zh_X_oLsl-dQ",
+            authDomain: "wasi-otp.firebaseapp.com",
+            projectId: "wasi-otp",
+            storageBucket: "wasi-otp.firebasestorage.app",
+            messagingSenderId: "992311938758",
+            appId: "1:992311938758:web:20502825dd689293bf91c7"
+        };
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        const notify = (msg, type="success") => {
+            Toastify({ 
+                text: msg, duration: 3000, gravity: "top", position: "center", 
+                style: { 
+                    background: type==="success" ? "linear-gradient(to right, #10b981, #059669)" : "linear-gradient(to right, #ef4444, #dc2626)",
+                    borderRadius: "12px", boxShadow: "0 5px 15px rgba(0,0,0,0.2)"
+                } 
+            }).showToast();
+        };
+
+        // --- FLAG HELPER ---
+        const getFlag = (countryName) => {
+            if(!countryName) return "🌍";
+            const name = countryName.toLowerCase();
+            const flags = {
+                "pakistan": "🇵🇰", "india": "🇮🇳", "usa": "🇺🇸", "united states": "🇺🇸",
+                "indonesia": "🇮🇩", "bangladesh": "🇧🇩", "russia": "🇷🇺", "ukraine": "🇺🇦",
+                "vietnam": "🇻🇳", "philippines": "🇵🇭", "brazil": "🇧🇷", "thailand": "🇹🇭",
+                "china": "🇨🇳", "turkey": "🇹🇷", "egypt": "🇪🇬", "morocco": "🇲🇦", 
+                "saudi arabia": "🇸🇦", "uae": "🇦🇪", "uk": "🇬🇧", "england": "🇬🇧", "france": "🇫🇷",
+                "germany": "🇩🇪", "nigeria": "🇳🇬", "kenya": "🇰🇪"
+            };
+            return flags[name] || "🏳️"; // Default flag if not found
+        };
+
+        // --- COMPONENTS ---
+
+        const AuthScreen = () => {
+            const [isLogin, setIsLogin] = useState(true);
+            const [email, setEmail] = useState("");
+            const [pass, setPass] = useState("");
+            const [name, setName] = useState("");
+            const [loading, setLoading] = useState(false);
+
+            const handleAuth = async (e) => {
+                e.preventDefault(); setLoading(true);
+                try {
+                    if (isLogin) await auth.signInWithEmailAndPassword(email, pass);
+                    else {
+                        const cred = await auth.createUserWithEmailAndPassword(email, pass);
+                        await db.collection('users').doc(cred.user.uid).set({ name, email, balance: 0, status: 'Active', createdAt: Date.now() });
+                    }
+                } catch (err) { notify(err.message, "error"); }
+                setLoading(false);
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center p-4">
+                    <div className="glass p-8 rounded-3xl w-full max-w-sm shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary to-secondary"></div>
+                        <h1 className="text-4xl font-black text-center mb-1 text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">WASI OTP</h1>
+                        <p className="text-center text-gray-500 dark:text-gray-400 mb-8 text-sm">Premium Verification Portal</p>
+                        
+                        <form onSubmit={handleAuth} className="space-y-4">
+                            {!isLogin && <input className="w-full p-4 glass-card rounded-xl outline-none focus:border-primary border border-transparent transition text-gray-800 dark:text-white" placeholder="Full Name" onChange={e=>setName(e.target.value)} required />}
+                            <input className="w-full p-4 glass-card rounded-xl outline-none focus:border-primary border border-transparent transition text-gray-800 dark:text-white" type="email" placeholder="Email Address" onChange={e=>setEmail(e.target.value)} required />
+                            <input className="w-full p-4 glass-card rounded-xl outline-none focus:border-primary border border-transparent transition text-gray-800 dark:text-white" type="password" placeholder="Password" onChange={e=>setPass(e.target.value)} required />
+                            <button disabled={loading} className="w-full bg-gradient-to-r from-primary to-secondary py-4 rounded-xl font-bold text-white shadow-lg hover:shadow-primary/30 transition transform hover:scale-[1.02]">
+                                {loading ? <i className="fa-solid fa-circle-notch fa-spin"></i> : (isLogin ? "LOGIN" : "CREATE ACCOUNT")}
+                            </button>
+                        </form>
+                        <p onClick={()=>setIsLogin(!isLogin)} className="text-center mt-6 text-gray-500 cursor-pointer text-sm hover:text-primary transition font-medium">
+                            {isLogin ? "New here? Create Account" : "Already have an account? Login"}
+                        </p>
+                    </div>
+                </div>
+            );
+        };
+
+        const BuyPanel = ({ user, balance, setView }) => {
+            const [inventory, setInventory] = useState([]);
+            const [selCountry, setSelCountry] = useState(null);
+            const [search, setSearch] = useState("");
+
+            useEffect(() => {
+                return db.collection('inventory').onSnapshot(snap => setInventory(snap.docs.map(d => ({id: d.id, ...d.data()}))));
+            }, []);
+
+            const countries = [...new Set(inventory.map(i => i.country))];
+
+            const handleBuy = async (pkg) => {
+                if(pkg.stock.length === 0) return notify("Out of Stock!", "error");
+                if(balance < pkg.price) return notify("Insufficient Balance!", "error");
+                if(!confirm(`Confirm Purchase?\nService: ${pkg.service}\nPrice: Rs ${pkg.price}`)) return;
+
+                try {
+                    const batch = db.batch();
+                    const userRef = db.collection('users').doc(user.uid);
+                    const invRef = db.collection('inventory').doc(pkg.id);
+                    const orderRef = db.collection('orders').doc();
+                    const number = pkg.stock[Math.floor(Math.random() * pkg.stock.length)];
+
+                    batch.update(userRef, { balance: firebase.firestore.FieldValue.increment(-pkg.price) });
+                    batch.update(invRef, { stock: firebase.firestore.FieldValue.arrayRemove(number) });
+                    batch.set(orderRef, { userId: user.uid, number, service: pkg.service, country: pkg.country, price: pkg.price, status: 'WAITING', code: null, timestamp: Date.now() });
+
+                    await batch.commit();
+                    notify("Success! Redirecting...");
+                    setView('active');
+                } catch(e) { notify(e.message, "error"); }
+            };
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+                    {/* Left: Countries */}
+                    <div className={`lg:col-span-4 glass rounded-3xl flex flex-col overflow-hidden h-[75vh] ${selCountry && window.innerWidth < 1024 ? 'hidden lg:flex' : 'flex'}`}>
+                        <div className="p-5 border-b border-gray-200 dark:border-gray-700">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">Select Region</h3>
+                            <div className="relative">
+                                <i className="fa-solid fa-search absolute left-4 top-3.5 text-gray-400"></i>
+                                <input placeholder="Search..." onChange={e=>setSearch(e.target.value)} className="w-full pl-10 p-3 glass-card rounded-xl text-sm outline-none focus:ring-2 ring-primary/50 text-gray-800 dark:text-white" />
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scroll">
+                            {countries.filter(c => c.toLowerCase().includes(search.toLowerCase())).map(c => (
+                                <button key={c} onClick={()=>setSelCountry(c)} className={`w-full p-4 rounded-xl text-left flex items-center justify-between transition-all ${selCountry===c ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-700 dark:text-gray-200'}`}>
+                                    <span className="font-bold text-lg"><span className="mr-3 text-2xl">{getFlag(c)}</span> {c}</span>
+                                    <i className="fa-solid fa-chevron-right opacity-50 text-sm"></i>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Right: Services */}
+                    <div className={`lg:col-span-8 glass rounded-3xl flex flex-col overflow-hidden h-[75vh] ${!selCountry && window.innerWidth < 1024 ? 'hidden lg:flex' : 'flex'}`}>
+                        <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+                            <button onClick={()=>setSelCountry(null)} className="lg:hidden p-2 rounded-full hover:bg-gray-200 dark:hover:bg-white/10"><i className="fa-solid fa-arrow-left"></i></button>
+                            <h3 className="font-bold text-gray-800 dark:text-white">{selCountry ? <>{getFlag(selCountry)} Services in {selCountry}</> : "Select a Country"}</h3>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-5 custom-scroll bg-gray-50/50 dark:bg-black/20">
+                            {!selCountry ? 
+                                <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-60">
+                                    <i className="fa-solid fa-earth-americas text-8xl mb-4 animate-pulse"></i>
+                                    <p>Select a country to view services</p>
+                                </div> : 
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {inventory.filter(i => i.country === selCountry).map(pkg => (
+                                        <div key={pkg.id} className="glass-card p-5 rounded-2xl hover:border-primary/50 border border-transparent transition-all group relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-primary/20 to-transparent rounded-bl-full -mr-10 -mt-10"></div>
+                                            <div className="flex justify-between items-start mb-4 relative z-10">
+                                                <div>
+                                                    <h4 className="font-bold text-lg text-gray-800 dark:text-white">{pkg.service}</h4>
+                                                    <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-md ${pkg.stock.length>0?'bg-green-100 text-green-600 dark:bg-green-500/20 dark:text-green-400':'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400'}`}>
+                                                        {pkg.stock.length > 0 ? `${pkg.stock.length} Stock` : 'Sold Out'}
+                                                    </span>
+                                                </div>
+                                                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-2xl shadow-sm">
+                                                    {pkg.service.charAt(0)}
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-end relative z-10">
+                                                <div>
+                                                    <p className="text-xs text-gray-500">Price</p>
+                                                    <p className="text-xl font-black text-gray-800 dark:text-white">Rs {pkg.price}</p>
+                                                </div>
+                                                <button onClick={()=>handleBuy(pkg)} disabled={pkg.stock.length===0} className="bg-primary text-white px-5 py-2 rounded-xl font-bold text-sm shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    BUY
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ActivePanel = ({ user }) => {
+            const [orders, setOrders] = useState([]);
+            useEffect(() => {
+                return db.collection('orders').where('userId', '==', user.uid).onSnapshot(snap => {
+                    const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    data.sort((a,b) => b.timestamp - a.timestamp);
+                    setOrders(data);
+                });
+            }, []);
+
+            const copy = (txt) => { navigator.clipboard.writeText(txt); notify("Copied!"); };
+
+            return (
+                <div className="max-w-3xl mx-auto space-y-4">
+                    <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">Live Orders</h2>
+                    {orders.length===0 && <div className="text-center p-16 glass rounded-3xl text-gray-500"><i className="fa-solid fa-box-open text-6xl mb-4 opacity-30"></i><p>No active orders.</p></div>}
+                    
+                    {orders.map(o => (
+                        <div key={o.id} className={`glass p-6 rounded-3xl border transition-all duration-500 ${o.status==='WAITING'?'border-yellow-500/50 bg-yellow-500/5':o.status==='RECEIVED'?'border-green-500/50 bg-green-500/5':'border-red-500/30 opacity-60'}`}>
+                            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                                <div className="flex items-center gap-4 w-full md:w-auto">
+                                    <div className="text-4xl">{getFlag(o.country)}</div>
+                                    <div>
+                                        <h3 className="font-bold text-lg text-gray-800 dark:text-white">{o.service}</h3>
+                                        <div onClick={()=>copy(o.number)} className="cursor-pointer flex items-center gap-2 bg-gray-100 dark:bg-black/30 px-3 py-1 rounded-lg mt-1 group">
+                                            <code className="font-mono text-primary font-bold">{o.number}</code>
+                                            <i className="fa-regular fa-copy text-gray-400 group-hover:text-primary transition text-xs"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 w-full text-center">
+                                    {o.status === 'WAITING' ? (
+                                        <div className="inline-flex items-center gap-3 text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-500/10 px-5 py-2 rounded-full border border-yellow-500/30 animate-pulse">
+                                            <i className="fa-solid fa-spinner fa-spin"></i>
+                                            <span className="font-bold text-sm">WAITING FOR OTP...</span>
+                                        </div>
+                                    ) : o.status === 'RECEIVED' ? (
+                                        <div onClick={()=>copy(o.code)} className="inline-flex flex-col items-center cursor-pointer group">
+                                            <span className="text-[10px] text-green-500 font-bold uppercase tracking-widest mb-1">Code Received</span>
+                                            <div className="bg-green-500 text-white px-8 py-2 rounded-xl text-3xl font-mono font-bold shadow-lg shadow-green-500/30 group-hover:scale-105 transition">{o.code}</div>
+                                        </div>
+                                    ) : <span className="text-red-500 font-bold">CANCELLED</span>}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        const DepositPanel = ({ user }) => {
+            const [amount, setAmount] = useState("");
+            const [sName, setSName] = useState("");
+            const [sNum, setSNum] = useState("");
+            const [history, setHistory] = useState([]);
+
+            useEffect(() => {
+                return db.collection('deposits').where('userId', '==', user.uid).onSnapshot(snap => {
+                    const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    data.sort((a,b) => b.timestamp - a.timestamp);
+                    setHistory(data);
+                });
+            }, []);
+
+            const submit = async (e) => {
+                e.preventDefault();
+                if(parseInt(amount) < 200) return notify("Min Deposit Rs 200", "error");
+                await db.collection('deposits').add({ userId: user.uid, userName: user.email.split('@')[0], amount, senderName: sName, senderNum: sNum, status: 'pending', timestamp: Date.now() });
+                notify("Request Sent!"); setAmount("");
+            };
+
+            return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="glass p-8 rounded-3xl">
+                        <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">Deposit Funds</h3>
+                        <div className="bg-gradient-to-r from-green-500 to-emerald-700 p-6 rounded-2xl mb-8 text-white shadow-xl relative overflow-hidden">
+                            <div className="absolute -right-6 -top-6 bg-white/20 w-32 h-32 rounded-full blur-2xl"></div>
+                            <p className="text-xs uppercase tracking-widest opacity-80 mb-2">Easypaisa</p>
+                            <h2 className="text-3xl font-mono font-bold mb-1">03175768178</h2>
+                            <p className="font-medium text-lg">Munir Akhtar</p>
+                        </div>
+                        <form onSubmit={submit} className="space-y-4">
+                            <input type="number" placeholder="Amount (Min 200)" value={amount} onChange={e=>setAmount(e.target.value)} className="w-full p-4 glass-card rounded-xl outline-none focus:border-primary text-gray-800 dark:text-white" required />
+                            <input placeholder="Sender Name" value={sName} onChange={e=>setSName(e.target.value)} className="w-full p-4 glass-card rounded-xl outline-none focus:border-primary text-gray-800 dark:text-white" required />
+                            <input placeholder="Sender Number" value={sNum} onChange={e=>setSNum(e.target.value)} className="w-full p-4 glass-card rounded-xl outline-none focus:border-primary text-gray-800 dark:text-white" required />
+                            <button className="w-full bg-primary py-4 rounded-xl font-bold text-white hover:bg-indigo-600 shadow-lg transition">SUBMIT REQUEST</button>
+                        </form>
+                    </div>
+                    <div className="glass p-8 rounded-3xl h-[600px] overflow-y-auto">
+                        <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">History</h3>
+                        {history.map(h => (
+                            <div key={h.id} className="p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 mb-3 flex justify-between items-center">
+                                <div><p className="font-bold text-gray-800 dark:text-white">Rs {h.amount}</p><p className="text-xs text-gray-500">{new Date(h.timestamp).toLocaleDateString()}</p></div>
+                                <span className={`text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-wider ${h.status==='approved'?'bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400':'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'}`}>{h.status}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [view, setView] = useState('buy');
+            const [balance, setBalance] = useState(0);
+            const [darkMode, setDarkMode] = useState(true);
+
+            useEffect(() => {
+                if (darkMode) { document.body.classList.add('dark', 'bg-dark-mode'); document.body.classList.remove('bg-light-mode'); }
+                else { document.body.classList.remove('dark', 'bg-dark-mode'); document.body.classList.add('bg-light-mode'); }
+            }, [darkMode]);
+
+            useEffect(() => {
+                auth.onAuthStateChanged(u => {
+                    setUser(u);
+                    if(u) db.collection('users').doc(u.uid).onSnapshot(d => setBalance(d.data()?.balance || 0));
+                });
+            }, []);
+
+            if(!user) return (
+                <div className={darkMode ? 'dark bg-dark-mode' : 'bg-light-mode'}>
+                    <AuthScreen setUser={setUser} />
+                </div>
+            );
+
+            return (
+                <div className="flex h-screen flex-col md:flex-row overflow-hidden text-gray-800 dark:text-gray-100">
+                    {/* Sidebar / Bottom Nav for Mobile */}
+                    <aside className="w-full md:w-64 glass border-r border-gray-200 dark:border-gray-800 flex flex-col z-20 md:relative fixed bottom-0 md:h-full h-auto">
+                        <div className="h-20 hidden md:flex items-center justify-center font-black text-2xl text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">WASI</div>
+                        
+                        <nav className="p-2 md:p-4 flex md:flex-col justify-around md:justify-start space-x-0 md:space-y-2">
+                            {['buy', 'active', 'deposit'].map(v => (
+                                <button key={v} onClick={()=>setView(v)} className={`w-full md:p-4 p-3 rounded-xl flex flex-col md:flex-row items-center md:gap-4 transition-all ${view===v ? 'bg-primary text-white shadow-lg' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'}`}>
+                                    <i className={`fa-solid ${v==='buy'?'fa-cart-shopping':v==='active'?'fa-bolt':'fa-wallet'} text-xl md:w-6 text-center`}></i>
+                                    <span className="capitalize text-[10px] md:text-sm font-bold mt-1 md:mt-0">{v}</span>
+                                </button>
+                            ))}
+                        </nav>
+
+                        {/* Settings & Logout */}
+                        <div className="p-4 hidden md:block mt-auto space-y-2">
+                            <button onClick={()=>setDarkMode(!darkMode)} className="w-full p-3 rounded-xl bg-gray-200 dark:bg-white/5 flex items-center justify-center gap-2 hover:opacity-80 transition text-sm font-bold">
+                                <i className={`fa-solid ${darkMode ? 'fa-sun' : 'fa-moon'}`}></i> {darkMode ? 'Light' : 'Dark'} Mode
+                            </button>
+                            <button onClick={()=>auth.signOut()} className="w-full p-3 text-red-500 hover:bg-red-500/10 rounded-xl flex items-center justify-center gap-2 font-bold text-sm">
+                                <i className="fa-solid fa-power-off"></i> Logout
+                            </button>
+                        </div>
+                    </aside>
+
+                    {/* Main Content */}
+                    <main className="flex-1 flex flex-col relative mb-16 md:mb-0">
+                        {/* Mobile Top Bar */}
+                        <header className="h-20 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center px-6 glass sticky top-0 z-10">
+                            <div>
+                                <h2 className="text-xl font-bold capitalize">{view}</h2>
+                                <p className="text-xs text-gray-500">Hi, {user.email.split('@')[0]}</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={()=>setDarkMode(!darkMode)} className="md:hidden w-10 h-10 rounded-full bg-gray-200 dark:bg-white/10 flex items-center justify-center">
+                                    <i className={`fa-solid ${darkMode ? 'fa-sun' : 'fa-moon'}`}></i>
+                                </button>
+                                <div className="glass px-4 py-2 rounded-xl flex items-center gap-3 border border-primary/20 shadow-sm">
+                                    <div className="text-right">
+                                        <p className="text-[10px] font-bold opacity-60">BALANCE</p>
+                                        <p className="text-lg font-black leading-none">Rs {balance}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </header>
+
+                        <div className="flex-1 overflow-y-auto p-4 md:p-8 relative z-10 custom-scroll">
+                            {view === 'buy' && <BuyPanel user={user} balance={balance} setView={setView} />}
+                            {view === 'active' && <ActivePanel user={user} />}
+                            {view === 'deposit' && <DepositPanel user={user} />}
+                        </div>
+                    </main>
+                    
+                    <a href="https://wa.me/923342002756" target="_blank" className="fixed bottom-20 md:bottom-8 right-6 z-50 bg-[#25D366] w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition shadow-green-500/40">
+                        <i className="fa-brands fa-whatsapp text-3xl text-white"></i>
+                    </a>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
