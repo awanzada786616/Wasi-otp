@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WASI OTP - Vercel Live</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { brand: { blue: '#0d6efd', dark: '#0b5ed7', light: '#e7f1ff' } },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    animation: { 'look-around': 'lookAround 2.5s infinite alternate' },
+                    keyframes: {
+                        lookAround: {
+                            '0%, 10%': { transform: 'translate(0, 0)' },
+                            '25%': { transform: 'translate(-10px, -5px)' },
+                            '50%': { transform: 'translate(10px, 5px)' },
+                            '75%': { transform: 'translate(-5px, 5px)' },
+                            '90%, 100%': { transform: 'translate(0, 0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- React & Libraries -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { background-color: #f3f4f6; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .custom-scroll::-webkit-scrollbar { height: 4px; width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .eye-container {
+            width: 120px; height: 120px; background: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2), inset 0 0 20px rgba(0,0,0,0.1);
+            position: relative; overflow: hidden; border: 4px solid #0d6efd;
+        }
+        .pupil {
+            width: 40px; height: 40px; background: #0d6efd; border-radius: 50%;
+            position: relative; box-shadow: 0 0 10px rgba(13, 110, 253, 0.5);
+        }
+        .pupil::after { content: ''; position: absolute; top: 8px; right: 8px; width: 12px; height: 12px; background: white; border-radius: 50%; }
+        .eyelid {
+            position: absolute; top: 0; left: 0; right: 0; height: 0%; background: #0d6efd; z-index: 10;
+            animation: blink 4s infinite;
+        }
+        @keyframes blink { 0%, 90%, 100% { height: 0%; } 95% { height: 100%; } }
+    </style>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- CONFIGURATION ---
+        const API_KEY = "e4c5d4fcc56363f572a597267b42e5d2"; 
+        const PROXY_URL = "/api/proxy"; 
+
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyA43N49sPsPs5NDfBUI4O2Zh_X_oLsl-dQ",
+            authDomain: "wasi-otp.firebaseapp.com",
+            projectId: "wasi-otp",
+            storageBucket: "wasi-otp.firebasestorage.app",
+            messagingSenderId: "992311938758",
+            appId: "1:992311938758:web:20502825dd689293bf91c7"
+        };
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        const notify = (msg, type="success") => {
+            Toastify({ 
+                text: msg, duration: 3000, gravity: "top", position: "center", 
+                style: { background: type==="success"?"#0d6efd":"#dc3545", borderRadius: "10px" } 
+            }).showToast();
+        };
+
+        // --- COMPONENTS ---
+        const EyeLoader = () => (
+            <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+                <div className="eye-container mb-8">
+                    <div className="eyelid"></div>
+                    <div className="pupil animate-look-around"></div>
+                </div>
+                <h2 className="text-xl font-bold text-gray-800 animate-pulse">Wasi is Connecting...</h2>
+                <p className="text-gray-400 text-sm mt-2">Loading Services</p>
+            </div>
+        );
+
+        const AuthScreen = () => {
+            const [isLogin, setIsLogin] = useState(true);
+            const [email, setEmail] = useState("");
+            const [pass, setPass] = useState("");
+            const [name, setName] = useState("");
+            const [loading, setLoading] = useState(false);
+
+            const handleAuth = async (e) => {
+                e.preventDefault(); setLoading(true);
+                try {
+                    if (isLogin) await auth.signInWithEmailAndPassword(email, pass);
+                    else {
+                        const cred = await auth.createUserWithEmailAndPassword(email, pass);
+                        await db.collection('users').doc(cred.user.uid).set({ name, email, balance: 0, createdAt: Date.now() });
+                    }
+                } catch (err) { notify(err.message, "error"); }
+                setLoading(false);
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
+                    <div className="w-full max-w-sm bg-white p-8 rounded-3xl shadow-xl">
+                        <div className="text-center mb-8">
+                            <h1 className="text-3xl font-black text-brand-blue">WASI OTP</h1>
+                            <p className="text-gray-400">Secure Access</p>
+                        </div>
+                        <form onSubmit={handleAuth} className="space-y-4">
+                            {!isLogin && <input className="w-full p-4 bg-gray-50 rounded-xl border focus:border-brand-blue outline-none" placeholder="Full Name" onChange={e=>setName(e.target.value)} required />}
+                            <input className="w-full p-4 bg-gray-50 rounded-xl border focus:border-brand-blue outline-none" type="email" placeholder="Email" onChange={e=>setEmail(e.target.value)} required />
+                            <input className="w-full p-4 bg-gray-50 rounded-xl border focus:border-brand-blue outline-none" type="password" placeholder="Password" onChange={e=>setPass(e.target.value)} required />
+                            <button disabled={loading} className="w-full bg-brand-blue text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-brand-blue/50 transition">
+                                {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : (isLogin ? "LOGIN" : "CREATE ACCOUNT")}
+                            </button>
+                        </form>
+                        <p onClick={()=>setIsLogin(!isLogin)} className="text-center mt-6 text-gray-500 cursor-pointer text-sm font-medium">
+                            {isLogin ? "New User? Register" : "Have Account? Login"}
+                        </p>
+                    </div>
+                </div>
+            );
+        };
+
+        const Dashboard = ({ user, balance, setView }) => {
+            const [countries, setCountries] = useState([]);
+            const [services, setServices] = useState([]);
+            const [selCountry, setSelCountry] = useState(null);
+            const [loadingSvc, setLoadingSvc] = useState(false);
+
+            useEffect(() => {
+                const fetchCountries = async () => {
+                    try {
+                        const res = await fetch(`${PROXY_URL}?api_key=${API_KEY}&action=getCountries`);
+                        const data = await res.json();
+                        const list = Object.keys(data).map(key => ({ id: key, name: data[key] }));
+                        setCountries(list);
+                        if(list.length > 0) setSelCountry(list.find(c=>c.id==='pk') || list[0]);
+                    } catch(e) { console.error("API Error", e); notify("Failed to load countries", "error"); }
+                };
+                fetchCountries();
+            }, []);
+
+            // --- FIXED FETCH SERVICES FUNCTION ---
+            useEffect(() => {
+                if(!selCountry) return;
+                const fetchServices = async () => {
+                    setLoadingSvc(true);
+                    setServices([]);
+                    try {
+                        const res = await fetch(`${PROXY_URL}?api_key=${API_KEY}&action=getServices&country=${selCountry.id}`);
+                        const textData = await res.text();
+                        
+                        // Check if response is valid JSON
+                        try {
+                            const data = JSON.parse(textData);
+                            
+                            if (data && typeof data === 'object') {
+                                // Sometimes API returns { "status": "error" } or null
+                                if(data.status === "error") {
+                                    console.log("API returned error for this country");
+                                } else {
+                                    const list = Object.keys(data).map(k => ({
+                                        id: k, 
+                                        name: k.toUpperCase(), 
+                                        price: data[k].cost || data[k].price || 0, 
+                                        count: data[k].count || 0
+                                    }));
+                                    setServices(list);
+                                }
+                            }
+                        } catch(err) {
+                            console.log("No services found or invalid JSON:", textData);
+                        }
+                    } catch(e) { console.error(e); }
+                    setLoadingSvc(false);
+                };
+                fetchServices();
+            }, [selCountry]);
+
+            const handleBuy = async (service) => {
+                if(balance < service.price) return notify("Insufficient Balance", "error");
+                if(service.count === 0) return notify("Out of Stock", "error");
+                if(!confirm(`Buy ${service.name} for Rs ${service.price}?`)) return;
+                notify("Requesting Number...", "info");
+                try {
+                    const res = await fetch(`${PROXY_URL}?api_key=${API_KEY}&action=getNumber&service=${service.id}&country=${selCountry.id}`);
+                    const txt = await res.text();
+                    if(txt.includes("ACCESS_NUMBER")) {
+                        const parts = txt.split(':');
+                        const apiId = parts[1];
+                        const number = parts[2];
+                        const batch = db.batch();
+                        batch.update(db.collection('users').doc(user.uid), { balance: firebase.firestore.FieldValue.increment(-service.price) });
+                        batch.set(db.collection('orders').doc(apiId), { 
+                            userId: user.uid, service: service.name, country: selCountry.name, number: number, 
+                            price: service.price, apiId: apiId, status: 'WAITING', code: null, timestamp: Date.now() 
+                        });
+                        await batch.commit();
+                        notify("Success! Number Received."); setView('history');
+                    } else if (txt === "NO_NUMBERS") { notify("No numbers available.", "error");
+                    } else { notify("API Error: " + txt, "error"); }
+                } catch(e) { notify(e.message, "error"); }
+            };
+
+            const getFlag = (code) => {
+                const f = {"pk":"🇵🇰","in":"🇮🇳","us":"🇺🇸","ru":"🇷🇺","id":"🇮🇩","vn":"🇻🇳","cn":"🇨🇳","gb":"🇬🇧","ua":"🇺🇦","th":"🇹🇭","ph":"🇵🇭","bd":"🇧🇩"};
+                return f[code] || "🌍";
+            };
+
+            return (
+                <div className="pb-24">
+                    <div className="bg-white p-5 sticky top-0 z-20 shadow-sm flex justify-between items-center">
+                        <div><h1 className="text-xl font-black text-brand-blue">WASI OTP</h1><p className="text-xs text-gray-400">Balance: <span className="text-gray-800 font-bold">Rs {balance}</span></p></div>
+                        <div className="flex gap-3"><button onClick={()=>setView('deposit')} className="bg-green-100 text-green-700 px-3 py-2 rounded-lg text-xs font-bold"><i className="fa-solid fa-plus"></i> Add Fund</button><button onClick={()=>setView('history')} className="bg-gray-100 text-gray-700 w-9 h-9 rounded-lg flex items-center justify-center"><i className="fa-solid fa-clock-rotate-left"></i></button></div>
+                    </div>
+
+                    <div className="mt-4 px-4">
+                        <h3 className="text-sm font-bold text-gray-500 mb-2 uppercase tracking-wider">Select Region</h3>
+                        <div className="flex gap-3 overflow-x-auto custom-scroll pb-2">
+                            {countries.length===0 && <div className="text-xs text-gray-400">Loading Countries...</div>}
+                            {countries.map(c => (
+                                <button key={c.id} onClick={()=>setSelCountry(c)} className={`px-5 py-3 rounded-xl flex-shrink-0 flex items-center gap-2 border transition ${selCountry?.id===c.id ? 'bg-brand-blue text-white border-brand-blue shadow-lg' : 'bg-white text-gray-600 border-gray-100'}`}>
+                                    <span className="text-xl">{getFlag(c.id)}</span>
+                                    <span className="font-bold text-sm whitespace-nowrap">{c.name}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="mt-6 px-4">
+                        <h3 className="text-sm font-bold text-gray-500 mb-3 uppercase tracking-wider">
+                            {selCountry ? `Services in ${selCountry.name}` : 'Select a Country'}
+                        </h3>
+                        {loadingSvc ? <div className="text-center py-10"><i className="fa-solid fa-circle-notch fa-spin text-brand-blue text-2xl"></i></div> : 
+                         services.length === 0 ? <div className="text-center py-10 text-gray-400">No services available for this region.</div> :
+                         <div className="grid grid-cols-1 gap-3">
+                            {services.map(p => (
+                                <div key={p.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl shadow-sm ${p.count > 0 ? 'bg-blue-50 text-brand-blue' : 'bg-red-50 text-red-400'}`}>
+                                            {p.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-800">{p.name}</h4>
+                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${p.count > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {p.count} Available
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button onClick={()=>handleBuy(p)} disabled={p.count===0} className="bg-gray-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:bg-brand-blue disabled:opacity-50 transition">
+                                        Rs {p.price}
+                                    </button>
+                                </div>
+                            ))}
+                         </div>
+                        }
+                    </div>
+                </div>
+            );
+        };
+
+        const HistoryPanel = ({ user, setView }) => {
+            const [orders, setOrders] = useState([]);
+            useEffect(() => { const unsub = db.collection('orders').where('userId','==',user.uid).onSnapshot(s => setOrders(s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>b.timestamp-a.timestamp))); return () => unsub(); }, []);
+            useEffect(() => { const interval = setInterval(() => { orders.filter(o => o.status === 'WAITING').forEach(async (order) => { try { const res = await fetch(`${PROXY_URL}?api_key=${API_KEY}&action=getStatus&id=${order.apiId}`); const status = await res.text(); if(status.includes("STATUS_OK")) { const code = status.split(':')[1]; await db.collection('orders').doc(order.id).update({ status: 'RECEIVED', code: code }); notify("OTP Received!", "success"); } else if (status === "STATUS_CANCEL") { await db.collection('orders').doc(order.id).update({ status: 'CANCELLED' }); await db.collection('users').doc(user.uid).update({ balance: firebase.firestore.FieldValue.increment(order.price) }); } } catch(e) {} }); }, 5000); return () => clearInterval(interval); }, [orders]);
+            const copy = (t) => { navigator.clipboard.writeText(t); notify("Copied"); };
+            return ( <div className="min-h-screen bg-gray-50"><div className="bg-white p-4 border-b flex gap-4 sticky top-0 z-10"><button onClick={()=>setView('home')}><i className="fa-solid fa-arrow-left"></i></button><span className="font-bold">History</span></div><div className="p-4 space-y-3">{orders.map(o => (<div key={o.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100"><div className="flex justify-between mb-2"><span className="font-bold">{o.service} <span className="text-xs text-gray-500">({o.country})</span></span><span className={`text-[10px] font-bold px-2 py-1 rounded ${o.status==='WAITING'?'bg-yellow-100 text-yellow-700 animate-pulse':'bg-green-100 text-green-700'}`}>{o.status}</span></div><div className="bg-gray-100 p-2 rounded flex justify-between font-mono font-bold text-gray-700">{o.number} <i className="fa-regular fa-copy cursor-pointer" onClick={()=>copy(o.number)}></i></div><div className="mt-2 text-center text-sm border-t pt-2">{o.code || "Waiting for OTP..."}</div></div>))}</div></div> );
+        };
+
+        const DepositPanel = ({ user, setView }) => {
+            const [amt, setAmt] = useState("");
+            const sub = async () => { if(amt<100) return notify("Min 100", "error"); await db.collection('deposits').add({ userId: user.uid, amount: Number(amt), status: 'pending', timestamp: Date.now() }); notify("Request Sent"); setView('home'); };
+            return ( <div className="min-h-screen bg-gray-50"><div className="bg-white p-4 border-b flex gap-4"><button onClick={()=>setView('home')}><i className="fa-solid fa-arrow-left"></i></button> <span className="font-bold">Deposit</span></div><div className="p-6"><div className="bg-white p-6 rounded-2xl text-center shadow-sm mb-4"><h2 className="text-2xl font-bold">03175768178</h2><p className="text-gray-500">Easypaisa - Munir Akhtar</p></div><input type="number" placeholder="Amount" value={amt} onChange={e=>setAmt(e.target.value)} className="w-full p-4 rounded-xl border mb-4" /><button onClick={sub} className="w-full bg-brand-blue text-white py-4 rounded-xl font-bold">Request Balance</button></div></div> );
+        };
+
+        const App = () => { const [user, setUser] = useState(null); const [balance, setBalance] = useState(0); const [view, setView] = useState('home'); const [showEye, setShowEye] = useState(false); useEffect(() => { auth.onAuthStateChanged(u => { if(u) { setShowEye(true); setTimeout(() => setShowEye(false), 2500); db.collection('users').doc(u.uid).onSnapshot(d => setBalance(d.data()?.balance || 0)); } setUser(u); }); }, []); if(!user) return <AuthScreen />; if(showEye) return <EyeLoader />; return ( <div className="max-w-md mx-auto bg-gray-50 min-h-screen shadow-2xl relative"> {view === 'home' && <Dashboard user={user} balance={balance} setView={setView} />} {view === 'history' && <HistoryPanel user={user} setView={setView} />} {view === 'deposit' && <DepositPanel user={user} setView={setView} />} <a href="https://wa.me/923342002756" target="_blank" className="fixed bottom-6 right-6 z-40 bg-[#25D366] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg animate-bounce"><i className="fa-brands fa-whatsapp text-3xl"></i></a> </div> ); };
+        const root = ReactDOM.createRoot(document.getElementById('root')); root.render(<App />);
+    </script>
+</body>
+</html>
