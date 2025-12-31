@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="color-scheme" content="light">
+    <title>Support - WASI OTP</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '#0d6efd',
+                        brandDark: '#0a58ca',
+                        bgLight: '#f4f6f8',
+                        textDark: '#212529',
+                        success: '#198754',
+                        danger: '#dc3545',
+                        warning: '#ffc107',
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    
+    <!-- React & Firebase -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root { color-scheme: light; }
+        body { background-color: #f4f6f8; font-family: 'Inter', sans-serif; padding-bottom: 50px; }
+
+        /* Blue Header Card */
+        .blue-card {
+            background: linear-gradient(135deg, #0d6efd 0%, #0043a8 100%);
+            border-radius: 0 0 20px 20px;
+            padding: 25px 20px 40px 20px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3);
+            margin-bottom: -30px; /* Overlap effect */
+        }
+
+        /* Ticket Card */
+        .ticket-card {
+            background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px;
+            margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+
+        .status-badge {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            padding: 4px 10px; border-radius: 20px;
+        }
+        .status-open { background: #d1e7dd; color: #198754; }
+        .status-replied { background: #cfe2ff; color: #0d6efd; }
+        .status-closed { background: #f8d7da; color: #dc3545; }
+
+        .admin-reply {
+            background: #f0f9ff; border-left: 4px solid #0d6efd;
+            padding: 12px; margin-top: 12px; border-radius: 4px;
+            font-size: 13px; color: #334155;
+        }
+
+        .cat-loader { font-size: 3rem; animation: bounce 1s infinite alternate; }
+    </style>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- NEW FIREBASE CONFIG (otpbywasi) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw",
+            authDomain: "otpbywasi.firebaseapp.com",
+            databaseURL: "https://otpbywasi-default-rtdb.firebaseio.com",
+            projectId: "otpbywasi",
+            storageBucket: "otpbywasi.firebasestorage.app",
+            messagingSenderId: "1169252296",
+            appId: "1:1169252296:web:732c1f08f6b6ed7033eafd"
+        };
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        const notify = (msg, type="success") => {
+            Toastify({ text: msg, duration: 3000, style: { background: type==="success"?"#0d6efd":"#dc3545" }, position: "top-center" }).showToast();
+        };
+
+        const LoadingScreen = () => (
+            <div className="h-screen w-full bg-white flex flex-col items-center justify-center z-50">
+                <i className="fa-solid fa-cat cat-loader text-black mb-4"></i>
+            </div>
+        );
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [tickets, setTickets] = useState([]);
+            const [loading, setLoading] = useState(true);
+            
+            // Form
+            const [subject, setSubject] = useState("");
+            const [message, setMessage] = useState("");
+            const [submitting, setSubmitting] = useState(false);
+
+            useEffect(() => {
+                const unsub = auth.onAuthStateChanged(u => {
+                    if (u) {
+                        setUser(u);
+                        // Fetch Tickets (Safe Sort)
+                        db.collection('tickets')
+                          .where('userId', '==', u.uid)
+                          .onSnapshot(snap => {
+                              const list = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                              list.sort((a,b) => b.timestamp - a.timestamp); // Newest first
+                              setTickets(list);
+                              setLoading(false);
+                          });
+                    } else {
+                        window.location.href = "auth.html";
+                    }
+                });
+                return () => unsub();
+            }, []);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if(!subject || !message) return notify("Please fill all fields", "error");
+
+                setSubmitting(true);
+                try {
+                    await db.collection('tickets').add({
+                        userId: user.uid,
+                        userEmail: user.email,
+                        subject: subject,
+                        message: message,
+                        status: 'Open',
+                        adminReply: '',
+                        timestamp: Date.now()
+                    });
+                    notify("Ticket Created Successfully!");
+                    setSubject(""); setMessage("");
+                } catch(e) { notify("Error: " + e.message, "error"); }
+                setSubmitting(false);
+            };
+
+            const getStatusBadge = (status) => {
+                if (status === 'Replied') return <span className="status-badge status-replied">Answered</span>;
+                if (status === 'Closed') return <span className="status-badge status-closed">Closed</span>;
+                return <span className="status-badge status-open">Open</span>;
+            };
+
+            if (loading) return <LoadingScreen />;
+
+            return (
+                <div className="max-w-md mx-auto min-h-screen bg-f4f6f8">
+                    
+                    {/* Header */}
+                    <div className="blue-card">
+                        <div className="flex items-center gap-4">
+                            <a href="user.html" className="text-white text-xl hover:opacity-80 transition"><i className="fa-solid fa-arrow-left"></i></a>
+                            <div>
+                                <h1 className="text-2xl font-bold">Support Center</h1>
+                                <p className="text-blue-100 text-xs">We are here to help you</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-4 space-y-6 relative z-10">
+                        
+                        {/* CREATE TICKET */}
+                        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <i className="fa-regular fa-pen-to-square text-brand"></i> Create Ticket
+                            </h3>
+                            <form onSubmit={handleSubmit} className="space-y-3">
+                                <input 
+                                    className="w-full p-3 border border-gray-300 rounded-lg text-sm outline-none focus:border-brand transition"
+                                    placeholder="Subject (e.g. Deposit Issue)"
+                                    value={subject}
+                                    onChange={e=>setSubject(e.target.value)}
+                                    required
+                                />
+                                <textarea 
+                                    className="w-full p-3 border border-gray-300 rounded-lg text-sm outline-none focus:border-brand h-24 resize-none transition"
+                                    placeholder="Describe your issue..."
+                                    value={message}
+                                    onChange={e=>setMessage(e.target.value)}
+                                    required
+                                ></textarea>
+                                <button disabled={submitting} className="w-full bg-brand text-white py-3 rounded-lg font-bold shadow hover:bg-brandDark transition disabled:opacity-50">
+                                    {submitting ? "Sending..." : "Submit Ticket"}
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* TICKET HISTORY */}
+                        <div>
+                            <h3 className="font-bold text-gray-700 mb-3 text-sm uppercase tracking-wide px-1">Recent Tickets</h3>
+                            
+                            {tickets.length === 0 ? (
+                                <div className="text-center text-gray-400 py-10 bg-white rounded-xl border border-dashed border-gray-300">
+                                    <i className="fa-regular fa-folder-open text-3xl mb-2"></i>
+                                    <p className="text-sm">No tickets found.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {tickets.map(ticket => (
+                                        <div key={ticket.id} className="ticket-card">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h4 className="font-bold text-gray-900 text-sm">{ticket.subject}</h4>
+                                                {getStatusBadge(ticket.status)}
+                                            </div>
+                                            
+                                            <p className="text-gray-600 text-xs mb-2 leading-relaxed">{ticket.message}</p>
+                                            <p className="text-[10px] text-gray-400 text-right">{new Date(ticket.timestamp).toLocaleString()}</p>
+
+                                            {/* Admin Reply Section */}
+                                            {ticket.adminReply && (
+                                                <div className="admin-reply-box">
+                                                    <p className="text-xs font-bold text-brand mb-1 flex items-center gap-1">
+                                                        <i className="fa-solid fa-user-shield"></i> Admin Reply:
+                                                    </p>
+                                                    <p className="text-gray-800">{ticket.adminReply}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

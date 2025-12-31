@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="color-scheme" content="light">
+    <title>Deposit Funds</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '#0d6efd',
+                        bgLight: '#f4f6f8',
+                        textDark: '#212529',
+                        success: '#198754',
+                        warning: '#ffc107',
+                        danger: '#dc3545'
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    
+    <!-- React & Firebase -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { background-color: #f4f6f8; font-family: 'Inter', sans-serif; }
+        
+        .blue-gradient {
+            background: linear-gradient(135deg, #0d6efd 0%, #0043a8 100%);
+            color: white;
+        }
+
+        .gateway-card {
+            background: white; border: 1px solid #e5e7eb; border-radius: 12px;
+            padding: 15px; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .gateway-card:hover { border-color: #0d6efd; background: #f8fbff; }
+        .gateway-card.selected { border: 2px solid #0d6efd; background: #eff6ff; }
+
+        .form-input {
+            width: 100%; padding: 14px; border: 1px solid #e5e7eb; border-radius: 10px;
+            background-color: #fff; color: #1f2937; outline: none; transition: 0.2s; font-size: 15px;
+        }
+        .form-input:focus { border-color: #0d6efd; box-shadow: 0 0 0 3px rgba(13,110,253,0.1); }
+        
+        .cat-loader { font-size: 3rem; animation: bounce 1s infinite alternate; }
+    </style>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw",
+            authDomain: "otpbywasi.firebaseapp.com",
+            projectId: "otpbywasi",
+            storageBucket: "otpbywasi.firebasestorage.app",
+            messagingSenderId: "1169252296",
+            appId: "1:1169252296:web:732c1f08f6b6ed7033eafd"
+        };
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        const notify = (msg, type="success") => {
+            Toastify({ text: msg, duration: 3000, style: { background: type==="success"?"#0d6efd":"#dc3545" }, position: "top-center" }).showToast();
+        };
+
+        const LoadingScreen = () => (
+            <div className="h-screen w-full bg-white flex flex-col items-center justify-center z-50">
+                <i className="fa-solid fa-cat cat-loader text-black mb-4"></i>
+            </div>
+        );
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [gateways, setGateways] = useState([]);
+            const [history, setHistory] = useState([]);
+            
+            // Selection & Form
+            const [selectedGateway, setSelectedGateway] = useState(null);
+            const [amount, setAmount] = useState("");
+            const [trxId, setTrxId] = useState("");
+            const [submitting, setSubmitting] = useState(false);
+
+            useEffect(() => {
+                const unsub = auth.onAuthStateChanged(u => {
+                    if (u) {
+                        setUser(u);
+                        
+                        // 1. Fetch Admin Payment Methods
+                        db.collection('payment_methods').onSnapshot(snap => {
+                            setGateways(snap.docs.map(d => ({id: d.id, ...d.data()})));
+                        });
+
+                        // 2. Fetch User History
+                        db.collection('deposits').where('userId', '==', u.uid).onSnapshot(snap => {
+                            const list = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                            list.sort((a,b) => b.timestamp - a.timestamp);
+                            setHistory(list);
+                            setLoading(false);
+                        });
+                    } else {
+                        window.location.href = "auth.html";
+                    }
+                });
+                return () => unsub();
+            }, []);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if(!selectedGateway) return notify("Select a Payment Method", "error");
+                if(!amount || !trxId) return notify("Fill all details", "error");
+
+                setSubmitting(true);
+                try {
+                    await db.collection('deposits').add({
+                        userId: user.uid,
+                        userName: user.email.split('@')[0],
+                        gatewayName: selectedGateway.name,
+                        amount: amount,
+                        trxId: trxId, // Transaction ID
+                        status: 'pending',
+                        timestamp: Date.now()
+                    });
+                    notify("Deposit Request Sent!");
+                    setAmount(""); setTrxId(""); setSelectedGateway(null);
+                } catch(e) { notify(e.message, "error"); }
+                setSubmitting(false);
+            };
+
+            if (loading) return <LoadingScreen />;
+
+            return (
+                <div className="max-w-md mx-auto min-h-screen bg-f4f6f8 pb-10">
+                    
+                    {/* Header */}
+                    <div className="bg-white p-4 flex items-center gap-3 shadow-sm sticky top-0 z-50">
+                        <a href="user.html" className="text-gray-600 text-xl hover:text-brand transition"><i className="fa-solid fa-arrow-left"></i></a>
+                        <h1 className="text-lg font-bold text-gray-800">Deposit Funds</h1>
+                    </div>
+
+                    {/* Warning Bar */}
+                    <div className="bg-red-50 text-red-600 p-3 text-xs font-bold text-center flex justify-center items-center gap-2">
+                        <i className="fa-solid fa-triangle-exclamation"></i>
+                        <span>If you found any problem</span>
+                        <a href="ticket.html" className="underline hover:text-red-800">Contact Us</a>
+                    </div>
+
+                    <div className="p-4 space-y-6">
+                        
+                        {/* 1. SELECT GATEWAY */}
+                        <div>
+                            <h3 className="font-bold text-gray-700 mb-3 text-sm uppercase">Select Payment Method</h3>
+                            <div className="space-y-2">
+                                {gateways.map(g => (
+                                    <div key={g.id} onClick={()=>setSelectedGateway(g)} 
+                                        className={`gateway-card ${selectedGateway?.id === g.id ? 'selected' : ''}`}>
+                                        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-brand text-xl font-bold">
+                                            {g.logo ? <img src={g.logo} className="w-full h-full rounded-full object-cover"/> : g.name[0]}
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-800">{g.name}</h4>
+                                            <p className="text-xs text-gray-500">Manual Deposit</p>
+                                        </div>
+                                        {selectedGateway?.id === g.id && <i className="fa-solid fa-circle-check text-brand ml-auto text-xl"></i>}
+                                    </div>
+                                ))}
+                                {gateways.length === 0 && <p className="text-center text-gray-400 text-sm">No payment methods available.</p>}
+                            </div>
+                        </div>
+
+                        {/* 2. SHOW DETAILS & FORM */}
+                        {selectedGateway && (
+                            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-lg animate-bounce-in">
+                                {/* Details Card */}
+                                <div className="blue-gradient p-5 rounded-xl mb-6 text-center relative overflow-hidden">
+                                    <p className="text-xs uppercase opacity-80 mb-1">{selectedGateway.name} Account</p>
+                                    <h2 className="text-2xl font-mono font-bold tracking-widest">{selectedGateway.number}</h2>
+                                    <p className="font-bold mt-1">{selectedGateway.title}</p>
+                                    <button onClick={()=>{navigator.clipboard.writeText(selectedGateway.number); notify("Copied!")}} className="mt-3 bg-white/20 hover:bg-white/30 px-4 py-1.5 rounded-full text-xs font-bold transition">
+                                        <i className="fa-regular fa-copy mr-1"></i> Copy Number
+                                    </button>
+                                </div>
+
+                                {/* Inputs */}
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 block mb-1.5 ml-1">TRANSACTION ID (TRX)</label>
+                                        <input type="text" placeholder="Enter Trx ID" value={trxId} onChange={e=>setTrxId(e.target.value)} className="form-input" required />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-400 block mb-1.5 ml-1">AMOUNT (RS)</label>
+                                        <input type="number" placeholder="Enter Amount" value={amount} onChange={e=>setAmount(e.target.value)} className="form-input font-bold text-lg text-brand" required />
+                                    </div>
+                                    <button disabled={submitting} className="w-full bg-brand text-white py-3.5 rounded-xl font-bold shadow-lg hover:bg-brandDark transition disabled:opacity-50 mt-2">
+                                        {submitting ? "Verifying..." : "Submit Payment"}
+                                    </button>
+                                </form>
+                            </div>
+                        )}
+
+                        {/* HISTORY */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div className="p-4 border-b border-gray-100 bg-gray-50/50 font-bold text-gray-700 text-sm">Recent Transactions</div>
+                            <div className="max-h-80 overflow-y-auto">
+                                {history.length === 0 ? <p className="text-center text-gray-400 text-sm py-8">No transactions yet.</p> : 
+                                 history.map(h => (
+                                    <div key={h.id} className="p-4 border-b border-gray-100 flex justify-between items-center last:border-0 hover:bg-gray-50 transition">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs shadow-sm ${h.status==='approved'?'bg-success':h.status==='rejected'?'bg-danger':'bg-warning'}`}>
+                                                <i className={`fa-solid ${h.status==='approved'?'fa-check':h.status==='rejected'?'fa-xmark':'fa-clock'}`}></i>
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-sm text-gray-800">{h.gatewayName || 'Deposit'}</p>
+                                                <p className="text-[10px] text-gray-400 font-mono">TRX: {h.trxId}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-bold text-sm text-brand">+ Rs {h.amount}</p>
+                                            <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${h.status==='approved'?'bg-green-100 text-success':h.status==='rejected'?'bg-red-100 text-danger':'bg-yellow-100 text-warning'}`}>{h.status}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

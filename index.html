@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WASI OTP - Pakistan's #1 OTP Panel</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0ea5e9', // Sky Blue
+                        secondary: '#6366f1', // Indigo
+                        dark: '#0f172a',
+                        light: '#f8fafc',
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'slide-down': 'slideDown 0.3s ease-out forwards',
+                        'fade-in': 'fadeIn 1s ease-out forwards',
+                    },
+                    keyframes: {
+                        float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-15px)' } },
+                        slideDown: { '0%': { opacity: '0', transform: 'translateY(-10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Prevent Horizontal Scroll */
+        body { 
+            background-color: #f8fafc; 
+            color: #334155; 
+            font-family: 'Segoe UI', sans-serif; 
+            overflow-x: hidden; 
+            width: 100%;
+        }
+        
+        /* Glass Navbar */
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        /* Gradient Text */
+        .gradient-text {
+            background: linear-gradient(to right, #0ea5e9, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Background Blobs */
+        .blob {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.06) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body class="relative">
+
+    <!-- Background Elements -->
+    <div class="blob -top-20 -left-20"></div>
+    <div class="blob top-40 right-0 transform translate-x-1/2"></div>
+
+    <!-- NAVBAR -->
+    <nav class="fixed w-full z-50 glass">
+        <!-- Container width fix kiya hai -->
+        <div class="w-full max-w-7xl mx-auto px-5 md:px-8 py-4 flex justify-between items-center">
+            
+            <!-- Logo -->
+            <a href="#" class="text-xl md:text-2xl font-black tracking-tighter gradient-text flex items-center gap-2">
+                <i class="fa-solid fa-shield-cat"></i> WASI OTP
+            </a>
+
+            <!-- Mobile Menu Button (Fixed Position) -->
+            <button onclick="toggleMenu()" class="text-slate-800 text-2xl p-2 focus:outline-none md:hidden hover:text-primary transition">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+
+            <!-- Desktop Links -->
+            <div class="hidden md:flex gap-8 items-center">
+                <a href="#features" class="text-slate-600 hover:text-primary font-semibold transition">Features</a>
+                <a href="#pricing" class="text-slate-600 hover:text-primary font-semibold transition">Pricing</a>
+                <a href="#faq" class="text-slate-600 hover:text-primary font-semibold transition">FAQ</a>
+                <div class="w-px h-6 bg-slate-300"></div>
+                <a href="auth.html" class="text-slate-800 font-bold hover:text-primary transition">Login</a>
+                <a href="auth.html" class="bg-slate-900 text-white px-6 py-2.5 rounded-full font-bold shadow-lg hover:bg-primary transition transform hover:scale-105">Get Started</a>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Dropdown -->
+        <div id="mobileMenu" class="hidden bg-white border-b border-slate-100 absolute w-full left-0 animate-slide-down shadow-xl md:hidden">
+            <div class="flex flex-col p-6 space-y-4 text-center">
+                <a href="auth.html" class="py-2 text-slate-700 font-bold hover:text-primary bg-slate-50 rounded-lg">Login / Register</a>
+                <a href="#features" class="py-2 text-slate-500 hover:text-primary transition">Features</a>
+                <a href="#pricing" class="py-2 text-slate-500 hover:text-primary transition">Pricing</a>
+                <a href="term.html" class="py-2 text-slate-500 hover:text-primary transition">Terms</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <header class="min-h-screen flex flex-col justify-center items-center text-center px-4 pt-28 pb-16">
+        <div class="animate-float">
+            <span class="bg-blue-50 text-primary border border-blue-100 px-5 py-2 rounded-full text-[10px] md:text-xs font-extrabold uppercase tracking-widest mb-8 inline-block shadow-sm">
+                🚀 #1 Trusted OTP Provider
+            </span>
+        </div>
+
+        <h1 class="text-4xl md:text-7xl font-black mb-6 leading-tight text-slate-900 tracking-tight animate-fade-in">
+            Verify Any App <br>
+            <span class="gradient-text">Instantly & Securely</span>
+        </h1>
+
+        <p class="text-slate-500 max-w-2xl text-base md:text-xl mb-10 leading-relaxed font-medium animate-fade-in px-4">
+            Get premium non-VoIP numbers for WhatsApp, Telegram, Gmail, and 500+ services. 
+            Lowest rates in Pakistan with Easypaisa & Jazzcash support.
+        </p>
+
+        <div class="flex flex-col md:flex-row gap-4 w-full md:w-auto animate-fade-in px-6">
+            <a href="auth.html" class="bg-gradient-to-r from-primary to-secondary px-10 py-4 rounded-2xl font-bold text-white text-lg shadow-xl shadow-indigo-200 hover:scale-105 transition transform flex items-center justify-center gap-3">
+                Buy Number <i class="fa-solid fa-cart-shopping"></i>
+            </a>
+            <a href="#how-it-works" class="bg-white text-slate-700 border border-slate-200 px-10 py-4 rounded-2xl font-bold text-lg hover:bg-slate-50 transition shadow-sm flex items-center justify-center gap-3">
+                How it Works <i class="fa-solid fa-play"></i>
+            </a>
+        </div>
+        
+        <!-- Trust Indicators -->
+        <div class="mt-16 flex flex-wrap justify-center gap-6 md:gap-8 opacity-60 grayscale hover:grayscale-0 transition duration-500 px-4">
+            <i class="fa-brands fa-whatsapp text-3xl md:text-4xl"></i>
+            <i class="fa-brands fa-telegram text-3xl md:text-4xl"></i>
+            <i class="fa-brands fa-google text-3xl md:text-4xl"></i>
+            <i class="fa-brands fa-facebook text-3xl md:text-4xl"></i>
+            <i class="fa-brands fa-tiktok text-3xl md:text-4xl"></i>
+        </div>
+    </header>
+
+    <!-- STATS SECTION -->
+    <section class="py-20 bg-white border-y border-slate-100">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div class="text-center group">
+                <h3 class="text-3xl md:text-4xl font-black text-slate-800 group-hover:text-primary transition">10k+</h3>
+                <p class="text-slate-500 font-medium mt-2 text-sm md:text-base">Active Users</p>
+            </div>
+            <div class="text-center group">
+                <h3 class="text-3xl md:text-4xl font-black text-slate-800 group-hover:text-secondary transition">1M+</h3>
+                <p class="text-slate-500 font-medium mt-2 text-sm md:text-base">OTPs Delivered</p>
+            </div>
+            <div class="text-center group">
+                <h3 class="text-3xl md:text-4xl font-black text-slate-800 group-hover:text-green-500 transition">50+</h3>
+                <p class="text-slate-500 font-medium mt-2 text-sm md:text-base">Countries</p>
+            </div>
+            <div class="text-center group">
+                <h3 class="text-3xl md:text-4xl font-black text-slate-800 group-hover:text-yellow-500 transition">24/7</h3>
+                <p class="text-slate-500 font-medium mt-2 text-sm md:text-base">Live Support</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- WHY CHOOSE US (Features) -->
+    <section id="features" class="py-24 px-6 max-w-7xl mx-auto">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl md:text-4xl font-black text-slate-900 mb-4">Why Choose <span class="gradient-text">WASI OTP?</span></h2>
+            <p class="text-slate-500 text-lg">We provide the best service in the market with unmatched quality.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Feature 1 -->
+            <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-lg hover:shadow-xl transition hover:-translate-y-2">
+                <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-primary text-2xl mb-6">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-3">Instant Delivery</h3>
+                <p class="text-slate-500 leading-relaxed">No waiting time. Get your verification code within seconds of purchasing a number.</p>
+            </div>
+            <!-- Feature 2 -->
+            <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-lg hover:shadow-xl transition hover:-translate-y-2">
+                <div class="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-secondary text-2xl mb-6">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-3">Private & Secure</h3>
+                <p class="text-slate-500 leading-relaxed">We use non-VoIP numbers that are private. Your data is encrypted and never shared.</p>
+            </div>
+            <!-- Feature 3 -->
+            <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-lg hover:shadow-xl transition hover:-translate-y-2">
+                <div class="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-500 text-2xl mb-6">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-3">Cheapest Rates</h3>
+                <p class="text-slate-500 leading-relaxed">Prices starting from just Rs 20. We offer the most competitive rates in Pakistan.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section id="how-it-works" class="py-24 bg-white border-y border-slate-100">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <span class="text-primary font-bold tracking-widest text-sm uppercase">Simple Process</span>
+                <h2 class="text-3xl md:text-4xl font-black text-slate-900 mt-2">How It Works</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 text-center relative">
+                <!-- Connecting Line (Desktop) -->
+                <div class="hidden md:block absolute top-12 left-0 w-full h-1 bg-slate-100 -z-10 transform translate-y-1/2"></div>
+
+                <!-- Step 1 -->
+                <div class="relative group">
+                    <div class="w-24 h-24 mx-auto bg-white border-4 border-slate-100 rounded-full flex items-center justify-center text-2xl font-bold text-slate-400 group-hover:border-primary group-hover:text-primary transition duration-300 shadow-sm">1</div>
+                    <h3 class="text-lg font-bold mt-6 text-slate-800">Register</h3>
+                    <p class="text-slate-500 text-sm mt-2">Create your free account in seconds.</p>
+                </div>
+                <!-- Step 2 -->
+                <div class="relative group">
+                    <div class="w-24 h-24 mx-auto bg-white border-4 border-slate-100 rounded-full flex items-center justify-center text-2xl font-bold text-slate-400 group-hover:border-primary group-hover:text-primary transition duration-300 shadow-sm">2</div>
+                    <h3 class="text-lg font-bold mt-6 text-slate-800">Deposit</h3>
+                    <p class="text-slate-500 text-sm mt-2">Add funds via Easypaisa or Jazzcash.</p>
+                </div>
+                <!-- Step 3 -->
+                <div class="relative group">
+                    <div class="w-24 h-24 mx-auto bg-white border-4 border-slate-100 rounded-full flex items-center justify-center text-2xl font-bold text-slate-400 group-hover:border-primary group-hover:text-primary transition duration-300 shadow-sm">3</div>
+                    <h3 class="text-lg font-bold mt-6 text-slate-800">Select Service</h3>
+                    <p class="text-slate-500 text-sm mt-2">Choose App & Country.</p>
+                </div>
+                <!-- Step 4 -->
+                <div class="relative group">
+                    <div class="w-24 h-24 mx-auto bg-white border-4 border-slate-100 rounded-full flex items-center justify-center text-2xl font-bold text-slate-400 group-hover:border-primary group-hover:text-primary transition duration-300 shadow-sm">4</div>
+                    <h3 class="text-lg font-bold mt-6 text-slate-800">Get OTP</h3>
+                    <p class="text-slate-500 text-sm mt-2">Receive code instantly.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- LIVE PRICING PREVIEW -->
+    <section id="pricing" class="py-24 px-6 max-w-5xl mx-auto">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-black text-slate-900">Popular <span class="gradient-text">Services</span></h2>
+            <p class="text-slate-500">Live rates for trending applications.</p>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <!-- Item -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-md flex items-center gap-3 md:gap-4 hover:border-green-400 transition">
+                <div class="text-green-500 text-2xl md:text-3xl"><i class="fa-brands fa-whatsapp"></i></div>
+                <div>
+                    <h4 class="font-bold text-slate-800 text-sm md:text-base">WhatsApp</h4>
+                    <p class="text-xs text-slate-500">Starting Rs 50</p>
+                </div>
+            </div>
+            <!-- Item -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-md flex items-center gap-3 md:gap-4 hover:border-blue-400 transition">
+                <div class="text-blue-500 text-2xl md:text-3xl"><i class="fa-brands fa-telegram"></i></div>
+                <div>
+                    <h4 class="font-bold text-slate-800 text-sm md:text-base">Telegram</h4>
+                    <p class="text-xs text-slate-500">Starting Rs 40</p>
+                </div>
+            </div>
+            <!-- Item -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-md flex items-center gap-3 md:gap-4 hover:border-red-400 transition">
+                <div class="text-red-500 text-2xl md:text-3xl"><i class="fa-brands fa-google"></i></div>
+                <div>
+                    <h4 class="font-bold text-slate-800 text-sm md:text-base">Gmail</h4>
+                    <p class="text-xs text-slate-500">Starting Rs 25</p>
+                </div>
+            </div>
+            <!-- Item -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-md flex items-center gap-3 md:gap-4 hover:border-black transition">
+                <div class="text-black text-2xl md:text-3xl"><i class="fa-brands fa-tiktok"></i></div>
+                <div>
+                    <h4 class="font-bold text-slate-800 text-sm md:text-base">TikTok</h4>
+                    <p class="text-xs text-slate-500">Starting Rs 30</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-10">
+            <a href="auth.html" class="text-primary font-bold hover:underline">View All Prices <i class="fa-solid fa-arrow-right ml-1"></i></a>
+        </div>
+    </section>
+
+    <!-- FAQ SECTION -->
+    <section id="faq" class="py-24 bg-slate-50 border-y border-slate-200">
+        <div class="max-w-3xl mx-auto px-6">
+            <h2 class="text-3xl font-black text-center text-slate-900 mb-12">Frequently Asked Questions</h2>
+            
+            <div class="space-y-4">
+                <!-- Q1 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <h3 class="font-bold text-lg text-slate-800 mb-2">Is the deposit manual or automatic?</h3>
+                    <p class="text-slate-500">Currently, we support manual deposits via Easypaisa and Jazzcash. Funds are added within minutes of verification.</p>
+                </div>
+                <!-- Q2 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <h3 class="font-bold text-lg text-slate-800 mb-2">What if I don't receive the OTP?</h3>
+                    <p class="text-slate-500">Don't worry! If you don't receive an OTP within the time limit, your order is cancelled and the balance is automatically refunded to your account.</p>
+                </div>
+                <!-- Q3 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <h3 class="font-bold text-lg text-slate-800 mb-2">Are these numbers permanent?</h3>
+                    <p class="text-slate-500">No, these are temporary virtual numbers valid for OTP verification only.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA BANNER -->
+    <section class="py-16 px-6">
+        <div class="max-w-6xl mx-auto bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-10 md:p-16 text-center text-white relative overflow-hidden shadow-2xl">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-primary rounded-full blur-[100px] opacity-20"></div>
+            <div class="relative z-10">
+                <h2 class="text-3xl md:text-5xl font-black mb-6">Ready to Get Started?</h2>
+                <p class="text-slate-300 text-lg mb-8 max-w-xl mx-auto">Join the fastest growing OTP marketplace in Pakistan. Sign up now and get your first number in minutes.</p>
+                <a href="auth.html" class="bg-white text-slate-900 px-10 py-4 rounded-full font-bold text-lg hover:bg-primary hover:text-white transition transform hover:scale-105 inline-block">Create Free Account</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="bg-white pt-16 pb-8 border-t border-slate-200">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="text-center md:text-left">
+                <div class="text-2xl font-black gradient-text mb-2">WASI OTP</div>
+                <p class="text-slate-500 text-sm">Most reliable manual OTP marketplace.</p>
+            </div>
+            
+            <div class="flex gap-6">
+                <a href="#" class="w-12 h-12 rounded-full bg-slate-50 shadow-sm flex items-center justify-center text-slate-500 hover:text-green-500 hover:shadow-md transition"><i class="fa-brands fa-whatsapp text-2xl"></i></a>
+                <a href="#" class="w-12 h-12 rounded-full bg-slate-50 shadow-sm flex items-center justify-center text-slate-500 hover:text-blue-500 hover:shadow-md transition"><i class="fa-brands fa-telegram text-2xl"></i></a>
+                <a href="#" class="w-12 h-12 rounded-full bg-slate-50 shadow-sm flex items-center justify-center text-slate-500 hover:text-blue-700 hover:shadow-md transition"><i class="fa-brands fa-facebook text-2xl"></i></a>
+            </div>
+        </div>
+        <div class="text-center mt-12 text-slate-400 text-xs border-t border-slate-100 pt-6">
+            © 2024 WASI OTP. All rights reserved. <a href="term.html" class="hover:text-primary transition ml-2">Terms</a>
+        </div>
+    </footer>
+
+    <!-- Script for Mobile Menu -->
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+    </script>
+
+</body>
+</html>

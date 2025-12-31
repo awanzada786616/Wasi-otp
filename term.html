@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms & Conditions - WASI OTP</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0ea5e9', // Sky Blue
+                        secondary: '#6366f1', // Indigo
+                        dark: '#0f172a',
+                        light: '#f8fafc',
+                    },
+                    animation: {
+                        'slide-down': 'slideDown 0.3s ease-out forwards',
+                    },
+                    keyframes: {
+                        slideDown: { '0%': { opacity: '0', transform: 'translateY(-10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { background-color: #f8fafc; color: #334155; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
+        
+        /* Light Glass Effect for Nav */
+        .glass {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        /* Gradient Text */
+        .gradient-text {
+            background: linear-gradient(to right, #0ea5e9, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .term-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .term-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="relative">
+
+    <!-- NAVBAR -->
+    <nav class="fixed w-full z-50 glass">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <!-- Logo -->
+            <a href="index.html" class="text-2xl font-black tracking-tighter gradient-text">WASI OTP</a>
+
+            <!-- Mobile Menu Button -->
+            <button onclick="toggleMenu()" class="text-slate-800 text-2xl focus:outline-none md:hidden">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+
+            <!-- Desktop Links -->
+            <div class="hidden md:flex gap-6 items-center">
+                <a href="index.html" class="text-slate-600 hover:text-primary font-medium transition">Home</a>
+                <a href="auth.html" class="text-slate-600 hover:text-primary font-medium transition">Login</a>
+                <a href="auth.html" class="bg-primary text-white px-5 py-2 rounded-full font-bold shadow-lg shadow-primary/30 hover:bg-sky-600 transition">Sign Up</a>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Dropdown -->
+        <div id="mobileMenu" class="hidden bg-white border-b border-slate-100 absolute w-full animate-slide-down shadow-xl">
+            <div class="flex flex-col p-4 space-y-3 text-center">
+                <a href="index.html" class="py-2 text-slate-700 hover:text-primary font-medium">Home</a>
+                <a href="auth.html" class="py-2 text-slate-700 hover:text-primary font-medium">Login</a>
+                <a href="auth.html" class="py-2 text-slate-700 hover:text-primary font-medium">Signup</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HEADER SECTION -->
+    <header class="pt-32 pb-16 px-6 text-center bg-white border-b border-slate-200">
+        <h1 class="text-4xl md:text-5xl font-black text-slate-900 mb-4">Terms & <span class="gradient-text">Conditions</span></h1>
+        <p class="text-slate-500 max-w-2xl mx-auto text-lg">Please read these terms carefully before using WASI OTP services.</p>
+    </header>
+
+    <!-- CONTENT SECTION -->
+    <section class="max-w-4xl mx-auto px-6 py-16">
+        <div class="space-y-8">
+
+            <!-- Term 1 -->
+            <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm term-card">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-full bg-blue-50 text-primary flex items-center justify-center flex-shrink-0 font-bold text-lg">1</div>
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-3">Acceptance of Terms</h3>
+                        <p class="text-slate-500 leading-relaxed">
+                            By accessing and using WASI OTP, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by these terms, please do not use this service.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Term 2 -->
+            <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm term-card">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-full bg-purple-50 text-secondary flex items-center justify-center flex-shrink-0 font-bold text-lg">2</div>
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-3">Service Usage & Responsibility</h3>
+                        <p class="text-slate-500 leading-relaxed mb-2">
+                            Our services are provided for verification purposes only. You are strictly prohibited from using our numbers for:
+                        </p>
+                        <ul class="list-disc list-inside text-slate-500 space-y-1 ml-2">
+                            <li>Fraudulent activities or scams.</li>
+                            <li>Harassment or illegal communications.</li>
+                            <li>Creating fake accounts for malicious intent.</li>
+                        </ul>
+                        <p class="text-red-500 text-sm mt-3 font-semibold">Violation will result in an immediate account ban without refund.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Term 3 -->
+            <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm term-card">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center flex-shrink-0 font-bold text-lg">3</div>
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-3">Payments & Refunds</h3>
+                        <p class="text-slate-500 leading-relaxed">
+                            We accept payments via Easypaisa and Jazzcash. Please note:
+                        </p>
+                        <ul class="list-disc list-inside text-slate-500 space-y-1 ml-2 mt-2">
+                            <li><strong>Balance is non-refundable</strong> once deposited.</li>
+                            <li>If a number fails to receive an OTP code, the cost is automatically refunded to your panel balance instantly.</li>
+                            <li>Minimum deposit amounts apply as stated on the deposit page.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Term 4 -->
+            <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm term-card">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-full bg-yellow-50 text-yellow-600 flex items-center justify-center flex-shrink-0 font-bold text-lg">4</div>
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-3">Number Availability & Guarantees</h3>
+                        <p class="text-slate-500 leading-relaxed">
+                            We strive to provide high-quality numbers, but availability depends on our suppliers. Numbers are temporary (non-VoIP) and are intended for one-time verification (OTP) only. We do not guarantee re-verification or long-term ownership of any number.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Term 5 -->
+            <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm term-card">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center flex-shrink-0 font-bold text-lg">5</div>
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-3">Privacy Policy</h3>
+                        <p class="text-slate-500 leading-relaxed">
+                            We value your privacy. We do not share your personal data, email, or usage history with third parties. Your data is encrypted and used solely for the purpose of providing this service.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mt-12 text-center">
+            <p class="text-slate-400 text-sm mb-6">Last Updated: October 2024</p>
+            <a href="index.html" class="bg-slate-800 text-white px-8 py-3 rounded-full font-bold hover:bg-slate-700 transition shadow-lg">Go Back Home</a>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="bg-white pt-16 pb-8 border-t border-slate-200 mt-10">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="text-center md:text-left">
+                <div class="text-2xl font-black gradient-text mb-2">WASI OTP</div>
+                <p class="text-slate-500 text-sm">Most reliable manual OTP marketplace.</p>
+            </div>
+            
+            <div class="flex gap-6">
+                <a href="#" class="w-10 h-10 rounded-full bg-slate-50 shadow-sm flex items-center justify-center text-slate-500 hover:text-green-500 hover:shadow-md transition"><i class="fa-brands fa-whatsapp text-xl"></i></a>
+                <a href="#" class="w-10 h-10 rounded-full bg-slate-50 shadow-sm flex items-center justify-center text-slate-500 hover:text-blue-500 hover:shadow-md transition"><i class="fa-brands fa-telegram text-xl"></i></a>
+                <a href="#" class="w-10 h-10 rounded-full bg-slate-50 shadow-sm flex items-center justify-center text-slate-500 hover:text-blue-700 hover:shadow-md transition"><i class="fa-brands fa-facebook text-xl"></i></a>
+            </div>
+        </div>
+        <div class="text-center mt-10 text-slate-400 text-sm border-t border-slate-100 pt-6">
+            © 2024 WASI OTP. All rights reserved.
+        </div>
+    </footer>
+
+    <!-- Script for Menu Toggle -->
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+    </script>
+
+</body>
+</html>

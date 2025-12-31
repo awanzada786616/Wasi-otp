@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASI OTP - Authentication</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '#0d6efd',
+                        brandDark: '#0a58ca',
+                        slate: '#f8f9fa',
+                        textDark: '#212529'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- React & Firebase -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Inter', sans-serif; }
+        
+        .auth-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 420px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+        .input-group input:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+            background: white;
+        }
+
+        .marquee-container {
+            background: #fff3cd;
+            color: #856404;
+            border-bottom: 1px solid #ffeeba;
+            padding: 8px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- NEW FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw",
+            authDomain: "otpbywasi.firebaseapp.com",
+            databaseURL: "https://otpbywasi-default-rtdb.firebaseio.com",
+            projectId: "otpbywasi",
+            storageBucket: "otpbywasi.firebasestorage.app",
+            messagingSenderId: "1169252296",
+            appId: "1:1169252296:web:732c1f08f6b6ed7033eafd"
+        };
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        const notify = (msg, type="success") => {
+            Toastify({ text: msg, duration: 3000, style: { background: type==="success"?"#0d6efd":"#dc3545" }, position: "top-center" }).showToast();
+        };
+
+        const AuthPage = () => {
+            const [view, setView] = useState('login'); // login, signup, reset
+            const [email, setEmail] = useState("");
+            const [password, setPassword] = useState("");
+            const [name, setName] = useState("");
+            const [loading, setLoading] = useState(false);
+
+            // Auto Redirect if Logged In
+            useEffect(() => {
+                const unsub = auth.onAuthStateChanged(user => {
+                    if(user && !loading) {
+                        // Ensure DB record exists before redirecting
+                        db.collection('users').doc(user.uid).get().then((doc) => {
+                            if (!doc.exists) {
+                                // Repair if missing
+                                db.collection('users').doc(user.uid).set({
+                                    name: user.displayName || user.email.split('@')[0],
+                                    email: user.email,
+                                    balance: 0,
+                                    status: 'Active',
+                                    createdAt: Date.now()
+                                }).then(() => window.location.href = "user.html");
+                            } else {
+                                window.location.href = "user.html";
+                            }
+                        });
+                    }
+                });
+                return () => unsub();
+            }, []);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+
+                try {
+                    if (view === 'signup') {
+                        // 1. Create Auth
+                        const cred = await auth.createUserWithEmailAndPassword(email, password);
+                        
+                        // 2. Create Database Record (Await ensures it finishes)
+                        await db.collection('users').doc(cred.user.uid).set({
+                            id: cred.user.uid,
+                            name: name,
+                            email: email,
+                            balance: 0,
+                            status: 'Active',
+                            createdAt: Date.now()
+                        });
+
+                        // 3. Update Profile
+                        await cred.user.updateProfile({ displayName: name });
+                        
+                        notify("Account Created Successfully!");
+                        setTimeout(() => window.location.href = "user.html", 1000);
+                    } 
+                    else if (view === 'login') {
+                        await auth.signInWithEmailAndPassword(email, password);
+                        notify("Login Successful!");
+                        // Redirect handled by useEffect
+                    }
+                    else if (view === 'reset') {
+                        await auth.sendPasswordResetEmail(email);
+                        notify("Reset link sent! Check Spam folder.");
+                        setLoading(false);
+                        setView('login');
+                    }
+                } catch (err) {
+                    let msg = err.message;
+                    if(err.code === 'auth/email-already-in-use') msg = "Email already registered.";
+                    if(err.code === 'auth/user-not-found') msg = "User not found.";
+                    if(err.code === 'auth/wrong-password') msg = "Incorrect password.";
+                    notify(msg, "error");
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="auth-card animate-fade-in">
+                    
+                    {/* Marquee Header */}
+                    <div className="marquee-container">
+                        <marquee behavior="scroll" direction="left">
+                            Note: While resetting your password please check spam section if email not found in inbox.
+                        </marquee>
+                    </div>
+
+                    <div className="p-8">
+                        <div className="text-center mb-8">
+                            <h1 className="text-3xl font-black text-brand mb-2 tracking-tight">WASI OTP</h1>
+                            <p className="text-gray-500 text-sm font-medium">
+                                {view === 'login' ? 'Welcome back! Please login.' : 
+                                 view === 'signup' ? 'Create a new account.' : 
+                                 'Reset your password.'}
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            
+                            {view === 'signup' && (
+                                <div className="input-group">
+                                    <label className="block text-xs font-bold text-gray-600 mb-1 ml-1 uppercase">Full Name</label>
+                                    <input type="text" placeholder="e.g. Ali Khan" onChange={(e) => setName(e.target.value)} required />
+                                </div>
+                            )}
+
+                            <div className="input-group">
+                                <label className="block text-xs font-bold text-gray-600 mb-1 ml-1 uppercase">Email Address</label>
+                                <input type="email" placeholder="name@example.com" onChange={(e) => setEmail(e.target.value)} required />
+                            </div>
+
+                            {view !== 'reset' && (
+                                <div className="input-group">
+                                    <label className="block text-xs font-bold text-gray-600 mb-1 ml-1 uppercase">Password</label>
+                                    <input type="password" placeholder="••••••••" onChange={(e) => setPassword(e.target.value)} required />
+                                </div>
+                            )}
+
+                            <button disabled={loading} className="w-full bg-brand hover:bg-brandDark text-white font-bold py-3.5 rounded-lg transition-all shadow-lg shadow-brand/20 flex items-center justify-center gap-2 mt-4 disabled:opacity-70">
+                                {loading ? <i className="fa-solid fa-circle-notch fa-spin"></i> : (view === 'login' ? "SIGN IN" : view === 'signup' ? "CREATE ACCOUNT" : "SEND LINK")}
+                            </button>
+                        </form>
+
+                        <div className="mt-8 pt-6 border-t border-gray-100 text-center space-y-3">
+                            {view === 'login' && (
+                                <>
+                                    <p className="text-sm text-gray-600">Forgot Password? <button onClick={() => setView('reset')} className="text-brand font-bold hover:underline">Reset</button></p>
+                                    <p className="text-sm text-gray-600">New User? <button onClick={() => setView('signup')} className="text-brand font-bold hover:underline">Register</button></p>
+                                </>
+                            )}
+                            
+                            {view === 'signup' && (
+                                <p className="text-sm text-gray-600">Already have an account? <button onClick={() => setView('login')} className="text-brand font-bold hover:underline">Sign In</button></p>
+                            )}
+
+                            {view === 'reset' && (
+                                <p className="text-sm text-gray-600">Remembered it? <button onClick={() => setView('login')} className="text-brand font-bold hover:underline">Back to Login</button></p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<AuthPage />);
+    </script>
+</body>
+</html>
