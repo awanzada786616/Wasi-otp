@@ -32,12 +32,15 @@ button:disabled{background:#999;}
 <script>
 const PROVIDER = 1;
 
-// Load countries properly
+// Load countries from nested JSON
 fetch(`/api/countries?type=${PROVIDER}`)
-  .then(res => res.json()) // Parse JSON
+  .then(res => res.json())
   .then(data => {
     const select = document.getElementById("country");
-    data.forEach(c => {
+    select.innerHTML = `<option value="">Select Country</option>`;
+    const countries = data[PROVIDER]; // Nested array fix
+
+    countries.forEach(c => {
       const opt = document.createElement("option");
       opt.value = c.id;
       opt.textContent = c.name;
@@ -46,12 +49,13 @@ fetch(`/api/countries?type=${PROVIDER}`)
   })
   .catch(err => console.error("Countries load error:", err));
 
-// Load services on country change
+// Load services when a country is selected
 document.getElementById("country").addEventListener("change", () => {
   const country = document.getElementById("country").value;
   const serviceSelect = document.getElementById("service");
   serviceSelect.innerHTML = `<option value="">Select Service</option>`;
   serviceSelect.disabled = true;
+
   if (!country) return;
 
   fetch(`/api/services?country=${country}&type=${PROVIDER}`)
