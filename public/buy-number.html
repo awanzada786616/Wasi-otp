@@ -15,13 +15,15 @@ button:disabled{background:#999;}
 .empty{text-align:center;margin-top:30px;color:#777;}
 </style>
 </head>
-
 <body>
+
 <div class="card">
 <h2>Buy Number</h2>
+
 <select id="country"><option value="">Select Country</option></select>
 <select id="service" disabled><option value="">Select Service</option></select>
 <button onclick="buyNumber()">Buy Number</button>
+
 <div id="result" class="status"></div>
 </div>
 
@@ -30,9 +32,9 @@ button:disabled{background:#999;}
 <script>
 const PROVIDER = 1;
 
-// Load countries
+// Load countries properly
 fetch(`/api/countries?type=${PROVIDER}`)
-  .then(r => r.json())
+  .then(res => res.json()) // Parse JSON
   .then(data => {
     const select = document.getElementById("country");
     data.forEach(c => {
@@ -53,7 +55,7 @@ document.getElementById("country").addEventListener("change", () => {
   if (!country) return;
 
   fetch(`/api/services?country=${country}&type=${PROVIDER}`)
-    .then(r => r.json())
+    .then(res => res.json())
     .then(data => {
       data.forEach(s => {
         const opt = document.createElement("option");
@@ -71,17 +73,22 @@ function buyNumber() {
   const country = document.getElementById("country").value;
   const service = document.getElementById("service").value;
   const result = document.getElementById("result");
-  if(!country || !service){ alert("Select country & service"); return; }
+
+  if (!country || !service) {
+    alert("Select country & service");
+    return;
+  }
 
   result.textContent = "Requesting number...";
   fetch(`/api/getNumber?country=${country}&service=${service}&type=${PROVIDER}`)
-    .then(r => r.text())
+    .then(res => res.text())
     .then(txt => {
       result.textContent = txt;
-      document.getElementById("emptyText").style.display="none";
+      document.getElementById("emptyText").style.display = "none";
     })
     .catch(err => result.textContent = "Error: " + err);
 }
 </script>
+
 </body>
 </html>
