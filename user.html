@@ -1,154 +1,152 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>OTPGet API Tester</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
-      padding: 20px;
-    }
-    h1 { color: #38bdf8; }
-    .box {
-      background: #020617;
-      border: 1px solid #1e293b;
-      padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 8px;
-    }
-    input, select, button {
-      padding: 8px;
-      margin: 5px 0;
-      width: 100%;
-    }
-    button {
-      background: #38bdf8;
-      border: none;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    pre {
-      background: #020617;
-      padding: 10px;
-      overflow-x: auto;
-      border-radius: 6px;
-      white-space: pre-wrap;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Buy Number</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#f5f7fb;
+  margin:0;
+  padding:20px;
+}
+.card{
+  max-width:420px;
+  margin:auto;
+  background:#fff;
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 10px 25px rgba(0,0,0,.08);
+}
+h2{
+  margin-bottom:15px;
+}
+select,button{
+  width:100%;
+  padding:12px;
+  margin-bottom:12px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:15px;
+}
+button{
+  background:#0b1b4b;
+  color:#fff;
+  border:none;
+  font-weight:bold;
+  cursor:pointer;
+}
+button:disabled{
+  background:#999;
+}
+.status{
+  margin-top:15px;
+  background:#f1f5f9;
+  padding:10px;
+  border-radius:8px;
+  font-size:14px;
+  white-space:pre-wrap;
+}
+.empty{
+  text-align:center;
+  margin-top:30px;
+  color:#777;
+}
+</style>
 </head>
+
 <body>
 
-<h1>OTPGet API Test Panel</h1>
+<div class="card">
+  <h2>Buy Number</h2>
 
-<!-- Balance -->
-<div class="box">
-  <h3>1️⃣ Check Balance</h3>
-  <button onclick="getBalance()">Get Balance</button>
-  <pre id="balance"></pre>
-</div>
-
-<!-- Countries -->
-<div class="box">
-  <h3>2️⃣ Get Countries</h3>
-  <select id="countryType">
-    <option value="1">Provider 1</option>
-    <option value="2">Provider 2</option>
-    <option value="3">Provider 3</option>
-    <option value="4">Provider 4</option>
+  <select id="country">
+    <option value="">Select Country</option>
   </select>
-  <button onclick="getCountries()">Get Countries</button>
-  <pre id="countries"></pre>
-</div>
 
-<!-- Services -->
-<div class="box">
-  <h3>3️⃣ Get Services</h3>
-  <input id="serviceCountry" placeholder="Country ID (e.g. 1)">
-  <input id="serviceType" placeholder="Provider Type (1-4)">
-  <button onclick="getServices()">Get Services</button>
-  <pre id="services"></pre>
-</div>
-
-<!-- Get Number -->
-<div class="box">
-  <h3>4️⃣ Request Number</h3>
-  <input id="numService" placeholder="Service ID">
-  <input id="numCountry" placeholder="Country ID">
-  <input id="numType" placeholder="Provider Type">
-  <button onclick="getNumber()">Get Number</button>
-  <pre id="number"></pre>
-</div>
-
-<!-- Get Status -->
-<div class="box">
-  <h3>5️⃣ Get OTP Status</h3>
-  <input id="orderId" placeholder="Order ID">
-  <button onclick="getStatus()">Check Status</button>
-  <pre id="status"></pre>
-</div>
-
-<!-- Set Status -->
-<div class="box">
-  <h3>6️⃣ Set Activation Status</h3>
-  <input id="setOrderId" placeholder="Order ID">
-  <select id="setStatus">
-    <option value="3">Retry SMS</option>
-    <option value="6">Complete</option>
-    <option value="8">Cancel & Refund</option>
+  <select id="service" disabled>
+    <option value="">Select Service</option>
   </select>
-  <button onclick="setStatus()">Update Status</button>
-  <pre id="setResult"></pre>
+
+  <button onclick="buyNumber()">Buy Number</button>
+
+  <div id="result" class="status"></div>
+</div>
+
+<div class="empty" id="emptyText">
+  No Any Active Numbers
 </div>
 
 <script>
-function getBalance() {
-  fetch('/api/balance')
-    .then(r => r.text())
-    .then(d => balance.textContent = d);
-}
+const PROVIDER = 1;
 
-function getCountries() {
-  const type = countryType.value;
-  fetch(`/api/countries?type=${type}`)
-    .then(r => r.text())
-    .then(d => countries.textContent = d);
-}
+// Load countries
+fetch(`/api/countries?type=${PROVIDER}`)
+.then(r=>r.text())
+.then(txt=>{
+  /*
+   Expected format example:
+   1:Russia
+   2:Ukraine
+  */
+  const select = document.getElementById("country");
+  txt.split("\n").forEach(line=>{
+    if(line.includes(":")){
+      const [id,name]=line.split(":");
+      const opt=document.createElement("option");
+      opt.value=id;
+      opt.textContent=name;
+      select.appendChild(opt);
+    }
+  });
+});
 
-function getServices() {
-  const c = serviceCountry.value;
-  const t = serviceType.value;
-  fetch(`/api/services?country=${c}&type=${t}`)
-    .then(r => r.text())
-    .then(d => services.textContent = d);
-}
+// On country change → load services
+document.getElementById("country").addEventListener("change",()=>{
+  const country = country.value;
+  const serviceSelect = document.getElementById("service");
+  serviceSelect.innerHTML = `<option>Select Service</option>`;
+  serviceSelect.disabled = true;
 
-function getNumber() {
-  const s = numService.value;
-  const c = numCountry.value;
-  const t = numType.value;
-  fetch(`/api/getNumber?service=${s}&country=${c}&type=${t}`)
-    .then(r => r.text())
-    .then(d => number.textContent = d);
-}
+  fetch(`/api/services?country=${country}&type=${PROVIDER}`)
+  .then(r=>r.text())
+  .then(txt=>{
+    txt.split("\n").forEach(line=>{
+      if(line.includes(":")){
+        const [id,name]=line.split(":");
+        const opt=document.createElement("option");
+        opt.value=id;
+        opt.textContent=name;
+        serviceSelect.appendChild(opt);
+      }
+    });
+    serviceSelect.disabled = false;
+  });
+});
 
-function getStatus() {
-  const id = orderId.value;
-  fetch(`/api/getStatus?id=${id}`)
-    .then(r => r.text())
-    .then(d => status.textContent = d);
-}
+// Buy number
+function buyNumber(){
+  const country = document.getElementById("country").value;
+  const service = document.getElementById("service").value;
+  const result = document.getElementById("result");
 
-function setStatus() {
-  const id = setOrderId.value;
-  const s = document.getElementById("setStatus").value;
-  fetch(`/api/setStatus?id=${id}&status=${s}`)
-    .then(r => r.text())
-    .then(d => setResult.textContent = d);
+  if(!country || !service){
+    alert("Select country & service");
+    return;
+  }
+
+  result.textContent = "Requesting number...";
+
+  fetch(`/api/getNumber?country=${country}&service=${service}&type=${PROVIDER}`)
+  .then(r=>r.text())
+  .then(txt=>{
+    result.textContent = txt;
+    document.getElementById("emptyText").style.display="none";
+  });
 }
 </script>
 
 </body>
-    </html>
+</html>
