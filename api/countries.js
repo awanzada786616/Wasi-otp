@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   const r = await fetch(url);
   const text = await r.text();
 
-  // Convert to JSON array for frontend
+  // Fix: Convert raw text to JSON array for frontend
   const countries = text
     .split("\n")
     .filter(line => line.includes(":"))
@@ -16,5 +16,5 @@ export default async function handler(req, res) {
     });
 
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.status(200).json(countries);
+  res.status(200).json(countries); // Send proper JSON
 }
