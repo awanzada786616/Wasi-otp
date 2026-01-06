@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="color-scheme" content="light">
+    <title>WASI OTP - Dashboard</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '#0d6efd',
+                        brandDark: '#0a58ca',
+                        bgLight: '#f4f6f8',
+                        textDark: '#212529',
+                        success: '#198754',
+                        danger: '#dc3545',
+                        warning: '#ffc107',
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    
+    <!-- React & Firebase -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root { color-scheme: light; }
+        body { background-color: #f4f6f8; font-family: 'Inter', sans-serif; padding-bottom: 80px; }
+        
+        /* Dropdown Fix */
+        select { background-color: white !important; color: #333 !important; -webkit-appearance: none; }
+        
+        .blue-card {
+            background: linear-gradient(135deg, #0d6efd 0%, #0043a8 100%);
+            border-radius: 12px; color: white; position: relative; overflow: hidden;
+            box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3); padding: 20px;
+        }
+        .blue-card::after {
+            content: ''; position: absolute; right: -30px; top: -30px;
+            width: 180px; height: 180px; background: rgba(255,255,255,0.1);
+            border-radius: 50%; pointer-events: none;
+        }
+
+        .marquee-strip {
+            background: #0d6efd; color: white; padding: 4px 0;
+            font-size: 11px; font-weight: 600; margin-bottom: 15px; border-radius: 4px;
+        }
+
+        .active-order-card {
+            background: white; border-radius: 12px; padding: 16px;
+            margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); position: relative;
+            border-left: 4px solid #0d6efd; animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .otp-display-area {
+            background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;
+            padding: 12px; margin: 12px 0; text-align: center;
+            font-family: monospace; font-size: 24px; font-weight: 700;
+            color: #334155; letter-spacing: 2px;
+        }
+
+        .cat-loader { font-size: 4rem; animation: bounce 1s infinite alternate; }
+    </style>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw",
+            authDomain: "otpbywasi.firebaseapp.com",
+            projectId: "otpbywasi",
+            storageBucket: "otpbywasi.firebasestorage.app",
+            messagingSenderId: "1169252296",
+            appId: "1:1169252296:web:732c1f08f6b6ed7033eafd"
+        };
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // --- API HANDLER (VERCEL PROXY) ---
+        const API_URL = "/api/proxy"; // Vercel Backend Path
+        const USD_TO_PKR = 280;
+        const COMMISSION = 1.10; // 10% Profit
+        const SERVER_TYPE = "1"; // Default Server
+
+        const notify = (msg, type="success") => {
+            Toastify({ text: msg, duration: 3000, style: { background: type==="success"?"#0d6efd":"#dc3545" }, position: "top-center" }).showToast();
+        };
+
+        const LoadingScreen = () => (
+            <div className="h-screen w-full bg-white flex flex-col items-center justify-center z-50">
+                <i className="fa-solid fa-cat cat-loader text-black mb-4"></i>
+            </div>
+        );
+
+        // --- ACTIVE ORDER CARD ---
+        const OrderCard = ({ order, onCancel, onBuyNew, currentTime }) => {
+            if (!order || !order.timestamp) return null;
+            const endTime = order.timestamp + (25 * 60 * 1000);
+            const diff = endTime - currentTime;
+            if (diff <= 0) return null;
+
+            const mins = Math.floor((diff / 1000 / 60) % 60);
+            const secs = Math.floor((diff / 1000) % 60);
+            const timerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            const serviceChar = (order.service || "S").charAt(0).toUpperCase();
+
+            return (
+                <div className="active-order-card">
+                    <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-brand font-bold text-xl">{serviceChar}</div>
+                            <div>
+                                <div className="text-gray-900 font-bold text-lg tracking-wide">{order.number}</div>
+                                <div className="text-gray-500 text-xs mt-1 font-medium">{order.service} • Rs {order.price}</div>
+                            </div>
+                        </div>
+                        {order.status === 'WAITING' && (
+                            <div className="bg-red-50 text-red-500 px-2 py-1 rounded text-xs font-mono font-bold border border-red-100"><i className="fa-regular fa-clock"></i> {timerText}</div>
+                        )}
+                    </div>
+                    <div className="otp-display-area">
+                        {order.status === 'WAITING' ? (
+                            <div className="text-yellow-600 flex items-center justify-center gap-2 text-sm font-semibold animate-pulse"><i className="fa-solid fa-spinner fa-spin"></i> Waiting SMS...</div>
+                        ) : order.status === 'RECEIVED' ? (
+                            <span onClick={()=>{navigator.clipboard.writeText(order.code); notify("OTP Copied!")}} className="text-success cursor-pointer select-all">{order.code} <i className="fa-regular fa-copy text-xs ml-1 opacity-50"></i></span>
+                        ) : <span className="text-danger text-sm font-bold">CANCELLED</span>}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <button onClick={() => onBuyNew(order)} className="bg-white border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-bold">Buy Again</button>
+                        {order.status === 'WAITING' ? <button onClick={() => onCancel(order)} className="bg-red-50 border border-red-200 text-red-600 py-2 rounded-lg text-sm font-bold">Cancel</button> : <div className="text-center text-xs text-gray-400 py-2 bg-gray-50 rounded">Completed</div>}
+                    </div>
+                </div>
+            );
+        };
+
+        const DepositHistoryItem = ({ deposit }) => (
+            <div className="p-3 border-b border-gray-100 flex justify-between items-center hover:bg-gray-50">
+                <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs ${deposit.status==='approved'?'bg-success':'bg-yellow-500'}`}><i className={`fa-solid ${deposit.status==='approved'?'fa-check':'fa-clock'}`}></i></div>
+                    <div><p className="font-bold text-sm text-gray-800">Deposit</p><p className="text-[10px] text-gray-500">{deposit.timestamp ? new Date(deposit.timestamp).toLocaleDateString() : 'N/A'}</p></div>
+                </div>
+                <div className="text-right"><p className="font-bold text-sm text-brand">+ Rs {deposit.amount}</p><span className="text-[10px] text-gray-400 uppercase font-bold">{deposit.status || 'Pending'}</span></div>
+            </div>
+        );
+
+        // --- MAIN APP ---
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [userData, setUserData] = useState({ name: 'User', balance: 0 });
+            
+            // API & Data
+            const [countries, setCountries] = useState([]);
+            const [services, setServices] = useState([]);
+            const [orders, setOrders] = useState([]);
+            const [deposits, setDeposits] = useState([]);
+            
+            // UI States
+            const [loading, setLoading] = useState(true);
+            const [now, setNow] = useState(Date.now());
+            const [menuOpen, setMenuOpen] = useState(false);
+            const [waLink, setWaLink] = useState("#");
+            
+            // Selection
+            const [selCountry, setSelCountry] = useState("");
+            const [selService, setSelService] = useState("");
+            const [buying, setBuying] = useState(false);
+            const [fetchingSvc, setFetchingSvc] = useState(false);
+
+            useEffect(() => { setInterval(() => setNow(Date.now()), 1000); }, []);
+
+            useEffect(() => {
+                auth.onAuthStateChanged(u => {
+                    if (u) {
+                        setUser(u);
+                        db.collection('users').doc(u.uid).onSnapshot(d => setUserData(d.exists ? d.data() : { name: u.email.split('@')[0], balance: 0 }));
+                        
+                        db.collection('orders').where('userId', '==', u.uid).onSnapshot(s => {
+                            const list = s.docs.map(d => ({id: d.id, ...d.data()})).filter(o => o.timestamp);
+                            list.sort((a,b) => b.timestamp - a.timestamp);
+                            setOrders(list);
+                        });
+
+                        db.collection('deposits').where('userId', '==', u.uid).limit(5).onSnapshot(s => {
+                            const list = s.docs.map(d => ({id: d.id, ...d.data()}));
+                            list.sort((a,b) => b.timestamp - a.timestamp);
+                            setDeposits(list);
+                        });
+                        
+                        db.collection('settings').doc('config').get().then(doc => { if(doc.exists) setWaLink(doc.data().whatsappGroupLink); });
+
+                        // --- FETCH COUNTRIES (FIXED RAW ISSUE) ---
+                        fetchCountries();
+                    } else {
+                        window.location.href = "auth.html";
+                    }
+                });
+            }, []);
+
+            // 1. Fetch Countries (API Fix)
+            const fetchCountries = async () => {
+                try {
+                    const res = await fetch(`${API_URL}?action=getCountries&type=${SERVER_TYPE}`);
+                    const json = await res.json();
+                    
+                    // RAW FIX: Convert Object to Array
+                    if (json && typeof json === 'object') {
+                        const list = Object.values(json).map(c => ({
+                            id: c.id || c.ID,
+                            name: c.name || c.eng || c.country || `Country ${c.id}`
+                        }));
+                        list.sort((a,b) => a.name.localeCompare(b.name));
+                        setCountries(list);
+                        setLoading(false);
+                    }
+                } catch (e) { console.error("API Error", e); setLoading(false); }
+            };
+
+            // 2. Fetch Services on Country Change
+            const handleCountryChange = async (e) => {
+                const cid = e.target.value;
+                setSelCountry(cid);
+                if(!cid) return;
+
+                setFetchingSvc(true);
+                setServices([]);
+                
+                try {
+                    const res = await fetch(`${API_URL}?action=getServices&country=${cid}&type=${SERVER_TYPE}`);
+                    const json = await res.json();
+
+                    // RAW FIX: Convert Object/Array to Clean List
+                    if (json) {
+                        const entries = Array.isArray(json) ? json : Object.entries(json);
+                        const list = entries.map(item => {
+                            const val = Array.isArray(item) ? item[1] : item; // Handle key-value or direct object
+                            const code = Array.isArray(item) ? item[0] : (val.code || val.service);
+                            return {
+                                code: code,
+                                name: val.name || val.service || code,
+                                price: val.price || 0.1,
+                                count: val.count || 0
+                            };
+                        });
+                        setServices(list);
+                    }
+                } catch(e) { console.error(e); }
+                setFetchingSvc(false);
+            };
+
+            // 3. Buy Number
+            const handleBuy = async () => {
+                if(!selCountry || !selService) return notify("Please select Country & Service", "error");
+
+                const svc = services.find(s => s.code === selService);
+                const countryName = countries.find(c => c.id == selCountry)?.name || "Unknown";
+                
+                // Price Calculation
+                const price = Math.ceil((svc.price * USD_TO_PKR) * COMMISSION);
+                
+                if(userData.balance < price) return notify("Low Balance! Please Deposit.", "error");
+
+                setBuying(true);
+                try {
+                    // API Call
+                    const res = await fetch(`${API_URL}?action=getNumber&service=${selService}&country=${selCountry}&type=${SERVER_TYPE}`);
+                    const text = await res.text();
+
+                    if (text.includes("ACCESS_NUMBER")) {
+                        const [_, apiId, number] = text.split(':');
+                        const batch = db.batch();
+                        const newOrderRef = db.collection('orders').doc();
+                        
+                        batch.update(db.collection('users').doc(user.uid), { balance: firebase.firestore.FieldValue.increment(-price) });
+                        batch.set(newOrderRef, {
+                            userId: user.uid, apiId, number, service: svc.name, country: countryName, price: price,
+                            status: 'WAITING', code: null, timestamp: Date.now(), server: SERVER_TYPE
+                        });
+                        await batch.commit(); notify("Success! Number Purchased.");
+                    } else {
+                        notify("Error: " + text, "error");
+                    }
+                } catch(e) { notify("Error", "error"); }
+                setBuying(false);
+            };
+
+            // 4. Cancel
+            const handleCancel = async (order) => {
+                if(!confirm("Cancel & Refund?")) return;
+                try {
+                    await fetch(`${API_URL}?action=setStatus&id=${order.apiId}&status=8`);
+                    const batch = db.batch();
+                    batch.update(db.collection('orders').doc(order.id), { status: 'CANCELLED' });
+                    batch.update(db.collection('users').doc(user.uid), { balance: firebase.firestore.FieldValue.increment(order.price) });
+                    await batch.commit(); notify("Refunded!");
+                } catch(e) { notify("Network Error", "error"); }
+            };
+
+            // 5. Polling
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    activeOrders.forEach(async (o) => {
+                        try {
+                            const res = await fetch(`${API_URL}?action=getStatus&id=${o.apiId}`);
+                            const text = await res.text();
+                            if(text.includes("STATUS_OK")) {
+                                const code = text.split(':')[1];
+                                await db.collection('orders').doc(o.id).update({ status: 'RECEIVED', code });
+                            } else if(text === "STATUS_CANCEL") {
+                                await db.collection('orders').doc(o.id).update({ status: 'CANCELLED' });
+                            }
+                        } catch(e) {}
+                    });
+                }, 4000);
+                return () => clearInterval(interval);
+            }, [orders]);
+
+            const activeOrders = orders.filter(o => {
+                const age = now - (o.timestamp || 0);
+                return (o.status === 'WAITING' || o.status === 'RECEIVED') && age < (25 * 60 * 1000);
+            });
+
+            if(loading) return <LoadingScreen />;
+
+            return (
+                <div className="pb-20 max-w-md mx-auto min-h-screen relative">
+                    
+                    {/* SIDEBAR */}
+                    <div className={`fixed inset-0 bg-black/50 z-40 ${menuOpen?'block':'hidden'}`} onClick={()=>setMenuOpen(false)}></div>
+                    <div className={`fixed top-0 left-0 w-64 h-full bg-white z-50 transform transition-transform duration-300 ${menuOpen?'translate-x-0':'-translate-x-full'}`}>
+                        <div className="p-6 border-b flex justify-between items-center"><h2 className="text-xl font-bold text-brand">MENU</h2><i onClick={()=>setMenuOpen(false)} className="fa-solid fa-xmark text-xl"></i></div>
+                        <nav className="p-4 space-y-2">
+                            <div className="p-3 bg-gray-50 rounded mb-4"><p className="text-xs text-gray-500">Account</p><p className="font-bold truncate">{user?.email}</p></div>
+                            <a href="deposit.html" className="block p-3 rounded hover:bg-gray-100 font-medium"><i className="fa-solid fa-wallet mr-3 text-green-500"></i> Deposit Funds</a>
+                            <a href="ticket.html" className="block p-3 rounded hover:bg-gray-100 font-medium"><i className="fa-solid fa-headset mr-3 text-blue-500"></i> Support</a>
+                            <a href={waLink} target="_blank" className="block p-3 rounded hover:bg-gray-100 font-medium"><i className="fa-brands fa-whatsapp mr-3 text-green-600"></i> WhatsApp Group</a>
+                            <button onClick={()=>auth.signOut()} className="w-full text-left p-3 rounded text-red-500 font-bold"><i className="fa-solid fa-power-off mr-3"></i> Logout</button>
+                        </nav>
+                    </div>
+
+                    {/* NAVBAR */}
+                    <div className="bg-white px-4 py-3 flex justify-between items-center shadow-sm sticky top-0 z-30">
+                        <div className="flex items-center gap-3"><button onClick={()=>setMenuOpen(true)} className="text-xl text-gray-700"><i className="fa-solid fa-bars"></i></button><span className="font-bold text-lg text-gray-800">Dashboard</span></div>
+                        <div className="flex items-center gap-2"><div className="bg-blue-50 text-brand px-3 py-1 rounded-full text-xs font-bold border border-blue-100">Rs {userData.balance.toFixed(0)}</div><img src={`https://avatar.iran.liara.run/public/boy`} className="w-9 h-9 rounded-full border border-gray-200" /></div>
+                    </div>
+
+                    <div className="p-4 space-y-4">
+                        <div className="blue-card p-6 shadow-md">
+                            <div className="flex justify-between items-start mb-6"><div><p className="text-blue-100 text-xs">Welcome Back,</p><h2 className="text-2xl font-bold truncate w-40">{userData.name}</h2></div><i className="fa-regular fa-credit-card text-3xl opacity-50"></i></div>
+                            <div className="flex justify-between items-end"><div><p className="text-xs text-blue-200">Balance</p><p className="text-2xl font-bold">Rs {userData.balance}</p></div><a href="deposit.html" className="bg-white/20 px-3 py-1.5 rounded text-white text-sm font-bold flex items-center gap-1 hover:bg-white/30 transition"><i className="fa-solid fa-plus"></i> Add</a></div>
+                        </div>
+
+                        <div className="marquee-strip"><marquee>Please follow terms and conditions before buying number for better experience.</marquee></div>
+
+                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                            <h3 className="font-bold text-gray-700 mb-3 text-sm uppercase tracking-wide">Buy Numbers</h3>
+                            <div className="space-y-3">
+                                <select className="w-full p-3 border border-gray-300 rounded-lg text-sm outline-none bg-white text-gray-900" value={selCountry} onChange={handleCountryChange}>
+                                    <option value="">Select Country</option>
+                                    {countries.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                                <select className="w-full p-3 border border-gray-300 rounded-lg text-sm outline-none bg-white text-gray-900" value={selService} onChange={e=>setSelService(e.target.value)} disabled={!selCountry}>
+                                    <option value="">{fetchingSvc ? 'Loading...' : 'Select Service'}</option>
+                                    {services.map(s => <option key={s.code} value={s.code}>{s.name} - Rs {Math.ceil((s.price * USD_TO_PKR) * COMMISSION)}</option>)}
+                                </select>
+                                <button onClick={handleBuy} disabled={!selService || buying} className="w-full bg-brand text-white py-3 rounded-lg font-bold shadow-lg hover:bg-brandDark transition disabled:opacity-50 flex items-center justify-center gap-2">{buying ? <i className="fa-solid fa-circle-notch fa-spin"></i> : "Buy Number"}</button>
+                            </div>
+                        </div>
+
+                        {activeOrders.length > 0 && <div className="mt-2"><h3 className="font-bold text-gray-600 mb-2 px-1 text-xs uppercase">Active Orders</h3>{activeOrders.map(o => <OrderCard key={o.id} order={o} onCancel={handleCancel} onBuyNew={() => window.location.reload()} currentTime={now} />)}</div>}
+
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"><div className="p-3 border-b border-gray-100 flex justify-between items-center bg-gray-50"><h3 className="font-bold text-gray-700 text-sm uppercase">Recent Deposits</h3><a href="deposit.html" className="text-xs text-brand hover:underline font-medium">View All</a></div><div className="max-h-60 overflow-y-auto">{deposits.length === 0 ? <p className="text-center text-gray-400 text-sm py-4">No deposits found.</p> : deposits.map(d => <DepositHistoryItem key={d.id} deposit={d} />)}</div></div>
+                    </div>
+                    <a href="https://wa.me/923342002756" className="fixed bottom-6 right-6 bg-green-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition z-40"><i className="fa-brands fa-whatsapp text-3xl"></i></a>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
