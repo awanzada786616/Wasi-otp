@@ -32,13 +32,19 @@ button:disabled{background:#999;}
 <script>
 const PROVIDER = 1;
 
-// Load countries from nested JSON
+// Load countries (Nested JSON fix)
 fetch(`/api/countries?type=${PROVIDER}`)
   .then(res => res.json())
   .then(data => {
     const select = document.getElementById("country");
     select.innerHTML = `<option value="">Select Country</option>`;
-    const countries = data[PROVIDER]; // Nested array fix
+    
+    const countries = data[PROVIDER.toString()]; // <-- FIX nested key
+
+    if (!countries) {
+      console.error("No countries found for provider:", PROVIDER);
+      return;
+    }
 
     countries.forEach(c => {
       const opt = document.createElement("option");
