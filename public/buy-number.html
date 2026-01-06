@@ -32,30 +32,31 @@ button:disabled{background:#999;}
 <script>
 const PROVIDER = 1;
 
-// Load countries (Nested JSON fix)
+// Load countries properly
 fetch(`/api/countries?type=${PROVIDER}`)
   .then(res => res.json())
   .then(data => {
     const select = document.getElementById("country");
     select.innerHTML = `<option value="">Select Country</option>`;
-    
-    const countries = data[PROVIDER.toString()]; // <-- FIX nested key
 
-    if (!countries) {
+    // Nested JSON fix: use string key
+    const countries = data[PROVIDER.toString()];  
+
+    if (!countries || countries.length === 0) {
       console.error("No countries found for provider:", PROVIDER);
       return;
     }
 
     countries.forEach(c => {
       const opt = document.createElement("option");
-      opt.value = c.id;
-      opt.textContent = c.name;
+      opt.value = c.id;       // Country ID
+      opt.textContent = c.name; // Country Name
       select.appendChild(opt);
     });
   })
   .catch(err => console.error("Countries load error:", err));
 
-// Load services when a country is selected
+// Load services on country change
 document.getElementById("country").addEventListener("change", () => {
   const country = document.getElementById("country").value;
   const serviceSelect = document.getElementById("service");
