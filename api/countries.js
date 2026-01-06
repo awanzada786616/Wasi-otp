@@ -6,8 +6,8 @@ export default async function handler(req, res) {
   const r = await fetch(url);
   const text = await r.text();
 
-  // Fix: Convert raw text to JSON array for frontend
-  const countries = text
+  // Convert raw text to nested JSON object
+  const arr = text
     .split("\n")
     .filter(line => line.includes(":"))
     .map(line => {
@@ -15,6 +15,9 @@ export default async function handler(req, res) {
       return { id: id.trim(), name: name.trim() };
     });
 
+  const result = {};
+  result[type.toString()] = arr;
+
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.status(200).json(countries); // Send proper JSON
+  res.status(200).json(result); // Nested JSON
 }
