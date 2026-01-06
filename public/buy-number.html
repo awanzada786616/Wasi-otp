@@ -15,6 +15,7 @@ button:disabled{background:#999;}
 .empty{text-align:center;margin-top:30px;color:#777;}
 </style>
 </head>
+
 <body>
 <div class="card">
 <h2>Buy Number</h2>
@@ -23,6 +24,7 @@ button:disabled{background:#999;}
 <button onclick="buyNumber()">Buy Number</button>
 <div id="result" class="status"></div>
 </div>
+
 <div class="empty" id="emptyText">No Any Active Numbers</div>
 
 <script>
@@ -39,7 +41,8 @@ fetch(`/api/countries?type=${PROVIDER}`)
       opt.textContent = c.name;
       select.appendChild(opt);
     });
-  });
+  })
+  .catch(err => console.error("Countries load error:", err));
 
 // Load services on country change
 document.getElementById("country").addEventListener("change", () => {
@@ -59,7 +62,8 @@ document.getElementById("country").addEventListener("change", () => {
         serviceSelect.appendChild(opt);
       });
       serviceSelect.disabled = false;
-    });
+    })
+    .catch(err => console.error("Services load error:", err));
 });
 
 // Buy number
