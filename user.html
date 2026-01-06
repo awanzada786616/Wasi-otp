@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>OTPGet API Tester</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 20px;
+    }
+    h1 { color: #38bdf8; }
+    .box {
+      background: #020617;
+      border: 1px solid #1e293b;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+    }
+    input, select, button {
+      padding: 8px;
+      margin: 5px 0;
+      width: 100%;
+    }
+    button {
+      background: #38bdf8;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    pre {
+      background: #020617;
+      padding: 10px;
+      overflow-x: auto;
+      border-radius: 6px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+<h1>OTPGet API Test Panel</h1>
+
+<!-- Balance -->
+<div class="box">
+  <h3>1️⃣ Check Balance</h3>
+  <button onclick="getBalance()">Get Balance</button>
+  <pre id="balance"></pre>
+</div>
+
+<!-- Countries -->
+<div class="box">
+  <h3>2️⃣ Get Countries</h3>
+  <select id="countryType">
+    <option value="1">Provider 1</option>
+    <option value="2">Provider 2</option>
+    <option value="3">Provider 3</option>
+    <option value="4">Provider 4</option>
+  </select>
+  <button onclick="getCountries()">Get Countries</button>
+  <pre id="countries"></pre>
+</div>
+
+<!-- Services -->
+<div class="box">
+  <h3>3️⃣ Get Services</h3>
+  <input id="serviceCountry" placeholder="Country ID (e.g. 1)">
+  <input id="serviceType" placeholder="Provider Type (1-4)">
+  <button onclick="getServices()">Get Services</button>
+  <pre id="services"></pre>
+</div>
+
+<!-- Get Number -->
+<div class="box">
+  <h3>4️⃣ Request Number</h3>
+  <input id="numService" placeholder="Service ID">
+  <input id="numCountry" placeholder="Country ID">
+  <input id="numType" placeholder="Provider Type">
+  <button onclick="getNumber()">Get Number</button>
+  <pre id="number"></pre>
+</div>
+
+<!-- Get Status -->
+<div class="box">
+  <h3>5️⃣ Get OTP Status</h3>
+  <input id="orderId" placeholder="Order ID">
+  <button onclick="getStatus()">Check Status</button>
+  <pre id="status"></pre>
+</div>
+
+<!-- Set Status -->
+<div class="box">
+  <h3>6️⃣ Set Activation Status</h3>
+  <input id="setOrderId" placeholder="Order ID">
+  <select id="setStatus">
+    <option value="3">Retry SMS</option>
+    <option value="6">Complete</option>
+    <option value="8">Cancel & Refund</option>
+  </select>
+  <button onclick="setStatus()">Update Status</button>
+  <pre id="setResult"></pre>
+</div>
+
+<script>
+function getBalance() {
+  fetch('/api/balance')
+    .then(r => r.text())
+    .then(d => balance.textContent = d);
+}
+
+function getCountries() {
+  const type = countryType.value;
+  fetch(`/api/countries?type=${type}`)
+    .then(r => r.text())
+    .then(d => countries.textContent = d);
+}
+
+function getServices() {
+  const c = serviceCountry.value;
+  const t = serviceType.value;
+  fetch(`/api/services?country=${c}&type=${t}`)
+    .then(r => r.text())
+    .then(d => services.textContent = d);
+}
+
+function getNumber() {
+  const s = numService.value;
+  const c = numCountry.value;
+  const t = numType.value;
+  fetch(`/api/getNumber?service=${s}&country=${c}&type=${t}`)
+    .then(r => r.text())
+    .then(d => number.textContent = d);
+}
+
+function getStatus() {
+  const id = orderId.value;
+  fetch(`/api/getStatus?id=${id}`)
+    .then(r => r.text())
+    .then(d => status.textContent = d);
+}
+
+function setStatus() {
+  const id = setOrderId.value;
+  const s = document.getElementById("setStatus").value;
+  fetch(`/api/setStatus?id=${id}&status=${s}`)
+    .then(r => r.text())
+    .then(d => setResult.textContent = d);
+}
+</script>
+
+</body>
+    </html>
