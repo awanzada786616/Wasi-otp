@@ -32,55 +32,61 @@ button:disabled{background:#999;}
 <script>
 const PROVIDER = 1;
 
-// Load countries properly
-fetch(`/api/countries?type=${PROVIDER}`)
-  .then(res => res.json())
-  .then(data => {
+// -----------------------------
+// Load countries (100% fixed)
+// -----------------------------
+async function loadCountries() {
+  try {
+    const res = await fetch(`/api/countries?type=${PROVIDER}`);
+    const countries = await res.json(); // Must be JSON array from backend
     const select = document.getElementById("country");
     select.innerHTML = `<option value="">Select Country</option>`;
 
-    // Nested JSON fix: use string key
-    const countries = data[PROVIDER.toString()];  
-
     if (!countries || countries.length === 0) {
-      console.error("No countries found for provider:", PROVIDER);
+      console.error("No countries returned from API");
       return;
     }
 
     countries.forEach(c => {
       const opt = document.createElement("option");
-      opt.value = c.id;       // Country ID
-      opt.textContent = c.name; // Country Name
+      opt.value = c.id;
+      opt.textContent = c.name; // Only show name
       select.appendChild(opt);
     });
-  })
-  .catch(err => console.error("Countries load error:", err));
+  } catch (err) {
+    console.error("Countries load error:", err);
+  }
+}
 
-// Load services on country change
-document.getElementById("country").addEventListener("change", () => {
-  const country = document.getElementById("country").value;
+// -----------------------------
+// Load services on country select
+// -----------------------------
+async function loadServices(countryId) {
   const serviceSelect = document.getElementById("service");
   serviceSelect.innerHTML = `<option value="">Select Service</option>`;
   serviceSelect.disabled = true;
 
-  if (!country) return;
+  if (!countryId) return;
 
-  fetch(`/api/services?country=${country}&type=${PROVIDER}`)
-    .then(res => res.json())
-    .then(data => {
-      data.forEach(s => {
-        const opt = document.createElement("option");
-        opt.value = s.id;
-        opt.textContent = s.name;
-        serviceSelect.appendChild(opt);
-      });
-      serviceSelect.disabled = false;
-    })
-    .catch(err => console.error("Services load error:", err));
-});
+  try {
+    const res = await fetch(`/api/services?country=${countryId}&type=${PROVIDER}`);
+    const services = await res.json();
+    services.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = s.name;
+      serviceSelect.appendChild(opt);
+    });
+    serviceSelect.disabled = false;
+  } catch (err) {
+    console.error("Services load error:", err);
+  }
+}
 
+// -----------------------------
 // Buy number
-function buyNumber() {
+// -----------------------------
+async function buyNumber() {
   const country = document.getElementById("country").value;
   const service = document.getElementById("service").value;
   const result = document.getElementById("result");
@@ -91,14 +97,26 @@ function buyNumber() {
   }
 
   result.textContent = "Requesting number...";
-  fetch(`/api/getNumber?country=${country}&service=${service}&type=${PROVIDER}`)
-    .then(res => res.text())
-    .then(txt => {
-      result.textContent = txt;
-      document.getElementById("emptyText").style.display = "none";
-    })
-    .catch(err => result.textContent = "Error: " + err);
+
+  try {
+    const res = await fetch(`/api/getNumber?country=${country}&service=${service}&type=${PROVIDER}`);
+    const text = await res.text();
+    result.textContent = text;
+    document.getElementById("emptyText").style.display = "none";
+  } catch (err) {
+    result.textContent = "Error: " + err;
+  }
 }
+
+// -----------------------------
+// Event listeners
+// -----------------------------
+document.getElementById("country").addEventListener("change", (e) => {
+  loadServices(e.target.value);
+});
+
+// Initial load
+loadCountries();
 </script>
 
 </body>
