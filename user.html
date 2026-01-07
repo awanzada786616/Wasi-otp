@@ -3,144 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- FORCE LIGHT MODE -->
+    <!-- FIX: Force Light Mode for Mobile Browsers -->
     <meta name="color-scheme" content="light">
-    <title>WASI OTP - Dashboard</title>
-
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: '#0d6efd',
-                        brandDark: '#0a58ca',
-                        bgLight: '#f4f6f8',
-                        textDark: '#212529',
-                        success: '#198754',
-                        danger: '#dc3545',
-                        warning: '#ffc107',
-                    },
-                    fontFamily: { sans: ['Inter', 'sans-serif'] }
-                }
-            }
-        }
-    </script>
+    <title>WASI OTP - Premium Panel</title>
     
-    <!-- React & Firebase -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-
-    <!-- Firebase SDK -->
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        :root { color-scheme: light; }
-        body { background-color: #f4f6f8; font-family: 'Inter', sans-serif; padding-bottom: 80px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0b1120; color: #f3f4f6; }
+        .glass { background: rgba(31, 41, 55, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
         
         /* Dropdown Fix */
-        select { background-color: white !important; color: #333 !important; }
-
-        /* Blue Header Card */
-        .blue-card {
-            background: linear-gradient(135deg, #0d6efd 0%, #0043a8 100%);
-            border-radius: 16px; color: white; position: relative; overflow: hidden;
-            box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3); padding: 20px;
+        select {
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%233B82F6%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 0.65em auto;
         }
-        .blue-card::after {
-            content: ''; position: absolute; right: -30px; top: -30px;
-            width: 150px; height: 150px; background: rgba(255,255,255,0.1);
-            border-radius: 50%; pointer-events: none;
-        }
-
-        /* Marquee */
-        .marquee-strip {
-            background: #0d6efd; color: white; padding: 4px 0;
-            font-size: 11px; font-weight: 600; margin-bottom: 15px; border-radius: 4px;
-        }
-
-        /* Active Order Card */
-        .active-order-card {
-            background: white; border-radius: 12px; padding: 16px;
-            margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); position: relative;
-            border-left: 4px solid #0d6efd; animation: fadeIn 0.5s ease;
-        }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .service-icon-box {
-            width: 45px; height: 45px; background: linear-gradient(135deg, #60a5fa, #3b82f6);
-            border-radius: 10px; display: flex; align-items: center; justify-content: center;
-            color: white; font-size: 22px; margin-right: 12px;
-            box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);
-        }
-
-        .timer-badge {
-            background: #fef2f2; color: #dc2626; font-size: 12px; font-weight: 700;
-            padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;
-            border: 1px solid #fecaca;
-        }
-
-        .otp-display-area {
-            background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;
-            padding: 12px; margin: 12px 0; text-align: center;
-            font-family: monospace; font-size: 24px; font-weight: 700;
-            color: #334155; letter-spacing: 2px;
-        }
-
-        .action-btn {
-            padding: 10px 0; border-radius: 8px; font-size: 13px; font-weight: 600;
-            text-align: center; transition: all 0.2s; background: white;
-            border: 1px solid #e5e7eb; color: #374151; cursor: pointer;
-        }
-        .action-btn:hover { background: #f9fafb; border-color: #d1d5db; }
-        .btn-cancel { border-color: #fecaca; color: #dc2626; background: #fff5f5; }
-        .btn-cancel:hover { background: #fee2e2; }
-
-        /* Sidebar & Overlay */
-        .sidebar {
-            position: fixed; top: 0; left: 0; width: 280px; height: 100%;
-            background: white; z-index: 100; transform: translateX(-100%);
-            transition: transform 0.3s ease; box-shadow: 2px 0 15px rgba(0,0,0,0.1);
-        }
-        .sidebar.open { transform: translateX(0); }
-        .overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 90; display: none;
-        }
-        .overlay.active { display: block; }
-        
-        .cat-loader { font-size: 4rem; animation: bounce 1s infinite alternate; }
-        
-        /* Summary Box */
-        .summary-box {
-            display: flex; align-items: center; gap: 15px; padding: 15px;
-            border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: transform 0.2s; background: white;
-        }
-        .summary-box:active { transform: scale(0.98); }
-        .icon-circle {
-            width: 42px; height: 42px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; font-size: 18px;
-        }
+        select option { background-color: #111827; color: white; padding: 10px; }
     </style>
 </head>
-<body>
+<body class="min-h-screen pb-10">
 
-    <div id="root"></div>
+    <!-- Navbar -->
+    <nav class="border-b border-gray-800 glass sticky top-0 z-50 p-4 shadow-2xl">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/20"><i class="fas fa-sms text-xl text-white"></i></div>
+                <span class="text-2xl font-black tracking-tight uppercase">OTP<span class="text-blue-500">Get</span></span>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <!-- Deposit Button -->
+                <a href="deposit.html" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider shadow transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-wallet"></i> Deposit
+                </a>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+                <!-- Balance Display -->
+                <div class="bg-gray-800/80 px-4 py-2 rounded-full border border-gray-700 shadow-inner">
+                    <span class="text-[10px] text-gray-400 uppercase font-black mr-2 tracking-widest">Balance</span>
+                    <span id="balance-display" class="text-green-400 font-mono font-bold">...</span>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-        // --- FIREBASE CONFIG ---
+    <main class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Selection Card -->
+            <div class="lg:col-span-5">
+                <div class="bg-gray-800/40 p-8 rounded-3xl border border-gray-700 shadow-2xl relative overflow-hidden">
+                    <!-- Glow Effect -->
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+
+                    <h2 class="text-xl font-bold mb-8 text-blue-400 flex items-center gap-3 relative z-10">
+                        <i class="fas fa-shopping-basket"></i> Buy Service
+                    </h2>
+
+                    <div class="mb-6 relative z-10">
+                        <label class="block text-xs font-black text-gray-500 uppercase mb-2 ml-1 tracking-widest">1. Select Country</label>
+                        <select id="country-select" class="w-full bg-gray-900 border border-gray-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer text-white">
+                            <option value="">Loading...</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-10 relative z-10">
+                        <label class="block text-xs font-black text-gray-500 uppercase mb-2 ml-1 tracking-widest">2. Select Service</label>
+                        <select id="service-select" class="w-full bg-gray-900 border border-gray-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer text-white" disabled>
+                            <option value="">Select country first</option>
+                        </select>
+                    </div>
+
+                    <button onclick="buyNumber()" id="buy-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-2xl shadow-xl transition-all active:scale-95 flex justify-center items-center gap-3 text-lg relative z-10">
+                        <i class="fas fa-bolt"></i> GET NUMBER
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Card -->
+            <div class="lg:col-span-7">
+                <div class="bg-gray-800/40 p-8 rounded-3xl border border-gray-700 shadow-2xl min-h-[450px] flex flex-col relative overflow-hidden">
+                    <!-- Glow Effect -->
+                    <div class="absolute bottom-0 left-0 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl -ml-10 -mb-10 pointer-events-none"></div>
+
+                    <h2 class="text-xl font-bold mb-8 text-yellow-500 flex items-center gap-3 relative z-10">
+                        <i class="fas fa-satellite-dish"></i> Active Connection
+                    </h2>
+
+                    <div id="no-order" class="flex-grow flex flex-col items-center justify-center text-gray-500 opacity-40 py-10 relative z-10">
+                        <i class="fas fa-mobile-alt text-6xl mb-4 animate-bounce"></i>
+                        <p class="text-center">No active number.<br>Order details will appear here.</p>
+                    </div>
+
+                    <div id="order-container" class="hidden space-y-10 animate-pulse relative z-10">
+                        <div class="bg-gray-900/80 p-8 rounded-3xl border border-gray-700 shadow-inner flex justify-between items-center">
+                            <div>
+                                <p class="text-[10px] text-gray-500 uppercase font-black mb-1 tracking-widest font-mono">Mobile Number</p>
+                                <span id="phone-number" class="text-3xl md:text-4xl font-mono font-bold text-white tracking-tighter">-----------</span>
+                            </div>
+                            <button onclick="copyText('phone-number')" class="p-3 bg-gray-800 hover:bg-gray-700 rounded-xl text-blue-400 transition-all active:scale-90"><i class="far fa-copy text-lg"></i></button>
+                        </div>
+
+                        <div class="text-center py-4 bg-black/20 rounded-2xl border border-gray-700/50">
+                            <p class="text-[10px] text-gray-500 uppercase font-black mb-2 tracking-widest">OTP Code</p>
+                            <div id="otp-display" class="text-6xl font-black text-green-400 font-mono tracking-widest">WAITING</div>
+                        </div>
+
+                        <div class="flex gap-4">
+                            <button onclick="cancelOrder()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all">Cancel Order</button>
+                            <button class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all cursor-not-allowed opacity-50">Auto Refreshing...</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- 1. FIREBASE CONFIGURATION (PASTE YOUR KEYS HERE) ---
         const firebaseConfig = {
             apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw",
             authDomain: "otpbywasi.firebaseapp.com",
@@ -149,336 +138,195 @@
             messagingSenderId: "1169252296",
             appId: "1:1169252296:web:732c1f08f6b6ed7033eafd"
         };
-
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        
+        firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // --- API & SETTINGS ---
-        // REPLACE WITH YOUR ACTUAL VERCEL/HOSTING PATH IF NEEDED
-        // For testing locally without Vercel, use Direct Proxy Trick
-        const PROXY_URL = "https://api.allorigins.win/raw?url=";
-        const API_KEY = "bayysjurkagxbup3nqqwq8j5f5vn8jid";
-        
-        const PROFIT_PERCENTAGE = 40; // 40% Profit
+        // --- 2. LOGIC VARIABLES ---
+        const API_PATH = '/api/proxy'; // Vercel Path
+        const PROFIT_PERCENTAGE = 40; // 40% Profit Margin
+        let currentOrderId = null;
+        let statusInterval = null;
+        let userBalance = 0;
+        let userId = null;
 
-        const notify = (msg, type="success") => {
-            Toastify({ text: msg, duration: 3000, style: { background: type==="success"?"#0d6efd":"#dc3545" }, position: "top-center" }).showToast();
-        };
-
-        const LoadingScreen = () => (
-            <div className="h-screen w-full bg-white flex flex-col items-center justify-center z-50">
-                <i className="fa-solid fa-cat cat-loader text-black mb-4"></i>
-            </div>
-        );
-
-        // --- ORDER CARD ---
-        const OrderCard = ({ order, onCancel, currentTime }) => {
-            const endTime = order.timestamp + (25 * 60 * 1000);
-            const diff = endTime - currentTime;
-            if (diff <= 0) return null;
-
-            const mins = Math.floor((diff / 1000 / 60) % 60);
-            const secs = Math.floor((diff / 1000) % 60);
-            const timerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            const serviceChar = (order.service || "S").charAt(0).toUpperCase();
-
-            return (
-                <div className="active-order-card">
-                    <div className="flex justify-between items-start">
-                        <div className="flex items-center">
-                            <div className="service-icon-box">{serviceChar}</div>
-                            <div>
-                                <div className="text-gray-900 font-bold text-lg tracking-wide">{order.number}</div>
-                                <div className="text-gray-500 text-xs mt-1 font-medium">{order.service} • {order.country} • Rs {order.price}</div>
-                            </div>
-                        </div>
-                        {order.status === 'WAITING' && (<div className="timer-badge"><i className="fa-regular fa-clock"></i> {timerText}</div>)}
-                    </div>
-                    <div className="otp-display-area">
-                        {order.status === 'WAITING' ? (
-                            <div className="text-yellow-600 flex items-center justify-center gap-2 text-sm font-semibold animate-pulse"><i className="fa-solid fa-spinner fa-spin"></i> Waiting SMS...</div>
-                        ) : order.status === 'RECEIVED' ? (
-                            <span onClick={()=>{navigator.clipboard.writeText(order.code); notify("OTP Copied!")}} className="text-success cursor-pointer select-all">{order.code} <i className="fa-regular fa-copy text-xs ml-1 opacity-50"></i></span>
-                        ) : <span className="text-danger text-sm font-bold">CANCELLED</span>}
-                    </div>
-                    {order.status === 'WAITING' && (
-                        <div className="grid grid-cols-1 gap-3">
-                            <button onClick={() => onCancel(order)} className="action-btn btn-cancel"><i className="fa-solid fa-ban mr-1"></i> Cancel Order</button>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        const DepositHistoryItem = ({ deposit }) => {
-            if(!deposit) return null;
-            return (
-                <div className="p-3 border-b border-gray-100 flex justify-between items-center last:border-0 hover:bg-gray-50 transition">
-                    <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs ${deposit.status==='approved'?'bg-success':'bg-yellow-500'}`}><i className={`fa-solid ${deposit.status==='approved'?'fa-check':'fa-clock'}`}></i></div>
-                        <div><p className="font-bold text-sm text-gray-800">Deposit</p><p className="text-[10px] text-gray-500">{deposit.timestamp ? new Date(deposit.timestamp).toLocaleDateString() : 'N/A'}</p></div>
-                    </div>
-                    <div className="text-right"><p className="font-bold text-sm text-brand">+ Rs {deposit.amount || 0}</p><span className="text-[10px] text-gray-400 uppercase font-bold">{deposit.status || 'Pending'}</span></div>
-                </div>
-            );
-        };
-
-        // --- MAIN APP ---
-        const App = () => {
-            const [user, setUser] = useState(null);
-            const [userData, setUserData] = useState({ name: 'User', balance: 0 });
-            
-            // Data
-            const [countries, setCountries] = useState([]);
-            const [services, setServices] = useState([]);
-            const [orders, setOrders] = useState([]);
-            const [deposits, setDeposits] = useState([]);
-            
-            // UI
-            const [menuOpen, setMenuOpen] = useState(false);
-            const [loading, setLoading] = useState(true);
-            const [loadingSvc, setLoadingSvc] = useState(false);
-            const [now, setNow] = useState(Date.now());
-            const [waLink, setWaLink] = useState("#");
-            
-            // Buy Flow
-            const [selCountry, setSelCountry] = useState("");
-            const [selCountryName, setSelCountryName] = useState("");
-            const [selService, setSelService] = useState("");
-            const [buying, setBuying] = useState(false);
-
-            useEffect(() => { setInterval(() => setNow(Date.now()), 1000); }, []);
-
-            useEffect(() => {
-                const unsub = auth.onAuthStateChanged(u => {
-                    if (u) {
-                        setUser(u);
-                        db.collection('users').doc(u.uid).onSnapshot(d => setUserData(d.exists ? d.data() : { name: u.email.split('@')[0], balance: 0 }));
-                        
-                        // Fetch Orders (Realtime)
-                        db.collection('orders').where('userId', '==', u.uid).onSnapshot(s => {
-                            const list = s.docs.map(d => ({id: d.id, ...d.data()})).filter(o => o.timestamp);
-                            list.sort((a,b) => b.timestamp - a.timestamp);
-                            setOrders(list);
-                        });
-
-                        // Fetch Deposits
-                        db.collection('deposits').where('userId', '==', u.uid).limit(5).onSnapshot(s => {
-                            const list = s.docs.map(d => ({id: d.id, ...d.data()}));
-                            list.sort((a,b) => b.timestamp - a.timestamp);
-                            setDeposits(list);
-                        });
-                        
-                        db.collection('settings').doc('config').get().then(doc => { if(doc.exists) setWaLink(doc.data().whatsappGroupLink); });
-
-                        // Initial Load Countries
-                        fetchCountries();
-                    } else {
-                        window.location.href = "auth.html";
+        // --- 3. AUTH CHECK & INITIAL LOAD ---
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                userId = user.uid;
+                // Live Balance Listener
+                db.collection('users').doc(userId).onSnapshot(doc => {
+                    if (doc.exists) {
+                        userBalance = doc.data().balance || 0;
+                        document.getElementById('balance-display').innerText = 'Rs ' + userBalance.toFixed(2);
                     }
                 });
-                return () => unsub();
-            }, []);
+                loadCountries();
+            } else {
+                window.location.href = 'auth.html'; // Redirect if not logged in
+            }
+        });
 
-            // API: Fetch Countries
-            const fetchCountries = async () => {
-                try {
-                    const target = `http://otpget.com/stubs/handler_api.php?api_key=${API_KEY}&action=getCountries&type=1`;
-                    const res = await fetch(PROXY_URL + encodeURIComponent(target));
-                    const json = await res.json();
+        // --- 4. LOAD COUNTRIES ---
+        async function loadCountries() {
+            const select = document.getElementById('country-select');
+            try {
+                const res = await fetch(`${API_PATH}?action=getCountries&type=1`);
+                const json = await res.json();
+                
+                // Extract Countries (Object to Array)
+                const list = Object.values(json).map(c => ({
+                    id: c.id || c.ID,
+                    name: c.name || c.eng || c.country
+                })).sort((a, b) => a.name.localeCompare(b.name));
+
+                select.innerHTML = '<option value="">Select Country</option>';
+                list.forEach(c => {
+                    let opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.innerText = c.name;
+                    select.appendChild(opt);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        // --- 5. LOAD SERVICES ---
+        document.getElementById('country-select').addEventListener('change', async (e) => {
+            const countryId = e.target.value;
+            const select = document.getElementById('service-select');
+            select.innerHTML = '<option>Loading...</option>';
+            select.disabled = true;
+
+            try {
+                const res = await fetch(`${API_PATH}?action=getServices&country=${countryId}&type=1`);
+                const json = await res.json();
+                
+                select.innerHTML = '<option value="">Select Service</option>';
+                
+                // Parse Services
+                const list = Object.entries(json).map(([key, val]) => ({
+                    code: key,
+                    name: val.name || val.service || key,
+                    price: parseFloat(val.price || 0.1)
+                }));
+
+                list.forEach(s => {
+                    const finalPrice = Math.ceil((s.price * 280) + (s.price * 280 * (PROFIT_PERCENTAGE/100)));
+                    let opt = document.createElement('option');
+                    opt.value = s.code;
+                    opt.setAttribute('data-price', finalPrice); // Store Price
+                    opt.innerText = `${s.name} - Rs ${finalPrice}`;
+                    select.appendChild(opt);
+                });
+                select.disabled = false;
+            } catch (e) { select.innerHTML = '<option>Error Loading</option>'; }
+        });
+
+        // --- 6. BUY NUMBER LOGIC ---
+        async function buyNumber() {
+            const country = document.getElementById('country-select').value;
+            const serviceSelect = document.getElementById('service-select');
+            const service = serviceSelect.value;
+            const price = parseFloat(serviceSelect.options[serviceSelect.selectedIndex].getAttribute('data-price'));
+
+            if(!country || !service) return alert("Select Country & Service!");
+            if(userBalance < price) return alert("Insufficient Balance! Please Deposit.");
+
+            const btn = document.getElementById('buy-btn');
+            btn.disabled = true; btn.innerHTML = 'Processing...';
+
+            try {
+                // 1. API Call
+                const res = await fetch(`${API_PATH}?action=getNumber&service=${service}&country=${country}&type=1`);
+                const text = await res.text();
+
+                if(text.includes('ACCESS_NUMBER')) {
+                    const [_, apiId, number] = text.split(':');
+                    currentOrderId = apiId;
+
+                    // 2. Deduct Balance in Firebase
+                    await db.collection('users').doc(userId).update({
+                        balance: firebase.firestore.FieldValue.increment(-price)
+                    });
+
+                    // 3. Update UI
+                    document.getElementById('phone-number').innerText = '+' + number;
+                    document.getElementById('order-container').classList.remove('hidden');
+                    document.getElementById('no-order').classList.add('hidden');
                     
-                    // Parse Object to Array
-                    if (json && typeof json === 'object') {
-                        const list = Object.values(json).map(c => ({
-                            id: c.id || c.ID,
-                            name: c.name || c.eng || `Country ${c.id}`
-                        }));
-                        list.sort((a,b) => a.name.localeCompare(b.name));
-                        setCountries(list);
-                        setLoading(false);
-                    }
-                } catch (e) { console.error(e); setLoading(false); }
-            };
+                    // 4. Start Checking Status
+                    startStatusCheck();
+                } else {
+                    alert("Error: " + text);
+                }
+            } catch (e) { alert("Network Error"); }
+            
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-bolt"></i> GET NUMBER';
+        }
 
-            // API: Fetch Services
-            const handleCountryChange = async (e) => {
-                const cid = e.target.value;
-                const cName = e.target.options[e.target.selectedIndex].text;
-                setSelCountry(cid); setSelCountryName(cName);
-                if(!cid) return;
-
-                setLoadingSvc(true); setServices([]);
+        // --- 7. CHECK STATUS (POLLING) ---
+        function startStatusCheck() {
+            if(statusInterval) clearInterval(statusInterval);
+            statusInterval = setInterval(async () => {
+                if(!currentOrderId) return;
                 
                 try {
-                    const target = `http://otpget.com/stubs/handler_api.php?api_key=${API_KEY}&action=getServices&country=${cid}&type=1`;
-                    const res = await fetch(PROXY_URL + encodeURIComponent(target));
-                    const json = await res.json();
-
-                    if (json) {
-                        const entries = Array.isArray(json) ? json : Object.entries(json);
-                        const list = entries.map(item => {
-                            const val = Array.isArray(item) ? item[1] : item;
-                            const code = Array.isArray(item) ? item[0] : (val.code || val.service);
-                            
-                            // String Parsing for Price (e.g. "whatsapp - 10")
-                            let price = 0;
-                            let name = val.name || code;
-                            
-                            if (typeof val === 'string' && val.includes('-')) {
-                                // Old format string handling
-                                const parts = val.split('-');
-                                name = parts[0].trim();
-                                price = parseFloat(parts[1].match(/\d+(\.\d+)?/)[0]);
-                            } else {
-                                price = val.price || 0.1;
-                            }
-
-                            return { code, name, price, count: val.count || 0 };
-                        });
-                        setServices(list);
-                    }
-                } catch(e) { console.error(e); }
-                setLoadingSvc(false);
-            };
-
-            const handleBuy = async () => {
-                const svc = services.find(s => s.code === selService);
-                if(!svc) return notify("Select Service", "error");
-                
-                const price = Math.ceil((svc.price * USD_TO_PKR) * (1 + PROFIT_PERCENTAGE/100));
-                if(userData.balance < price) return notify("Low Balance", "error");
-
-                setBuying(true);
-                try {
-                    const target = `http://otpget.com/stubs/handler_api.php?api_key=${API_KEY}&action=getNumber&service=${selService}&country=${selCountry}&type=1`;
-                    const res = await fetch(PROXY_URL + encodeURIComponent(target));
+                    const res = await fetch(`${API_PATH}?action=getStatus&id=${currentOrderId}`);
                     const text = await res.text();
 
-                    if (text.includes("ACCESS_NUMBER")) {
-                        const [_, apiId, number] = text.split(':');
-                        const batch = db.batch();
-                        const newOrderRef = db.collection('orders').doc();
+                    if(text.includes('STATUS_OK')) {
+                        const code = text.split(':')[1];
+                        document.getElementById('otp-display').innerText = code;
+                        document.getElementById('otp-display').classList.remove('animate-pulse');
+                        document.getElementById('otp-display').classList.add('text-green-400');
+                        clearInterval(statusInterval);
                         
-                        batch.update(db.collection('users').doc(user.uid), { balance: firebase.firestore.FieldValue.increment(-price) });
-                        batch.set(newOrderRef, {
-                            userId: user.uid, apiId, number, service: svc.name, country: selCountryName, price: price,
-                            status: 'WAITING', code: null, timestamp: Date.now()
-                        });
-                        await batch.commit(); notify("Number Purchased!");
-                    } else {
-                        notify(text, "error");
+                        // Play Sound
+                        new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play();
+                    } else if(text === "STATUS_CANCEL") {
+                        resetUI();
+                        alert("Order Cancelled by System");
                     }
-                } catch(e) { notify("Error", "error"); }
-                setBuying(false);
-            };
+                } catch(e) {}
+            }, 4000); // Check every 4 seconds
+        }
 
-            const handleCancel = async (order) => {
-                if(!confirm("Cancel & Refund?")) return;
-                try {
-                    const target = `http://otpget.com/stubs/handler_api.php?api_key=${API_KEY}&action=setStatus&id=${order.apiId}&status=8`;
-                    await fetch(PROXY_URL + encodeURIComponent(target));
-                    
-                    const batch = db.batch();
-                    batch.update(db.collection('orders').doc(order.id), { status: 'CANCELLED' });
-                    batch.update(db.collection('users').doc(user.uid), { balance: firebase.firestore.FieldValue.increment(order.price) });
-                    await batch.commit(); notify("Refunded!");
-                } catch(e) { notify("Network Error", "error"); }
-            };
+        // --- 8. CANCEL & REFUND ---
+        async function cancelOrder() {
+            if(!confirm("Cancel Order? Balance will be refunded.")) return;
+            
+            // Get Current Price (Ideally fetch from DB, using DOM for simplicity here)
+            const serviceSelect = document.getElementById('service-select');
+            const price = parseFloat(serviceSelect.options[serviceSelect.selectedIndex].getAttribute('data-price'));
 
-            // OTP Polling
-            useEffect(() => {
-                const interval = setInterval(() => {
-                    activeOrders.forEach(async (o) => {
-                        try {
-                            const target = `http://otpget.com/stubs/handler_api.php?api_key=${API_KEY}&action=getStatus&id=${o.apiId}`;
-                            const res = await fetch(PROXY_URL + encodeURIComponent(target));
-                            const text = await res.text();
+            try {
+                // Cancel on API
+                await fetch(`${API_PATH}?action=setStatus&id=${currentOrderId}&status=8`);
+                
+                // Refund Balance
+                await db.collection('users').doc(userId).update({
+                    balance: firebase.firestore.FieldValue.increment(price)
+                });
 
-                            if(text.includes("STATUS_OK")) {
-                                const code = text.split(':')[1];
-                                await db.collection('orders').doc(o.id).update({ status: 'RECEIVED', code });
-                            } else if(text === "STATUS_CANCEL") {
-                                await db.collection('orders').doc(o.id).update({ status: 'CANCELLED' });
-                            }
-                        } catch(e) {}
-                    });
-                }, 4000);
-                return () => clearInterval(interval);
-            }, [orders]);
+                resetUI();
+                alert("Refunded Successfully!");
+            } catch(e) { alert("Error cancelling"); }
+        }
 
-            const activeOrders = orders.filter(o => {
-                const age = now - (o.timestamp || 0);
-                return (o.status === 'WAITING' || o.status === 'RECEIVED') && age < (25 * 60 * 1000);
-            });
-            const totalRecharged = deposits.filter(d=>d.status==='approved').reduce((a,b)=>a+parseFloat(b.amount||0),0);
+        function resetUI() {
+            clearInterval(statusInterval);
+            currentOrderId = null;
+            document.getElementById('order-container').classList.add('hidden');
+            document.getElementById('no-order').classList.remove('hidden');
+            document.getElementById('otp-display').innerText = "WAITING";
+            document.getElementById('otp-display').classList.add('animate-pulse');
+        }
 
-            if(loading) return <LoadingScreen />;
-
-            return (
-                <div className="pb-20 max-w-md mx-auto min-h-screen relative">
-                    
-                    {/* SIDEBAR */}
-                    <div className={`fixed inset-0 bg-black/50 z-40 ${menuOpen?'block':'hidden'}`} onClick={()=>setMenuOpen(false)}></div>
-                    <div className={`fixed top-0 left-0 w-64 h-full bg-white z-50 transform transition-transform duration-300 ${menuOpen?'translate-x-0':'-translate-x-full'}`}>
-                        <div className="p-6 border-b flex justify-between items-center"><h2 className="text-xl font-bold text-brand">MENU</h2><i onClick={()=>setMenuOpen(false)} className="fa-solid fa-xmark text-xl"></i></div>
-                        <nav className="p-4 space-y-2">
-                            <div className="p-3 bg-gray-50 rounded mb-4"><p className="text-xs text-gray-500">Logged in as</p><p className="font-bold truncate">{user?.email}</p></div>
-                            <a href="deposit.html" className="block p-3 rounded hover:bg-gray-100 font-medium"><i className="fa-solid fa-wallet mr-3 text-green-500"></i> Deposit Funds</a>
-                            <a href="ticket.html" className="block p-3 rounded hover:bg-gray-100 font-medium"><i className="fa-solid fa-headset mr-3 text-blue-500"></i> Support</a>
-                            <a href={waLink} target="_blank" className="block p-3 rounded hover:bg-gray-100 font-medium"><i className="fa-brands fa-whatsapp mr-3 text-green-600"></i> WhatsApp Group</a>
-                            <button onClick={()=>auth.signOut()} className="w-full text-left p-3 rounded text-red-500 font-bold"><i className="fa-solid fa-power-off mr-3"></i> Logout</button>
-                        </nav>
-                    </div>
-
-                    {/* NAVBAR */}
-                    <div className="bg-white px-4 py-3 flex justify-between items-center shadow-sm sticky top-0 z-30">
-                        <div className="flex items-center gap-3"><button onClick={()=>setMenuOpen(true)} className="text-xl text-gray-700"><i className="fa-solid fa-bars"></i></button><span className="font-bold text-lg text-gray-800">Dashboard</span></div>
-                        <div className="flex items-center gap-2"><div className="bg-blue-50 text-brand px-3 py-1 rounded-full text-xs font-bold border border-blue-100">Rs {userData.balance.toFixed(0)}</div><img src={`https://avatar.iran.liara.run/public/boy`} className="w-9 h-9 rounded-full border border-gray-200" /></div>
-                    </div>
-
-                    <div className="p-4 space-y-4">
-                        <div className="blue-card p-6 shadow-md">
-                            <div className="flex justify-between items-start mb-6"><div><p className="text-blue-100 text-xs">Welcome Back,</p><h2 className="text-2xl font-bold truncate w-40">{userData.name}</h2></div><i className="fa-regular fa-credit-card text-3xl opacity-50"></i></div>
-                            <div className="flex justify-between items-end"><div><p className="text-xs text-blue-200">Balance</p><p className="text-2xl font-bold">Rs {userData.balance}</p></div><a href="deposit.html" className="bg-white/20 px-3 py-1.5 rounded text-white text-sm font-bold flex items-center gap-1 hover:bg-white/30 transition"><i className="fa-solid fa-plus"></i> Add</a></div>
-                        </div>
-
-                        <div className="marquee-strip"><marquee>Please follow terms and conditions before buying number for better experience.</marquee></div>
-
-                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                            <h3 className="font-bold text-gray-700 mb-2 text-sm uppercase tracking-wide">Buy Numbers</h3>
-                            <div className="space-y-3">
-                                <select className="w-full p-3 border border-gray-300 rounded-lg text-sm outline-none bg-white text-gray-900" value={selCountry} onChange={handleCountryChange}>
-                                    <option value="">Select Country {loading ? '(Loading...)' : ''}</option>
-                                    {countries.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-                                <select className="w-full p-3 border border-gray-300 rounded-lg text-sm outline-none bg-white text-gray-900" value={selService} onChange={e=>setSelService(e.target.value)} disabled={!selCountry || loadingSvc}>
-                                    <option value="">{loadingSvc ? 'Loading...' : 'Select Service'}</option>
-                                    {services.map(s => <option key={s.code} value={s.code}>{s.name} - Rs {Math.ceil((s.price * USD_TO_PKR) * (1 + COMMISSION/100))}</option>)}
-                                </select>
-                                <button onClick={handleBuy} disabled={!selService || buying} className="w-full bg-brand text-white py-3 rounded-lg font-bold shadow-lg hover:bg-brandDark transition disabled:opacity-50 flex items-center justify-center gap-2">{buying ? <i className="fa-solid fa-circle-notch fa-spin"></i> : "Buy Number"}</button>
-                            </div>
-                        </div>
-
-                        {activeOrders.length > 0 && <div className="mt-2"><h3 className="font-bold text-gray-600 mb-2 px-1 text-xs uppercase">Active Orders</h3>{activeOrders.map(o => <OrderCard key={o.id} order={o} onCancel={handleCancel} onBuyNew={handleBuyAgain} currentTime={now} />)}</div>}
-
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                            <h3 className="font-bold text-gray-700 text-sm uppercase mb-4">Summary</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="summary-box"><div className="icon-circle bg-purple-100 text-purple-600 mb-2"><i className="fa-solid fa-wallet"></i></div><div><p className="text-xs opacity-60">Total Recharged</p><p className="font-bold text-lg text-purple-600">Rs {totalRecharged}</p></div></div>
-                                <div className="summary-box"><div className="icon-circle bg-orange-100 text-orange-600 mb-2"><i className="fa-solid fa-cart-shopping"></i></div><div><p className="text-xs opacity-60">Numbers Buy</p><p className="font-bold text-lg text-orange-600">{orders.length}</p></div></div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"><div className="p-3 border-b border-gray-100 flex justify-between items-center bg-gray-50"><h3 className="font-bold text-gray-700 text-sm uppercase">Recent Deposits</h3><a href="deposit.html" className="text-xs text-brand hover:underline font-medium">View All</a></div><div className="max-h-60 overflow-y-auto">{deposits.length === 0 ? <p className="text-center text-gray-400 text-sm py-4">No deposits found.</p> : deposits.map(d => <DepositHistoryItem key={d.id} deposit={d} />)}</div></div>
-                    </div>
-                    <a href="https://wa.me/923342002756" className="fixed bottom-6 right-6 bg-green-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition z-40"><i className="fa-brands fa-whatsapp text-3xl"></i></a>
-                </div>
-            );
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        function copyText(id) {
+            navigator.clipboard.writeText(document.getElementById(id).innerText);
+            alert("Copied!");
+        }
     </script>
 </body>
 </html>
