@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASI OTP - Premium Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { primary: '#6366f1', secondary: '#a855f7' } } }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Public Sans', sans-serif; background-color: #f3f4f6; transition: all 0.3s ease; }
+        .dark body { background-color: #0f172a; }
+        .font-brand { font-family: 'Montserrat', sans-serif; }
+        
+        /* Hero Welcome Card Gradient */
+        .welcome-card { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); }
+        
+        /* Custom Dropdown Styling */
+        .custom-dropdown-content {
+            display: none; position: absolute; width: 100%; max-height: 250px;
+            overflow-y: auto; background: white; border-radius: 12px;
+            z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;
+        }
+        .dark .custom-dropdown-content { background: #1e293b; border-color: #334155; }
+        .custom-dropdown-content.show { display: block; }
+        .dropdown-item { padding: 14px 16px; cursor: pointer; border-bottom: 1px solid #f3f4f6; color: #374151; font-weight: 500; font-size: 14px; }
+        .dark .dropdown-item { border-color: #334155; color: #e2e8f0; }
+        .dropdown-item:hover { background-color: #f9fafb; color: #6366f1; }
+        .dark .dropdown-item:hover { background-color: #334155; }
+
+        /* Summary List Styling */
+        .summary-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #f8fafc; border-radius: 12px; margin-bottom: 8px; }
+        .dark .summary-row { background: #1e293b; }
+
+        #toast {
+            visibility: hidden; min-width: 250px; background-color: #1f2937; color: #fff;
+            text-align: center; border-radius: 12px; padding: 16px; position: fixed;
+            z-index: 200; left: 50%; bottom: 30px; transform: translateX(-50%);
+        }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+
+        .loader { border: 2px solid #f3f3f3; border-top: 2px solid #6366f1; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="text-slate-900 dark:text-gray-100 min-h-screen">
+
+    <div id="toast">Message here</div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4">
+        <div id="modal-box" class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl text-center">
+            <i id="modal-icon" class="fas fa-question-circle text-4xl mb-4"></i>
+            <h3 id="modal-title" class="text-xl font-bold mb-2 font-brand uppercase tracking-tighter italic text-primary">Title</h3>
+            <p id="modal-text" class="text-gray-500 text-sm mb-6"></p>
+            <div class="flex gap-3">
+                <button onclick="closeModal()" class="flex-1 bg-gray-100 dark:bg-slate-800 py-3 rounded-xl font-bold text-xs">NO</button>
+                <button id="modal-confirm-btn" class="flex-1 py-3 rounded-xl font-bold text-xs text-white">YES</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <nav class="bg-white dark:bg-slate-900 border-b dark:border-slate-800 sticky top-0 z-50 px-4 py-3">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="w-10 h-10 rounded-xl bg-indigo-500 text-white flex items-center justify-center"><i class="fas fa-bars"></i></button>
+                <span class="text-lg font-bold font-brand text-indigo-600 dark:text-indigo-400">WASI OTP</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="bg-gray-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-bold">
+                    <img src="https://flagcdn.com/w20/pk.png" class="w-5"> PKR <i class="fas fa-chevron-down opacity-50 text-[10px]"></i>
+                </div>
+                <button onclick="toggleTheme()" class="w-10 h-10 flex items-center justify-center text-lg"><i id="theme-icon" class="fas fa-moon"></i></button>
+                <div class="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">AW</div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-6 max-w-2xl">
+        
+        <!-- Welcome Card (Screenshot Style) -->
+        <div class="welcome-card rounded-3xl p-6 text-white shadow-lg mb-6 relative overflow-hidden">
+            <div class="relative z-10">
+                <h1 class="text-2xl font-bold mb-1">Welcome back, <span id="user-name-display">User</span>! 👋</h1>
+                <p class="text-xs opacity-90 mb-4">Here's what's happening with your account today.</p>
+                <div class="bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 inline-flex items-center gap-2 text-[10px] font-bold">
+                    <i class="fas fa-moon"></i> <span id="time-greeting">Good Evening</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Stats Grid -->
+        <div class="grid grid-cols-1 gap-4 mb-6">
+            <!-- Balance Card -->
+            <div class="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border dark:border-slate-800">
+                <div class="w-12 h-12 bg-indigo-500 rounded-2xl flex items-center justify-center text-white text-xl mb-4 shadow-lg shadow-indigo-500/30">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <p class="text-xs text-gray-400 font-bold uppercase mb-1">Total Balance</p>
+                <p class="text-2xl font-black text-indigo-600 dark:text-indigo-400"><span id="user-balance-display">0.00</span> PKR</p>
+            </div>
+
+            <!-- Successful Purchases -->
+            <div class="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border dark:border-slate-800">
+                <div class="w-12 h-12 bg-cyan-400 rounded-2xl flex items-center justify-center text-white text-xl mb-4 shadow-lg shadow-cyan-400/30">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <p class="text-xs text-gray-400 font-bold uppercase mb-1">Successful Purchases</p>
+                <p id="success-count" class="text-2xl font-black text-cyan-500">0</p>
+            </div>
+        </div>
+
+        <!-- Quick Actions Grid (Screenshot Style) -->
+        <div class="grid grid-cols-2 gap-3 mb-8">
+            <a href="deposit.html" class="bg-white dark:bg-slate-900 p-4 rounded-2xl text-center shadow-sm border dark:border-slate-800 transition-all active:scale-95">
+                <i class="fas fa-credit-card text-indigo-600 mb-2 block"></i>
+                <span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">Recharge</span>
+            </a>
+            <a href="#" class="bg-white dark:bg-slate-900 p-4 rounded-2xl text-center shadow-sm border dark:border-slate-800 transition-all active:scale-95">
+                <i class="fas fa-gift text-indigo-600 mb-2 block"></i>
+                <span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">Free Balance</span>
+            </a>
+            <a href="history.html" class="bg-white dark:bg-slate-900 p-4 rounded-2xl text-center shadow-sm border dark:border-slate-800 transition-all active:scale-95">
+                <i class="fas fa-history text-indigo-600 mb-2 block"></i>
+                <span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">Number History</span>
+            </a>
+            <a href="refunds.html" class="bg-white dark:bg-slate-900 p-4 rounded-2xl text-center shadow-sm border dark:border-slate-800 transition-all active:scale-95">
+                <i class="fas fa-rotate-left text-indigo-600 mb-2 block"></i>
+                <span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">Refund History</span>
+            </a>
+        </div>
+
+        <!-- ORDER SECTION (Functionality) -->
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border dark:border-slate-800 mb-8">
+            <h2 class="text-sm font-black mb-6 text-indigo-600 uppercase tracking-widest"><i class="fas fa-shopping-cart mr-2"></i>Order Number</h2>
+            <div class="space-y-4">
+                <div class="relative">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2 ml-1">Select Country</label>
+                    <div onclick="toggleDropdown('country-options')" id="country-selected" class="w-full bg-gray-50 dark:bg-slate-800 p-4 border dark:border-slate-700 flex justify-between items-center cursor-pointer font-bold text-sm rounded-xl">
+                        <span>Choose Country</span> <i class="fas fa-chevron-down opacity-30"></i>
+                    </div>
+                    <div id="country-options" class="custom-dropdown-content"></div>
+                </div>
+                <div class="relative">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2 ml-1">Select Service</label>
+                    <div onclick="toggleDropdown('service-options')" id="service-selected" class="w-full bg-gray-50 dark:bg-slate-800 p-4 border dark:border-slate-700 flex justify-between items-center cursor-pointer font-bold text-sm rounded-xl">
+                        <span>Select Service</span> <i class="fas fa-chevron-down opacity-30"></i>
+                    </div>
+                    <div id="service-options" class="custom-dropdown-content"></div>
+                </div>
+                <button onclick="buyNumber()" id="buy-btn" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all text-xs uppercase tracking-widest">
+                    <span id="buy-loader" class="loader hidden mr-2"></span> Purchase Number
+                </button>
+            </div>
+
+            <!-- OTP Display Area -->
+            <div id="order-container" class="hidden mt-8 pt-8 border-t dark:border-slate-800 space-y-6">
+                <div class="bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-3xl text-center">
+                    <p id="phone-number" class="text-3xl font-mono font-bold text-indigo-600 tracking-tighter">-----------</p>
+                    <button onclick="copyText('phone-number')" class="mt-2 text-[10px] font-bold uppercase text-indigo-400 tracking-widest italic">Copy Number</button>
+                </div>
+                <div class="text-center">
+                    <div id="otp-display" class="text-6xl font-black text-indigo-600 animate-pulse tracking-widest font-brand">------</div>
+                    <p class="text-[10px] text-gray-400 mt-2 font-bold uppercase italic">Waiting for SMS...</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="openCancelModal()" class="flex-1 bg-red-50 text-red-500 py-4 rounded-2xl font-bold text-[10px] uppercase">Cancel</button>
+                    <button onclick="checkStatus()" class="flex-1 bg-gray-100 dark:bg-slate-800 py-4 rounded-2xl font-bold text-[10px] uppercase">Refresh</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Summary (Screenshot Style List) -->
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border dark:border-slate-800 mb-10">
+            <h3 class="text-lg font-bold mb-6 text-indigo-600 flex items-center gap-3">
+                <i class="fas fa-list-ul"></i> Account Summary
+            </h3>
+            
+            <div class="space-y-3">
+                <div class="summary-row">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-white"><i class="fas fa-briefcase text-xs"></i></div>
+                        <span class="text-sm font-semibold text-gray-600 dark:text-gray-300">Lifetime Recharge</span>
+                    </div>
+                    <span id="sum-recharged" class="text-sm font-bold text-indigo-600">0.00 PKR</span>
+                </div>
+                <div class="summary-row">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-white"><i class="fas fa-coins text-xs"></i></div>
+                        <span class="text-sm font-semibold text-gray-600 dark:text-gray-300">Available Balance</span>
+                    </div>
+                    <span id="sum-balance" class="text-sm font-bold text-indigo-600">0.00 PKR</span>
+                </div>
+                <div class="summary-row">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-white"><i class="fas fa-lock text-xs"></i></div>
+                        <span class="text-sm font-semibold text-gray-600 dark:text-gray-300">Successful Numbers</span>
+                    </div>
+                    <span id="sum-bought" class="text-sm font-bold text-indigo-600">0</span>
+                </div>
+                <div class="summary-row">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-white"><i class="fas fa-clock text-xs"></i></div>
+                        <span class="text-sm font-semibold text-gray-600 dark:text-gray-300">Pending Orders</span>
+                    </div>
+                    <span id="sum-pending" class="text-sm font-bold text-indigo-600">0</span>
+                </div>
+                <div class="summary-row">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-white"><i class="fas fa-user-plus text-xs"></i></div>
+                        <span class="text-sm font-semibold text-gray-600 dark:text-gray-300">Refer Balance</span>
+                    </div>
+                    <span id="sum-refer" class="text-sm font-bold text-indigo-600">0.00 PKR</span>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Floating WhatsApp -->
+    <a href="https://wa.me/923000000000" class="fixed bottom-6 right-6 bg-green-500 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2 font-bold z-50">
+        <i class="fab fa-whatsapp text-xl"></i> WhatsApp Us
+    </a>
+
+    <script>
+        // FIREBASE SETUP
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw",
+            authDomain: "otpbywasi.firebaseapp.com",
+            projectId: "otpbywasi",
+            storageBucket: "otpbywasi.firebasestorage.app",
+            messagingSenderId: "1169252296",
+            appId: "1:1169252296:web:732c1f08f6b6ed7033eafd"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        const API_PATH = '/api/otp';
+        const PROFIT = 40;
+        let userBalance = 0, currentOrderId = null, activePrice = 0, selectedCountry = null, selectedService = null;
+
+        // AUTH & FIREBASE DATA
+        auth.onAuthStateChanged((user) => {
+            if (!user) { window.location.href = "auth.html"; }
+            else { 
+                fetchUserData(user.uid);
+                setTimeGreeting();
+            }
+        });
+
+        function fetchUserData(uid) {
+            db.collection("users").doc(uid).onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    const name = data.username || "User";
+                    userBalance = data.balance || 0;
+                    
+                    document.getElementById('user-name-display').innerText = name;
+                    document.getElementById('user-balance-display').innerText = userBalance.toFixed(2);
+                    document.getElementById('success-count').innerText = data.totalNumbersBought || 0;
+
+                    // Summary Section
+                    document.getElementById('sum-balance').innerText = userBalance.toFixed(2) + " PKR";
+                    document.getElementById('sum-recharged').innerText = parseFloat(data.totalRecharged || 0).toFixed(2) + " PKR";
+                    document.getElementById('sum-bought').innerText = data.totalNumbersBought || 0;
+                    document.getElementById('sum-refer').innerText = parseFloat(data.referBalance || 0).toFixed(2) + " PKR";
+                }
+            });
+        }
+
+        function setTimeGreeting() {
+            const hr = new Date().getHours();
+            let g = "Good Evening";
+            if(hr < 12) g = "Good Morning";
+            else if(hr < 17) g = "Good Afternoon";
+            document.getElementById('time-greeting').innerText = g;
+        }
+
+        // UI HELPERS
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icon.className = 'fas fa-moon';
+                localStorage.theme = 'light';
+            } else {
+                html.classList.add('dark');
+                icon.className = 'fas fa-sun';
+                localStorage.theme = 'dark';
+            }
+        }
+        if (localStorage.theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.getElementById('theme-icon').className = 'fas fa-sun';
+        }
+
+        function toggleDropdown(id) {
+            document.querySelectorAll('.custom-dropdown-content').forEach(d => {
+                if(d.id !== id) d.classList.remove('show');
+            });
+            document.getElementById(id).classList.toggle('show');
+        }
+
+        function openModal(title, text, icon, color, confirmFn) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-text').innerText = text;
+            document.getElementById('modal-icon').className = `fas ${icon} text-4xl mb-4 ${color}`;
+            const btn = document.getElementById('modal-confirm-btn');
+            btn.className = `flex-1 py-3 rounded-xl font-bold text-xs uppercase text-white shadow-lg ${color.replace('text', 'bg')}`;
+            btn.onclick = confirmFn;
+            document.getElementById('modal-overlay').classList.remove('hidden');
+        }
+        function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }
+
+        function openCancelModal() {
+            openModal("Refund Order?", "The amount will be instantly credited back to your balance.", "fa-rotate-left", "text-indigo-600", confirmCancelOrder);
+        }
+
+        // ORDER LOGIC
+        async function loadCountries() {
+            const container = document.getElementById('country-options');
+            try {
+                const res = await fetch(`${API_PATH}?action=getCountries`);
+                const data = await res.json();
+                const list = data["1"] || [];
+                container.innerHTML = "";
+                list.forEach(c => {
+                    const div = document.createElement('div');
+                    div.className = "dropdown-item";
+                    div.innerText = c.name;
+                    div.onclick = () => selectCountry(c.id, c.name);
+                    container.appendChild(div);
+                });
+            } catch (e) { console.log("API Error"); }
+        }
+
+        function selectCountry(id, name) {
+            selectedCountry = id;
+            document.getElementById('country-selected').querySelector('span').innerText = name;
+            document.getElementById('country-options').classList.remove('show');
+            loadServices(id);
+        }
+
+        async function loadServices(countryId) {
+            const container = document.getElementById('service-options');
+            const selText = document.getElementById('service-selected').querySelector('span');
+            selText.innerText = "Loading...";
+            try {
+                const res = await fetch(`${API_PATH}?action=getServices&country=${countryId}`);
+                const data = await res.json();
+                const services = data["1"] || data;
+                container.innerHTML = "";
+                Object.keys(services).forEach(code => {
+                    const raw = services[code];
+                    let sName = code.toUpperCase(), price = 0;
+                    if (typeof raw === 'string' && raw.includes(' - ')) {
+                        const parts = raw.split(' - ');
+                        sName = parts[0];
+                        price = parseFloat(parts[1].match(/\d+/)[0]);
+                    }
+                    const finalPrice = Math.ceil(price + (price * (PROFIT / 100)));
+                    const div = document.createElement('div');
+                    div.className = "dropdown-item";
+                    div.innerText = `${sName} (Rs ${finalPrice})`;
+                    div.onclick = () => {
+                        selectedService = { code, price: finalPrice };
+                        selText.innerText = `${sName} (Rs ${finalPrice})`;
+                        container.classList.remove('show');
+                    };
+                    container.appendChild(div);
+                });
+                selText.innerText = "Select Service";
+            } catch (e) { selText.innerText = "Error"; }
+        }
+
+        async function buyNumber() {
+            if(!selectedCountry || !selectedService) return;
+            if (userBalance < selectedService.price) { alert("Low Balance!"); return; }
+
+            const btn = document.getElementById('buy-btn');
+            const loader = document.getElementById('buy-loader');
+            btn.disabled = true; loader.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`${API_PATH}?action=getNumber&country=${selectedCountry}&service=${selectedService.code}`);
+                const json = await res.json();
+                if(json.raw_text.includes('ACCESS_NUMBER')) {
+                    const parts = json.raw_text.split(':');
+                    currentOrderId = parts[1];
+                    activePrice = selectedService.price;
+                    document.getElementById('phone-number').innerText = '+' + parts[2];
+                    
+                    db.collection("users").doc(auth.currentUser.uid).update({
+                        balance: firebase.firestore.FieldValue.increment(-activePrice),
+                        totalNumbersBought: firebase.firestore.FieldValue.increment(1)
+                    });
+                    document.getElementById('order-container').classList.remove('hidden');
+                    startStatusCheck();
+                } else { alert("Error: " + json.raw_text); }
+            } catch (e) { }
+            btn.disabled = false; loader.classList.add('hidden');
+        }
+
+        async function confirmCancelOrder() {
+            closeModal();
+            await fetch(`${API_PATH}?action=setStatus&id=${currentOrderId}&status=8`);
+            db.collection("users").doc(auth.currentUser.uid).update({
+                balance: firebase.firestore.FieldValue.increment(activePrice),
+                totalNumbersBought: firebase.firestore.FieldValue.increment(-1)
+            });
+            document.getElementById('order-container').classList.add('hidden');
+            currentOrderId = null;
+        }
+
+        function startStatusCheck() { 
+            const checker = setInterval(async () => {
+                if(!currentOrderId) { clearInterval(checker); return; }
+                const res = await fetch(`${API_PATH}?action=getStatus&id=${currentOrderId}`);
+                const json = await res.json();
+                if(json.raw_text.includes('STATUS_OK')) {
+                    document.getElementById('otp-display').innerText = json.raw_text.split(':')[1];
+                    currentOrderId = null;
+                    clearInterval(checker);
+                }
+            }, 5000); 
+        }
+
+        function copyText(id) {
+            navigator.clipboard.writeText(document.getElementById(id).innerText);
+            alert("Copied!");
+        }
+
+        window.onload = loadCountries;
+    </script>
+</body>
+</html>
