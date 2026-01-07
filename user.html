@@ -1,326 +1,301 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- FIX: Force Light Mode for Mobile Browsers -->
-    <meta name="color-scheme" content="light">
-    <title>WASI OTP - Premium Panel</title>
-    
-    <!-- Libraries -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASI OTP - Premium Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { primary: '#0061ff' } } }
+        }
+    </script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #0b1120; color: #f3f4f6; }
-        .glass { background: rgba(31, 41, 55, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&display=swap');
+        body { font-family: 'Public Sans', sans-serif; transition: background-color 0.3s; }
         
-        /* Dropdown Fix */
-        select {
-            -webkit-appearance: none; -moz-appearance: none; appearance: none;
-            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%233B82F6%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-            background-repeat: no-repeat;
-            background-position: right 1rem center;
-            background-size: 0.65em auto;
-        }
-        select option { background-color: #111827; color: white; padding: 10px; }
+        .marquee-container { background: #0055ff; height: 24px; display: flex; align-items: center; overflow: hidden; border-radius: 6px; }
+        .marquee-text { color: white; white-space: nowrap; font-size: 10px; font-weight: 700; animation: marquee 20s linear infinite; }
+        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+
+        #error-box { transform: translateY(-150%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #error-box.show { transform: translateY(20px); }
+
+        .dark .bg-main-box { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
+        .light .bg-main-box { background: linear-gradient(135deg, #0061ff 0%, #60a5fa 100%); }
     </style>
 </head>
-<body class="min-h-screen pb-10">
+<body class="bg-gray-50 text-gray-800 dark:bg-slate-950 dark:text-gray-200">
 
-    <!-- Navbar -->
-    <nav class="border-b border-gray-800 glass sticky top-0 z-50 p-4 shadow-2xl">
+    <!-- Stylish Red Error Box -->
+    <div id="error-box" class="fixed top-0 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-md bg-red-600 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-4">
+        <div class="bg-white/20 p-2 rounded-lg"><i class="fas fa-wallet"></i></div>
+        <div>
+            <p class="font-bold text-sm">Low Balance!</p>
+            <p class="text-xs opacity-90">Please recharge your wallet via WhatsApp.</p>
+        </div>
+        <button onclick="hideError()" class="ml-auto"><i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- Header -->
+    <nav class="bg-white dark:bg-slate-900 sticky top-0 z-50 shadow-sm px-4 py-3 border-b dark:border-slate-800">
         <div class="container mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <div class="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/20"><i class="fas fa-sms text-xl text-white"></i></div>
-                <span class="text-2xl font-black tracking-tight uppercase">OTP<span class="text-blue-500">Get</span></span>
-            </div>
-            
+            <span class="text-xl font-black tracking-tighter uppercase">WASI<span class="text-primary">OTP</span></span>
             <div class="flex items-center gap-3">
-                <!-- Deposit Button -->
-                <a href="deposit.html" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider shadow transition-all flex items-center gap-2">
-                    <i class="fa-solid fa-wallet"></i> Deposit
-                </a>
-
-                <!-- Balance Display -->
-                <div class="bg-gray-800/80 px-4 py-2 rounded-full border border-gray-700 shadow-inner">
-                    <span class="text-[10px] text-gray-400 uppercase font-black mr-2 tracking-widest">Balance</span>
-                    <span id="balance-display" class="text-green-400 font-mono font-bold">...</span>
-                </div>
+                <button onclick="toggleDarkMode()" class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-500 dark:text-yellow-400">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                </button>
+                <div class="bg-blue-50 dark:bg-blue-900/30 text-primary dark:text-blue-400 px-3 py-1 rounded-lg font-bold text-xs uppercase">PKR</div>
+                <img src="https://ui-avatars.com/api/?name=Awais+Awan&background=0061ff&color=fff" class="w-9 h-9 rounded-full border border-gray-200 dark:border-slate-700">
             </div>
         </div>
     </nav>
 
-    <main class="container mx-auto px-4 py-8">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            <!-- Selection Card -->
-            <div class="lg:col-span-5">
-                <div class="bg-gray-800/40 p-8 rounded-3xl border border-gray-700 shadow-2xl relative overflow-hidden">
-                    <!-- Glow Effect -->
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+    <div class="container mx-auto px-4 py-6 max-w-4xl">
+        
+        <!-- Welcome & Balance Card -->
+        <div class="bg-main-box rounded-[2rem] p-8 text-white relative overflow-hidden shadow-2xl mb-6">
+            <div class="relative z-10">
+                <p class="text-xs font-bold opacity-70">Welcome,</p>
+                <h1 id="user-name" class="text-2xl font-bold mb-8 italic">Awais Awan</h1>
+                
+                <div class="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 inline-block min-w-[240px]">
+                    <p class="text-[9px] opacity-70 mb-1 uppercase font-black tracking-widest">Available Balance</p>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-xs font-bold opacity-80">Rs</span>
+                        <span id="user-balance" class="text-4xl font-black tracking-tighter">0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                    <h2 class="text-xl font-bold mb-8 text-blue-400 flex items-center gap-3 relative z-10">
-                        <i class="fas fa-shopping-basket"></i> Buy Service
-                    </h2>
+        <!-- Slim Marquee -->
+        <div class="marquee-container mb-8">
+            <div class="marquee-text uppercase">
+                🚨 Welcome to WASI-OTP: Premium SMS Service - Best Prices Guaranteed - Fast Delivery - Support Available 24/7 🚨
+            </div>
+        </div>
 
-                    <div class="mb-6 relative z-10">
-                        <label class="block text-xs font-black text-gray-500 uppercase mb-2 ml-1 tracking-widest">1. Select Country</label>
-                        <select id="country-select" class="w-full bg-gray-900 border border-gray-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer text-white">
-                            <option value="">Loading...</option>
+        <!-- Main Selection Form -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+            <div class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border dark:border-slate-800">
+                <h3 class="font-bold text-xs uppercase tracking-widest text-gray-400 mb-6"><i class="fas fa-shopping-cart mr-2"></i>Order Number</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 px-1 tracking-widest">1. Select Country</label>
+                        <select id="country-select" class="w-full bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-xl outline-none focus:border-primary text-sm font-bold">
+                            <option value="">Loading Countries...</option>
                         </select>
                     </div>
-
-                    <div class="mb-10 relative z-10">
-                        <label class="block text-xs font-black text-gray-500 uppercase mb-2 ml-1 tracking-widest">2. Select Service</label>
-                        <select id="service-select" class="w-full bg-gray-900 border border-gray-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer text-white" disabled>
-                            <option value="">Select country first</option>
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 px-1 tracking-widest">2. Select Service</label>
+                        <select id="service-select" class="w-full bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-xl outline-none focus:border-primary text-sm font-bold">
+                            <option value="">Choose Country First</option>
                         </select>
                     </div>
-
-                    <button onclick="buyNumber()" id="buy-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-2xl shadow-xl transition-all active:scale-95 flex justify-center items-center gap-3 text-lg relative z-10">
-                        <i class="fas fa-bolt"></i> GET NUMBER
+                    <button onclick="buyNumber()" id="buy-btn" class="w-full bg-primary hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/20 active:scale-95 transition-all text-xs uppercase tracking-widest mt-2">
+                        Get Number
                     </button>
                 </div>
             </div>
 
-            <!-- Status Card -->
-            <div class="lg:col-span-7">
-                <div class="bg-gray-800/40 p-8 rounded-3xl border border-gray-700 shadow-2xl min-h-[450px] flex flex-col relative overflow-hidden">
-                    <!-- Glow Effect -->
-                    <div class="absolute bottom-0 left-0 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl -ml-10 -mb-10 pointer-events-none"></div>
+            <!-- OTP Box -->
+            <div class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border dark:border-slate-800 flex flex-col items-center justify-center min-h-[320px]">
+                <div id="no-order" class="text-center opacity-30">
+                    <i class="fas fa-shield-alt text-4xl mb-4"></i>
+                    <p class="text-[9px] font-black uppercase tracking-widest">Ready for Order</p>
+                </div>
 
-                    <h2 class="text-xl font-bold mb-8 text-yellow-500 flex items-center gap-3 relative z-10">
-                        <i class="fas fa-satellite-dish"></i> Active Connection
-                    </h2>
-
-                    <div id="no-order" class="flex-grow flex flex-col items-center justify-center text-gray-500 opacity-40 py-10 relative z-10">
-                        <i class="fas fa-mobile-alt text-6xl mb-4 animate-bounce"></i>
-                        <p class="text-center">No active number.<br>Order details will appear here.</p>
+                <div id="order-container" class="hidden w-full space-y-6">
+                    <div class="bg-blue-50 dark:bg-blue-900/10 p-5 rounded-2xl text-center border border-blue-100 dark:border-blue-900/30">
+                        <p class="text-[9px] text-primary font-black uppercase mb-1 tracking-widest">Received Number</p>
+                        <p id="phone-number" class="text-3xl font-mono font-bold text-slate-800 dark:text-white">-----------</p>
+                        <button onclick="copyText('phone-number')" class="mt-2 text-[10px] text-primary font-bold uppercase tracking-widest font-black italic">Copy Number</button>
                     </div>
-
-                    <div id="order-container" class="hidden space-y-10 animate-pulse relative z-10">
-                        <div class="bg-gray-900/80 p-8 rounded-3xl border border-gray-700 shadow-inner flex justify-between items-center">
-                            <div>
-                                <p class="text-[10px] text-gray-500 uppercase font-black mb-1 tracking-widest font-mono">Mobile Number</p>
-                                <span id="phone-number" class="text-3xl md:text-4xl font-mono font-bold text-white tracking-tighter">-----------</span>
-                            </div>
-                            <button onclick="copyText('phone-number')" class="p-3 bg-gray-800 hover:bg-gray-700 rounded-xl text-blue-400 transition-all active:scale-90"><i class="far fa-copy text-lg"></i></button>
-                        </div>
-
-                        <div class="text-center py-4 bg-black/20 rounded-2xl border border-gray-700/50">
-                            <p class="text-[10px] text-gray-500 uppercase font-black mb-2 tracking-widest">OTP Code</p>
-                            <div id="otp-display" class="text-6xl font-black text-green-400 font-mono tracking-widest">WAITING</div>
-                        </div>
-
-                        <div class="flex gap-4">
-                            <button onclick="cancelOrder()" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all">Cancel Order</button>
-                            <button class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all cursor-not-allowed opacity-50">Auto Refreshing...</button>
-                        </div>
+                    <div class="text-center">
+                        <div id="otp-display" class="text-6xl font-black text-primary tracking-widest animate-pulse">------</div>
+                        <p class="text-[10px] text-gray-400 mt-3 font-bold uppercase tracking-widest">Waiting for OTP</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="cancelOrder()" class="flex-1 bg-red-50 dark:bg-red-900/10 text-red-500 py-3 rounded-xl font-bold text-[10px] uppercase border border-red-100">Cancel</button>
+                        <button onclick="checkStatus()" class="flex-1 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-300 py-3 rounded-xl font-bold text-[10px] uppercase">Refresh</button>
                     </div>
                 </div>
             </div>
-
         </div>
-    </main>
+
+    </div>
+
+    <!-- Floating WhatsApp -->
+    <a href="https://wa.me/923000000000" class="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-all z-[100]">
+        <i class="fab fa-whatsapp text-2xl"></i>
+    </a>
 
     <script>
-        // --- 1. FIREBASE CONFIGURATION (PASTE YOUR KEYS HERE) ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw",
-            authDomain: "otpbywasi.firebaseapp.com",
-            projectId: "otpbywasi",
-            storageBucket: "otpbywasi.firebasestorage.app",
-            messagingSenderId: "1169252296",
-            appId: "1:1169252296:web:732c1f08f6b6ed7033eafd"
-        };
-        
+        // --- THEME LOGIC ---
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.theme = 'light';
+                icon.className = 'fas fa-moon';
+            } else {
+                html.classList.add('dark');
+                localStorage.theme = 'dark';
+                icon.className = 'fas fa-sun';
+            }
+        }
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+            document.getElementById('theme-icon').className = 'fas fa-sun';
+        }
+
+        function showError() {
+            document.getElementById('error-box').classList.add('show');
+            setTimeout(() => document.getElementById('error-box').classList.remove('show'), 4000);
+        }
+        function hideError() { document.getElementById('error-box').classList.remove('show'); }
+
+        // --- FIREBASE CONFIG (Replace with yours) ---
+        const firebaseConfig = { apiKey: "...", authDomain: "...", ... };
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // --- 2. LOGIC VARIABLES ---
-        const API_PATH = '/api/proxy'; // Vercel Path
-        const PROFIT_PERCENTAGE = 40; // 40% Profit Margin
+        // --- CORE LOGIC ---
+        const API_PATH = '/api/otp'; 
+        let userBalance = 0;
         let currentOrderId = null;
         let statusInterval = null;
-        let userBalance = 0;
-        let userId = null;
 
-        // --- 3. AUTH CHECK & INITIAL LOAD ---
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                userId = user.uid;
-                // Live Balance Listener
-                db.collection('users').doc(userId).onSnapshot(doc => {
-                    if (doc.exists) {
-                        userBalance = doc.data().balance || 0;
-                        document.getElementById('balance-display').innerText = 'Rs ' + userBalance.toFixed(2);
-                    }
-                });
-                loadCountries();
-            } else {
-                window.location.href = 'auth.html'; // Redirect if not logged in
-            }
-        });
+        window.onload = () => {
+            loadCountries();
+            // Firebase balance listener
+            db.collection("users").doc("test-user").onSnapshot(doc => {
+                if(doc.exists) {
+                    userBalance = doc.data().balance;
+                    document.getElementById('user-balance').innerText = userBalance.toFixed(2);
+                    document.getElementById('user-name').innerText = doc.data().name || "Awais Awan";
+                }
+            });
+        };
 
-        // --- 4. LOAD COUNTRIES ---
+        // FIXED LoadCountries Function
         async function loadCountries() {
             const select = document.getElementById('country-select');
             try {
-                const res = await fetch(`${API_PATH}?action=getCountries&type=1`);
-                const json = await res.json();
+                // Hum full URL use kar rahe hain taake koi shak na rahe
+                const res = await fetch(window.location.origin + API_PATH + '?action=getCountries');
+                const data = await res.json();
                 
-                // Extract Countries (Object to Array)
-                const list = Object.values(json).map(c => ({
-                    id: c.id || c.ID,
-                    name: c.name || c.eng || c.country
-                })).sort((a, b) => a.name.localeCompare(b.name));
-
-                select.innerHTML = '<option value="">Select Country</option>';
-                list.forEach(c => {
-                    let opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.innerText = c.name;
-                    select.appendChild(opt);
-                });
-            } catch (e) { console.error(e); }
+                // Key "1" ko check karna
+                const list = data["1"] || [];
+                
+                select.innerHTML = '<option value="">Choose Country</option>';
+                if(list.length > 0) {
+                    list.forEach(c => {
+                        let opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.innerText = c.name;
+                        select.appendChild(opt);
+                    });
+                } else {
+                    select.innerHTML = '<option value="">No countries found</option>';
+                }
+            } catch (e) {
+                console.error("Countries Fetch Error:", e);
+                select.innerHTML = '<option value="">Check API/Vercel Logs</option>';
+            }
         }
 
-        // --- 5. LOAD SERVICES ---
+        // FIXED LoadServices Function
         document.getElementById('country-select').addEventListener('change', async (e) => {
             const countryId = e.target.value;
             const select = document.getElementById('service-select');
-            select.innerHTML = '<option>Loading...</option>';
-            select.disabled = true;
+            if(!countryId) return;
 
+            select.innerHTML = '<option value="">Loading...</option>';
             try {
-                const res = await fetch(`${API_PATH}?action=getServices&country=${countryId}&type=1`);
-                const json = await res.json();
+                const res = await fetch(window.location.origin + API_PATH + `?action=getServices&country=${countryId}`);
+                const data = await res.json();
+                const services = data["1"] || data;
                 
                 select.innerHTML = '<option value="">Select Service</option>';
-                
-                // Parse Services
-                const list = Object.entries(json).map(([key, val]) => ({
-                    code: key,
-                    name: val.name || val.service || key,
-                    price: parseFloat(val.price || 0.1)
-                }));
+                Object.keys(services).forEach(id => {
+                    const raw = services[id];
+                    let name = id.toUpperCase(), price = 0;
 
-                list.forEach(s => {
-                    const finalPrice = Math.ceil((s.price * 280) + (s.price * 280 * (PROFIT_PERCENTAGE/100)));
+                    if(typeof raw === 'string' && raw.includes(' - ')) {
+                        const parts = raw.split(' - ');
+                        name = parts[0].toUpperCase();
+                        const match = parts[1].match(/\d+/);
+                        if(match) price = parseFloat(match[0]);
+                    }
+                    
+                    const finalPrice = Math.ceil(price + 40); // 40 Rs Profit
                     let opt = document.createElement('option');
-                    opt.value = s.code;
-                    opt.setAttribute('data-price', finalPrice); // Store Price
-                    opt.innerText = `${s.name} - Rs ${finalPrice}`;
+                    opt.value = id;
+                    opt.dataset.price = finalPrice;
+                    opt.innerText = `${name} (Rs ${finalPrice})`;
                     select.appendChild(opt);
                 });
-                select.disabled = false;
-            } catch (e) { select.innerHTML = '<option>Error Loading</option>'; }
+            } catch (e) { select.innerHTML = '<option value="">Error</option>'; }
         });
 
-        // --- 6. BUY NUMBER LOGIC ---
+        // Buy & Status Logic
         async function buyNumber() {
+            const select = document.getElementById('service-select');
+            const price = parseFloat(select.options[select.selectedIndex]?.dataset.price || 0);
+            
+            if(userBalance < price) { showError(); return; }
+
             const country = document.getElementById('country-select').value;
-            const serviceSelect = document.getElementById('service-select');
-            const service = serviceSelect.value;
-            const price = parseFloat(serviceSelect.options[serviceSelect.selectedIndex].getAttribute('data-price'));
-
-            if(!country || !service) return alert("Select Country & Service!");
-            if(userBalance < price) return alert("Insufficient Balance! Please Deposit.");
-
+            const service = select.value;
             const btn = document.getElementById('buy-btn');
-            btn.disabled = true; btn.innerHTML = 'Processing...';
+            btn.disabled = true; btn.innerText = 'Connecting...';
 
             try {
-                // 1. API Call
-                const res = await fetch(`${API_PATH}?action=getNumber&service=${service}&country=${country}&type=1`);
-                const text = await res.text();
-
-                if(text.includes('ACCESS_NUMBER')) {
-                    const [_, apiId, number] = text.split(':');
-                    currentOrderId = apiId;
-
-                    // 2. Deduct Balance in Firebase
-                    await db.collection('users').doc(userId).update({
+                const res = await fetch(window.location.origin + API_PATH + `?action=getNumber&country=${country}&service=${service}`);
+                const json = await res.json();
+                if(json.raw_text.includes('ACCESS_NUMBER')) {
+                    const parts = json.raw_text.split(':');
+                    currentOrderId = parts[1];
+                    document.getElementById('phone-number').innerText = '+' + parts[2];
+                    
+                    // Firebase deduct
+                    db.collection("users").doc("test-user").update({
                         balance: firebase.firestore.FieldValue.increment(-price)
                     });
 
-                    // 3. Update UI
-                    document.getElementById('phone-number').innerText = '+' + number;
                     document.getElementById('order-container').classList.remove('hidden');
                     document.getElementById('no-order').classList.add('hidden');
-                    
-                    // 4. Start Checking Status
                     startStatusCheck();
-                } else {
-                    alert("Error: " + text);
-                }
-            } catch (e) { alert("Network Error"); }
-            
-            btn.disabled = false; btn.innerHTML = '<i class="fas fa-bolt"></i> GET NUMBER';
+                } else { alert(json.raw_text); }
+            } catch (e) { }
+            btn.disabled = false; btn.innerText = 'Get Number';
         }
 
-        // --- 7. CHECK STATUS (POLLING) ---
-        function startStatusCheck() {
+        function startStatusCheck() { 
             if(statusInterval) clearInterval(statusInterval);
-            statusInterval = setInterval(async () => {
-                if(!currentOrderId) return;
-                
-                try {
-                    const res = await fetch(`${API_PATH}?action=getStatus&id=${currentOrderId}`);
-                    const text = await res.text();
-
-                    if(text.includes('STATUS_OK')) {
-                        const code = text.split(':')[1];
-                        document.getElementById('otp-display').innerText = code;
-                        document.getElementById('otp-display').classList.remove('animate-pulse');
-                        document.getElementById('otp-display').classList.add('text-green-400');
-                        clearInterval(statusInterval);
-                        
-                        // Play Sound
-                        new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play();
-                    } else if(text === "STATUS_CANCEL") {
-                        resetUI();
-                        alert("Order Cancelled by System");
-                    }
-                } catch(e) {}
-            }, 4000); // Check every 4 seconds
+            statusInterval = setInterval(checkStatus, 5000); 
         }
 
-        // --- 8. CANCEL & REFUND ---
-        async function cancelOrder() {
-            if(!confirm("Cancel Order? Balance will be refunded.")) return;
-            
-            // Get Current Price (Ideally fetch from DB, using DOM for simplicity here)
-            const serviceSelect = document.getElementById('service-select');
-            const price = parseFloat(serviceSelect.options[serviceSelect.selectedIndex].getAttribute('data-price'));
-
-            try {
-                // Cancel on API
-                await fetch(`${API_PATH}?action=setStatus&id=${currentOrderId}&status=8`);
-                
-                // Refund Balance
-                await db.collection('users').doc(userId).update({
-                    balance: firebase.firestore.FieldValue.increment(price)
-                });
-
-                resetUI();
-                alert("Refunded Successfully!");
-            } catch(e) { alert("Error cancelling"); }
-        }
-
-        function resetUI() {
-            clearInterval(statusInterval);
-            currentOrderId = null;
-            document.getElementById('order-container').classList.add('hidden');
-            document.getElementById('no-order').classList.remove('hidden');
-            document.getElementById('otp-display').innerText = "WAITING";
-            document.getElementById('otp-display').classList.add('animate-pulse');
+        async function checkStatus() {
+            if(!currentOrderId) return;
+            const res = await fetch(window.location.origin + API_PATH + `?action=getStatus&id=${currentOrderId}`);
+            const json = await res.json();
+            if(json.raw_text.includes('STATUS_OK')) {
+                document.getElementById('otp-display').innerText = json.raw_text.split(':')[1];
+                clearInterval(statusInterval);
+            }
         }
 
         function copyText(id) {
