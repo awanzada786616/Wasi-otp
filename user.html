@@ -276,5 +276,36 @@
 
         window.onload = () => { if (localStorage.theme === 'dark') document.documentElement.classList.add('dark'); };
     </script>
+    <!-- WASI OTP - TIDIO LIVE SUPPORT START -->
+<script src="//code.tidio.co/mdg4ow7myt0gzm5k5ibaungymmw9xiby.js" async></script>
+
+<script>
+    // Dashboard ke "Support" button ke liye function
+    function openLiveSupport() {
+        if (window.tidioChatApi) {
+            window.tidioChatApi.open();
+        } else {
+            // Agar Tidio load hone mein time le raha ho
+            console.log("Tidio is still loading...");
+        }
+    }
+
+    // Tidio ko Left side par move karne ka asan tareeka code ke zariye
+    window.tidioChatApi = window.tidioChatApi || {};
+    window.addEventListener("tidioChat-ready", function() {
+        // Tidio ko left position par set karna
+        window.tidioChatApi.setWidgetPosition("left");
+    });
+</script>
+
+<style>
+    /* Mobile par chat aur screen ke darmiyan thora gap rakhne ke liye */
+    #tidio-chat-iframe { 
+        left: 10px !important; 
+        right: auto !important; 
+        bottom: 10px !important; 
+    }
+</style>
+<!-- WASI OTP - TIDIO LIVE SUPPORT END -->
 </body>
 </html>
