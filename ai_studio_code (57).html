@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASI OTP | Buy Virtual Number S1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <style>
+        body { font-family: 'Public Sans', sans-serif; background-color: #f4f6f9; color: #334155; }
+        .shadow-card { box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        
+        /* Searchable Dropdown Styles */
+        .dropdown-container { display: none; position: absolute; width: 100%; max-height: 300px; background: white; z-index: 100; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 15px 35px rgba(0,0,0,0.1); margin-top: 5px; overflow: hidden; flex-direction: column; }
+        .dropdown-container.show { display: flex; animation: fadeIn 0.2s ease-out; }
+        .dropdown-items { overflow-y: auto; flex-grow: 1; max-height: 240px; }
+        .search-input { width: 100%; padding: 12px; border-bottom: 1px solid #f1f5f9; outline: none; font-size: 14px; }
+        .drop-item { padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #f8fafc; transition: 0.2s; font-size: 14px; }
+        .drop-item:hover { background: #f1f5f9; color: #6366f1; }
+        
+        @keyframes fadeIn { from {opacity:0; transform:translateY(-5px);} to {opacity:1; transform:translateY(0);} }
+        #toast { visibility: hidden; min-width: 250px; background: #1e293b; color: #fff; text-align: center; border-radius: 12px; padding: 14px; position: fixed; z-index: 200; left: 50%; bottom: 30px; transform: translateX(-50%); font-weight: 600; }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+    </style>
+</head>
+<body class="pb-10">
+
+    <div id="toast">Message</div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4">
+        <div id="modal-box" class="bg-white rounded-[2rem] w-full max-w-xs p-8 shadow-2xl text-center">
+            <i id="modal-icon" class="fas fa-question-circle text-4xl mb-4 text-indigo-500"></i>
+            <h3 id="modal-title" class="text-xl font-bold mb-2">Confirm</h3>
+            <p id="modal-text" class="text-gray-500 text-sm mb-6"></p>
+            <div id="modal-footer" class="flex gap-3">
+                <button onclick="closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-xs">NO</button>
+                <button id="modal-confirm-btn" class="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-lg">YES</button>
+            </div>
+            <button id="modal-close-only" onclick="closeModal()" class="hidden w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-xs uppercase">OKAY</button>
+        </div>
+    </div>
+
+    <!-- Navbar (Shadow OTP Style) -->
+    <nav class="bg-[#4834d4] text-white px-4 py-3 sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <a href="user.html" class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center"><i class="fas fa-bars"></i></a>
+                <span class="text-lg font-bold">Shadow OTP</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="bg-white/10 px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-bold border border-white/20">
+                    <img src="https://flagcdn.com/w20/pk.png" class="w-4"> PKR <i class="fas fa-chevron-down text-[8px]"></i>
+                </div>
+                <button class="w-10 h-10 rounded-xl flex items-center justify-center text-lg"><i class="fas fa-moon"></i></button>
+                <div class="w-10 h-10 rounded-xl bg-[#686de0] flex items-center justify-center font-bold text-xs">SOTP</div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-6 max-w-2xl">
+        
+        <!-- Main Card -->
+        <div class="bg-white rounded-[1.5rem] p-6 shadow-card border border-gray-100 mb-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="font-bold flex items-center gap-2 text-slate-800"><i class="fas fa-phone-alt"></i> Buy Virtual Number</h2>
+                <span class="bg-orange-100 text-orange-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Server 1</span>
+            </div>
+
+            <!-- Balance Mini Card -->
+            <div class="bg-[#f5f6ff] rounded-2xl p-5 border border-indigo-50 mb-8 flex justify-between items-center relative overflow-hidden">
+                <div>
+                    <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1 flex items-center gap-1"><i class="fas fa-wallet text-[9px]"></i> Your Available Balance</p>
+                    <p class="text-2xl font-black text-indigo-700"><span id="user-balance">0.00</span> PKR</p>
+                </div>
+                <i class="fas fa-coins text-4xl text-indigo-200 opacity-50"></i>
+            </div>
+
+            <!-- Form Section -->
+            <div class="space-y-5">
+                <div class="relative">
+                    <p class="text-xs font-bold text-slate-500 mb-2 flex items-center gap-2"><i class="fas fa-globe"></i> Select Country</p>
+                    <div onclick="toggleDropdown('country-box')" id="country-display" class="w-full bg-white border border-gray-200 p-3.5 rounded-xl flex justify-between items-center cursor-pointer text-sm font-medium text-gray-400">
+                        <span>Select a country</span> <i class="fas fa-chevron-down text-[10px]"></i>
+                    </div>
+                    <div id="country-box" class="dropdown-container">
+                        <input type="text" id="country-search" class="search-input" placeholder="Search country..." onkeyup="filterCountries()">
+                        <div id="country-list" class="dropdown-items"></div>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <p class="text-xs font-bold text-slate-500 mb-2 flex items-center gap-2"><i class="fas fa-mobile-screen"></i> Select Service</p>
+                    <div onclick="toggleDropdown('service-box')" id="service-display" class="w-full bg-white border border-gray-200 p-3.5 rounded-xl flex justify-between items-center cursor-pointer text-sm font-medium text-gray-400">
+                        <span>Select a service</span> <i class="fas fa-chevron-down text-[10px]"></i>
+                    </div>
+                    <div id="service-box" class="dropdown-container">
+                        <input type="text" id="service-search" class="search-input" placeholder="Search service (e.g WhatsApp)..." onkeyup="filterServices()">
+                        <div id="service-list" class="dropdown-items"></div>
+                    </div>
+                </div>
+
+                <button onclick="buyNumber()" id="buy-btn" class="w-full bg-[#718093] hover:bg-[#2f3640] text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 uppercase text-xs tracking-widest mt-4">
+                    <i class="fas fa-shopping-cart"></i> BUY NUMBER
+                </button>
+            </div>
+        </div>
+
+        <!-- Active Orders Card -->
+        <div class="bg-white rounded-[1.5rem] p-6 shadow-card border border-gray-100">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="font-bold flex items-center gap-2 text-slate-800"><i class="fas fa-shopping-basket"></i> Active Orders</h2>
+                <span class="bg-cyan-100 text-cyan-500 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" id="order-count">0</span>
+            </div>
+
+            <div id="no-order" class="py-12 text-center">
+                <img src="https://cdn-icons-png.flaticon.com/512/4076/4076432.png" class="w-16 h-16 mx-auto opacity-20 mb-4 grayscale">
+                <p class="text-sm font-bold text-slate-800 mb-1">No Active Orders</p>
+                <p class="text-[11px] text-gray-400">Your purchased numbers will appear here.</p>
+            </div>
+
+            <!-- Active Order Details -->
+            <div id="order-container" class="hidden space-y-6 animate-in fade-in duration-300">
+                <div class="flex justify-center mb-4">
+                    <div class="bg-slate-100 px-4 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold text-indigo-600">
+                        <i class="fas fa-stopwatch animate-pulse"></i> <span id="order-timer">19:57</span>
+                    </div>
+                </div>
+                <div class="bg-indigo-50 p-6 rounded-2xl text-center border border-indigo-100">
+                    <p id="phone-number" class="text-3xl font-mono font-bold text-indigo-600 tracking-tighter">-----------</p>
+                    <button onclick="copyText('phone-number')" class="mt-2 text-[10px] text-indigo-400 font-bold uppercase tracking-widest italic">Copy Number</button>
+                </div>
+                <div class="text-center">
+                    <div id="otp-display" class="text-7xl font-black text-indigo-600 animate-pulse tracking-widest">------</div>
+                    <p class="text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-widest italic">Waiting for SMS Code</p>
+                </div>
+                <div class="flex gap-2">
+                    <button id="cancel-btn" onclick="openCancelModal()" class="flex-1 bg-red-50 text-red-500 py-3.5 rounded-xl font-bold text-[10px] uppercase">Cancel</button>
+                    <button onclick="checkStatus()" class="flex-1 bg-gray-100 text-gray-500 py-3.5 rounded-xl font-bold text-[10px] uppercase">Refresh</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // FIREBASE & CONFIG (Already Provided by User)
+        const firebaseConfig = { apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw", authDomain: "otpbywasi.firebaseapp.com", projectId: "otpbywasi", storageBucket: "otpbywasi.firebasestorage.app", messagingSenderId: "1169252296", appId: "1:1169252296:web:732c1f08f6b6ed7033eafd" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(), auth = firebase.auth();
+        const API_PATH = '/api/otp', PROFIT = 40;
+        let userBalance = 0, currentOrderId = null, activePrice = 0, otpReceived = false, timerInterval, timeLeft = 1197;
+        let masterCountries = [], masterServices = [];
+
+        // Auth Check
+        auth.onAuthStateChanged((user) => { if (!user) window.location.href = "auth.html"; else fetchUserData(user.uid); });
+
+        function fetchUserData(uid) {
+            db.collection("users").doc(uid).onSnapshot(doc => {
+                if (doc.exists) {
+                    userBalance = doc.data().balance || 0;
+                    document.getElementById('user-balance').innerText = userBalance.toFixed(2);
+                }
+            });
+        }
+
+        // --- Custom Dropdown Search Logic ---
+        function toggleDropdown(id) {
+            const el = document.getElementById(id);
+            const isShowing = el.classList.contains('show');
+            document.querySelectorAll('.dropdown-container').forEach(d => d.classList.remove('show'));
+            if(!isShowing) {
+                el.classList.add('show');
+                el.querySelector('input').focus();
+            }
+        }
+
+        async function loadCountries() {
+            const res = await fetch(`${API_PATH}?action=getCountries&type=1`);
+            const data = await res.json();
+            masterCountries = data["1"] || [];
+            renderCountries(masterCountries);
+        }
+
+        function renderCountries(list) {
+            const cont = document.getElementById('country-list');
+            cont.innerHTML = "";
+            list.forEach(c => {
+                const d = document.createElement('div');
+                d.className = 'drop-item'; d.innerText = c.name;
+                d.onclick = () => selectCountry(c.id, c.name);
+                cont.appendChild(d);
+            });
+        }
+
+        function filterCountries() {
+            const q = document.getElementById('country-search').value.toLowerCase();
+            renderCountries(masterCountries.filter(c => c.name.toLowerCase().includes(q)));
+        }
+
+        function selectCountry(id, name) {
+            selectedCountry = id;
+            document.getElementById('country-display').querySelector('span').innerText = name;
+            document.getElementById('country-display').classList.replace('text-gray-400', 'text-indigo-600');
+            document.getElementById('country-box').classList.remove('show');
+            loadServices(id);
+        }
+
+        async function loadServices(cid) {
+            const selText = document.getElementById('service-display').querySelector('span');
+            selText.innerText = "Loading Services...";
+            const res = await fetch(`${API_PATH}?action=getServices&country=${cid}&type=1`);
+            const data = await res.json();
+            const services = data["1"] || data;
+            masterServices = [];
+            Object.keys(services).forEach(code => {
+                const raw = services[code];
+                let sName = code.toUpperCase(), price = 0;
+                if (typeof raw === 'string' && raw.includes(' - ')) {
+                    const parts = raw.split(' - ');
+                    sName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+                    price = parseFloat(parts[1].match(/\d+/)[0]);
+                }
+                const finalPrice = Math.ceil(price + (price * (PROFIT / 100)));
+                masterServices.push({ code, name: sName, price: finalPrice });
+            });
+            renderServices(masterServices);
+            selText.innerText = "Select a service";
+        }
+
+        function renderServices(list) {
+            const cont = document.getElementById('service-list');
+            cont.innerHTML = "";
+            list.forEach(s => {
+                const d = document.createElement('div');
+                d.className = 'drop-item'; d.innerText = `${s.name} (Rs ${s.price})`;
+                d.onclick = () => {
+                    selectedService = s;
+                    document.getElementById('service-display').querySelector('span').innerText = `${s.name} (Rs ${s.price})`;
+                    document.getElementById('service-display').classList.replace('text-gray-400', 'text-indigo-600');
+                    document.getElementById('service-box').classList.remove('show');
+                };
+                cont.appendChild(d);
+            });
+        }
+
+        function filterServices() {
+            const q = document.getElementById('service-search').value.toLowerCase();
+            renderServices(masterServices.filter(s => s.name.toLowerCase().includes(q)));
+        }
+
+        // --- ORDERING ---
+        async function buyNumber() {
+            if(!selectedCountry || !selectedService) return showToast("Select options!");
+            if(userBalance < selectedService.price) return showModal("Low Balance!", "Deposit PKR via dashboard.", "fa-wallet", "text-red-500", null, true);
+
+            const btn = document.getElementById('buy-btn');
+            btn.disabled = true; btn.innerHTML = "<span class='loader-slim'></span> PURCHASING...";
+
+            const res = await fetch(`${API_PATH}?action=getNumber&country=${selectedCountry}&service=${selectedService.code}&type=1`);
+            const json = await res.json();
+            if(json.raw_text.includes('ACCESS_NUMBER')) {
+                const parts = json.raw_text.split(':');
+                currentOrderId = parts[1]; activePrice = selectedService.price; otpReceived = false;
+                document.getElementById('phone-number').innerText = '+' + parts[2];
+                db.collection("users").doc(auth.currentUser.uid).update({ balance: firebase.firestore.FieldValue.increment(-activePrice) });
+                document.getElementById('order-container').classList.remove('hidden');
+                document.getElementById('no-order').classList.add('hidden');
+                document.getElementById('order-count').innerText = "1";
+                startTimer(); startStatusCheck();
+            } else { showToast(json.raw_text); }
+            btn.disabled = false; btn.innerHTML = "<i class='fas fa-shopping-cart'></i> BUY NUMBER";
+        }
+
+        function startTimer() {
+            timeLeft = 1197; clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                const m = Math.floor(timeLeft / 60), s = timeLeft % 60;
+                document.getElementById('order-timer').innerText = `${m}:${s.toString().padStart(2, '0')}`;
+                if (timeLeft <= 0) { resetUI(); }
+                timeLeft--;
+            }, 1000);
+        }
+
+        function startStatusCheck() {
+            const check = setInterval(async () => {
+                if(!currentOrderId) return clearInterval(check);
+                const res = await fetch(`${API_PATH}?action=getStatus&id=${currentOrderId}`);
+                const json = await res.json();
+                if(json.raw_text.includes('STATUS_OK')) {
+                    document.getElementById('otp-display').innerText = json.raw_text.split(':')[1];
+                    document.getElementById('otp-display').classList.remove('animate-pulse');
+                    otpReceived = true;
+                    document.getElementById('cancel-btn').innerText = "FINISH";
+                    db.collection("users").doc(auth.currentUser.uid).update({ totalNumbersBought: firebase.firestore.FieldValue.increment(1) });
+                    clearInterval(check);
+                }
+            }, 5000);
+        }
+
+        function openCancelModal() {
+            if(otpReceived) { resetUI(); return; }
+            showModal("Cancel Number?", "Amount will be refunded instantly.", "fa-rotate-left", "text-indigo-600", async () => {
+                closeModal();
+                await fetch(`${API_PATH}?action=setStatus&id=${currentOrderId}&status=8`);
+                db.collection("users").doc(auth.currentUser.uid).update({ balance: firebase.firestore.FieldValue.increment(activePrice) });
+                resetUI(); showToast("💰 Refunded!");
+            });
+        }
+
+        function resetUI() {
+            currentOrderId = null; otpReceived = false; clearInterval(timerInterval);
+            document.getElementById('order-container').classList.add('hidden');
+            document.getElementById('no-order').classList.remove('hidden');
+            document.getElementById('order-count').innerText = "0";
+            document.getElementById('otp-display').innerText = "------";
+            document.getElementById('cancel-btn').innerText = "CANCEL";
+        }
+
+        function showModal(t, txt, icon, col, fn, closeOnly=false) {
+            document.getElementById('modal-title').innerText = t;
+            document.getElementById('modal-text').innerText = txt;
+            document.getElementById('modal-icon').className = `fas ${icon} text-4xl mb-4 ${col}`;
+            const btn = document.getElementById('modal-confirm-btn');
+            if(closeOnly) { document.getElementById('modal-footer').classList.add('hidden'); document.getElementById('modal-close-only').classList.remove('hidden'); }
+            else { document.getElementById('modal-footer').classList.remove('hidden'); document.getElementById('modal-close-only').classList.add('hidden'); btn.className = `flex-1 py-3 rounded-xl font-bold text-xs text-white ${col.replace('text', 'bg')}`; btn.onclick = fn; }
+            document.getElementById('modal-overlay').classList.remove('hidden');
+        }
+        function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }
+        function showToast(m) { const x = document.getElementById("toast"); x.innerText = m; x.className = "show"; setTimeout(() => x.className = "", 3000); }
+        function copyText(id) { navigator.clipboard.writeText(document.getElementById(id).innerText); showToast("📋 Copied!"); }
+
+        window.onload = loadCountries;
+    </script>
+</body>
+</html>
