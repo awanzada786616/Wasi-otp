@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deposit Balance | WASI OTP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { primary: '#6366f1', secondary: '#a855f7' } } }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Public Sans', sans-serif; background-color: #f3f4f6; transition: all 0.3s ease; }
+        .dark body { background-color: #0f172a; }
+        .font-brand { font-family: 'Montserrat', sans-serif; }
+        .hero-gradient { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); }
+        
+        /* Sidebar Logic */
+        #sidebar { transition: transform 0.3s ease-in-out; }
+        .sidebar-open #sidebar { transform: translateX(0); }
+
+        #toast {
+            visibility: hidden; min-width: 280px; background-color: #1f2937; color: #fff;
+            text-align: center; border-radius: 16px; padding: 16px; position: fixed;
+            z-index: 200; left: 50%; top: 30px; transform: translateX(-50%); font-weight: 600;
+        }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {top: 0; opacity: 0;} to {top: 30px; opacity: 1;} }
+        @keyframes fadeout { from {top: 30px; opacity: 1;} to {top: 0; opacity: 0;} }
+    </style>
+</head>
+<body class="text-slate-900 dark:text-gray-100 min-h-screen">
+
+    <div id="toast">Message</div>
+
+    <!-- Approval Success Modal -->
+    <div id="success-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[120] hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-xs p-8 shadow-2xl text-center animate-bounce-short">
+            <div class="w-20 h-20 bg-green-100 dark:bg-green-900/30 text-green-500 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-2 font-brand uppercase tracking-tighter italic text-green-600">Success!</h3>
+            <p class="text-gray-500 dark:text-gray-400 text-sm mb-6 font-medium">Your deposit has been approved and added to your balance.</p>
+            <button onclick="closeSuccessModal()" class="w-full bg-green-500 text-white py-4 rounded-2xl font-bold text-xs uppercase shadow-lg shadow-green-200">Great!</button>
+        </div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/40 z-[60] hidden"></div>
+
+    <!-- Sidebar Menu -->
+    <aside id="sidebar" class="fixed top-0 left-0 h-full w-72 bg-white dark:bg-slate-900 z-[70] -translate-x-full border-r dark:border-slate-800 p-6 shadow-2xl overflow-y-auto">
+        <div class="flex items-center gap-3 mb-10 p-2">
+            <div class="bg-primary p-2 rounded-lg text-white"><i class="fas fa-sms text-xl"></i></div>
+            <span class="text-2xl font-black uppercase tracking-tighter font-brand text-primary">WASI OTP</span>
+        </div>
+        <nav class="space-y-2">
+            <a href="user" class="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-all font-semibold"><i class="fas fa-home"></i> Dashboard</a>
+            <a href="deposit" class="flex items-center gap-4 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 text-primary font-bold"><i class="fas fa-wallet"></i> Recharge Wallet</a>
+            <a href="ticket" class="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-all font-semibold"><i class="fas fa-headset"></i> Support Ticket</a>
+            <hr class="my-6 border-gray-100 dark:border-slate-800">
+            <button onclick="logout()" class="flex items-center gap-4 p-4 rounded-2xl text-red-500 hover:bg-red-50 w-full font-bold"><i class="fas fa-power-off"></i> Logout</button>
+        </nav>
+    </aside>
+
+    <!-- Header -->
+    <nav class="bg-white dark:bg-slate-900 border-b dark:border-slate-800 sticky top-0 z-50 px-4 py-3 shadow-sm">
+        <div class="container mx-auto flex justify-between items-center max-w-2xl">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-slate-800 text-indigo-600 flex items-center justify-center border border-indigo-100 dark:border-slate-700">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <span class="text-lg font-bold font-brand text-indigo-600 dark:text-indigo-400">DEPOSIT</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="bg-green-50 dark:bg-green-900/20 text-green-600 px-4 py-2 rounded-xl font-black text-sm border border-green-100 dark:border-green-900/30">
+                    <span id="top-balance">0.00</span> <span class="text-[10px] ml-0.5">PKR</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-6 max-w-2xl">
+        
+        <!-- Instruction Card -->
+        <div class="hero-gradient rounded-[2.5rem] p-8 text-white shadow-xl mb-8 relative overflow-hidden">
+            <div class="relative z-10">
+                <h1 class="text-2xl font-black mb-2 italic uppercase tracking-tight">Add Balance</h1>
+                <p class="text-xs opacity-80 font-bold mb-6">Select a method and send payment.</p>
+                <div class="bg-red-500/20 border border-white/20 p-4 rounded-2xl flex items-center gap-3">
+                    <i class="fas fa-circle-exclamation text-xl animate-pulse text-yellow-300"></i>
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-widest">Minimum Deposit</p>
+                        <p class="text-lg font-black">Rs 50.00 PKR</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Gateways Section -->
+        <div id="gateways-container" class="space-y-4 mb-10">
+            <!-- Loading State -->
+            <div class="text-center py-10 opacity-20">
+                <i class="fas fa-circle-notch animate-spin text-3xl mb-2"></i>
+                <p class="text-xs font-bold uppercase tracking-widest">Loading Methods...</p>
+            </div>
+        </div>
+
+        <!-- Submission Form -->
+        <div class="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-sm border dark:border-slate-800">
+            <h2 class="text-sm font-black mb-6 text-primary uppercase tracking-widest italic flex items-center gap-2"><i class="fas fa-file-signature"></i> Deposit Form</h2>
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Recharge Amount (Min 50)</label>
+                    <input type="number" id="deposit-amount" placeholder="e.g 100" class="w-full bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-primary font-bold text-lg">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Transaction ID (TRX ID)</label>
+                    <input type="text" id="trx-id" placeholder="Paste TRX ID here" class="w-full bg-gray-50 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-primary font-bold">
+                </div>
+                <button onclick="submitDeposit()" id="submit-btn" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-xl active:scale-95 transition-all text-xs uppercase tracking-[0.2em]">
+                    Submit Payment Request
+                </button>
+            </div>
+        </div>
+
+        <p class="text-center text-gray-400 text-[10px] font-bold uppercase mt-8 tracking-widest">
+            Payments are approved manually within 5-15 minutes.
+        </p>
+
+    </main>
+
+    <script>
+        // 1. FIREBASE INITIALIZATION
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw",
+            authDomain: "otpbywasi.firebaseapp.com",
+            projectId: "otpbywasi",
+            storageBucket: "otpbywasi.firebasestorage.app",
+            messagingSenderId: "1169252296",
+            appId: "1:1169252296:web:732c1f08f6b6ed7033eafd"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        let userBalance = 0;
+        let userName = "";
+
+        // AUTH & REAL-TIME APPROVAL WATCHER
+        auth.onAuthStateChanged((user) => {
+            if (!user) window.location.href = "auth";
+            else {
+                fetchUserData(user.uid);
+                watchForApprovals(user.uid);
+            }
+        });
+
+        function fetchUserData(uid) {
+            db.collection("users").doc(uid).onSnapshot(doc => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    userBalance = data.balance || 0;
+                    userName = data.username || data.name || "User";
+                    document.getElementById('top-balance').innerText = userBalance.toFixed(2);
+                }
+            });
+        }
+
+        // --- GATEWAYS FETCHING (From Admin) ---
+        db.collection("gateways").onSnapshot(snap => {
+            const container = document.getElementById('gateways-container');
+            container.innerHTML = "";
+            if(snap.empty) container.innerHTML = "<p class='text-center text-xs opacity-50 font-bold'>No Payment Methods Active</p>";
+            
+            snap.forEach(doc => {
+                const g = doc.data();
+                container.innerHTML += `
+                    <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border dark:border-slate-800 shadow-sm flex items-center gap-5 relative overflow-hidden">
+                        <div class="w-14 h-14 bg-gray-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center p-2">
+                            <img src="${g.logo}" class="w-full h-full object-contain">
+                        </div>
+                        <div class="flex-grow">
+                            <p class="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-0.5">${g.name}</p>
+                            <p class="text-xl font-black font-brand tracking-tighter">${g.number}</p>
+                            <p class="text-[10px] text-gray-400 font-bold">Title: ${g.title}</p>
+                        </div>
+                        <button onclick="copyText('${g.number}')" class="w-10 h-10 bg-gray-50 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 hover:text-primary transition-all">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                `;
+            });
+        });
+
+        // --- SUBMIT DEPOSIT ---
+        async function submitDeposit() {
+            const amt = parseFloat(document.getElementById('deposit-amount').value);
+            const trx = document.getElementById('trx-id').value.trim();
+            const btn = document.getElementById('submit-btn');
+
+            if(!amt || !trx) return showToast("⚠️ Fill all fields!");
+            if(amt < 50) return showToast("❌ Minimum Deposit is Rs 50!");
+
+            btn.disabled = true; btn.innerText = "Submitting...";
+
+            try {
+                await db.collection("deposits").add({
+                    uid: auth.currentUser.uid,
+                    username: userName,
+                    amount: amt,
+                    trx_id: trx,
+                    status: "pending",
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showToast("✅ Request Sent! Wait for approval.");
+                document.getElementById('deposit-amount').value = "";
+                document.getElementById('trx-id').value = "";
+            } catch (e) { showToast("❌ Database Error"); }
+            btn.disabled = false; btn.innerText = "Submit Payment Request";
+        }
+
+        // --- WATCH FOR ADMIN APPROVALS ---
+        function watchForApprovals(uid) {
+            // Hum un deposits ko dekhte hain jo abhi approve huye hain (pichle 5 mins mein)
+            db.collection("deposits")
+                .where("uid", "==", uid)
+                .where("status", "==", "approved")
+                .onSnapshot(snap => {
+                    snap.docChanges().forEach(change => {
+                        if (change.type === "added" || change.type === "modified") {
+                            const data = change.doc.data();
+                            // Agar ye recently approve hua hai to popup dikhayen
+                            // Local storage use kar rahe hain taake aik hi deposit ka popup bar bar na aaye
+                            const storageKey = `shown_${change.doc.id}`;
+                            if(!localStorage.getItem(storageKey)) {
+                                document.getElementById('success-modal').classList.remove('hidden');
+                                localStorage.setItem(storageKey, 'true');
+                            }
+                        }
+                    });
+                });
+        }
+
+        // UI HELPERS
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); document.getElementById('sidebar-overlay').classList.toggle('hidden'); }
+        function toggleTheme() { document.documentElement.classList.toggle('dark'); }
+        function showToast(msg) { const x = document.getElementById("toast"); x.innerText = msg; x.className = "show"; setTimeout(() => x.className = "", 3000); }
+        function copyText(val) { navigator.clipboard.writeText(val); showToast("📋 Copied: " + val); }
+        function closeSuccessModal() { document.getElementById('success-modal').classList.add('hidden'); }
+        function logout() { auth.signOut().then(() => window.location.href = "auth"); }
+    </script>
+</body>
+</html>
