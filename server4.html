@@ -3,34 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WASI OTP | Server 4 - High Speed</title>
+    <title>WASI OTP | Server 04</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Public+Sans:wght@400;600&display=swap" rel="stylesheet">
     
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
     <style>
-        body { font-family: 'Public Sans', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        body { font-family: 'Public Sans', sans-serif; background-color: #ffffff; color: #1e293b; }
         .font-brand { font-family: 'Montserrat', sans-serif; }
         
-        /* Pure White Dropdown Fix */
-        .white-select {
-            background-color: white !important;
-            color: #1e293b !important;
-            border: 2px solid #e2e8f0;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236366f1'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 1rem center;
-            background-size: 1.2em;
-        }
-
-        .hero-gradient { background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); }
+        /* Square Blue Box Fix */
+        .hero-square { background: linear-gradient(135deg, #0052d4 0%, #0061ff 100%); border-radius: 0px !important; }
         
+        /* White Dropdown Content Fix */
+        .custom-dropdown-content {
+            display: none; position: absolute; width: 100%; max-height: 280px;
+            overflow-y: auto; background: white; border: 2px solid #e2e8f0;
+            z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border-radius: 12px;
+        }
+        .custom-dropdown-content.show { display: block; }
+        .dropdown-item { padding: 14px 16px; cursor: pointer; border-bottom: 1px solid #f1f5f9; color: #1e293b; font-weight: 600; font-size: 14px; }
+        .dropdown-item:hover { background-color: #f8fafc; color: #0061ff; }
+
+        .marquee-strip { background: #0052d4; height: 32px; display: flex; align-items: center; justify-content: center; }
+
         #toast {
             visibility: hidden; min-width: 250px; background-color: #1e293b; color: #fff;
             text-align: center; border-radius: 12px; padding: 16px; position: fixed;
@@ -40,7 +40,7 @@
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
         @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
 
-        .loader { border: 2px solid #f3f3f3; border-top: 2px solid #4f46e5; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block; }
+        .loader-slim { border: 2px solid #f3f3f3; border-top: 2px solid #ffffff; border-radius: 50%; width: 14px; height: 14px; animation: spin 1s linear infinite; display: inline-block; margin-right: 8px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
@@ -48,103 +48,107 @@
 
     <div id="toast">Message here</div>
 
+    <!-- Modals -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4">
+        <div id="modal-box" class="bg-white w-full max-w-xs rounded-2xl p-8 shadow-2xl text-center">
+            <i id="modal-icon" class="fas fa-question-circle text-4xl mb-4 text-blue-600"></i>
+            <h3 id="modal-title" class="text-xl font-bold mb-2 font-brand uppercase italic">Confirm</h3>
+            <p id="modal-text" class="text-gray-500 text-sm mb-6"></p>
+            <div class="flex gap-3">
+                <button onclick="closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-xs">NO</button>
+                <button id="modal-confirm-btn" class="flex-1 bg-blue-600 py-3 rounded-xl font-bold text-xs text-white shadow-lg">YES</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Header -->
-    <nav class="bg-white border-b border-gray-100 sticky top-0 z-50 px-4 py-4 shadow-sm">
+    <nav class="bg-white border-b border-gray-100 sticky top-0 z-50 px-4 py-4">
         <div class="container mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <a href="user.html" class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-indigo-600 transition-all">
-                    <i class="fas fa-arrow-left"></i>
-                </a>
-                <span class="text-xl font-black font-brand text-indigo-600 uppercase tracking-tighter">SERVER <span class="text-cyan-500">04</span></span>
+                <a href="user.html" class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400"><i class="fas fa-arrow-left"></i></a>
+                <span class="text-xl font-black font-brand text-blue-600 tracking-tighter italic uppercase">Server 04</span>
             </div>
-            
             <div class="flex items-center gap-3">
-                <div class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl font-black text-sm border border-indigo-100 shadow-sm">
-                    <span id="top-balance">0.00</span> <span class="text-[10px] ml-0.5">PKR</span>
+                <div class="bg-blue-50 text-blue-600 px-4 py-2 rounded-xl font-black text-sm border border-blue-100">
+                    <span id="top-balance">0.00</span> <span class="text-[10px] ml-0.5 uppercase">PKR</span>
                 </div>
-                <img id="user-avatar" src="https://avatar.iran.liara.run/public/boy" class="w-10 h-10 rounded-full border-2 border-indigo-500">
+                <img src="https://avatar.iran.liara.run/public/boy" class="w-10 h-10 rounded-full border-2 border-blue-600">
             </div>
         </div>
     </nav>
 
     <main class="container mx-auto px-4 py-6 max-w-4xl">
         
-        <!-- Welcome Section -->
-        <div class="hero-gradient rounded-3xl p-8 text-white shadow-xl mb-8 relative overflow-hidden">
+        <!-- Welcome Square Box -->
+        <div class="hero-square p-8 text-white shadow-xl mb-6 relative overflow-hidden">
             <div class="relative z-10">
-                <p class="text-xs font-bold opacity-80 uppercase tracking-widest mb-1">Provider 4 Active</p>
-                <h1 id="user-name-display" class="text-3xl font-black mb-6 italic tracking-tight uppercase">Loading...</h1>
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-2 italic">Welcome</p>
+                <h1 id="user-name-display" class="font-brand text-3xl font-black mb-8 italic tracking-tight uppercase">Loading...</h1>
                 
-                <div class="bg-white/20 backdrop-blur-md rounded-2xl p-5 border border-white/30 inline-block min-w-[240px]">
-                    <p class="text-[10px] opacity-80 mb-1 uppercase font-black tracking-widest">Wasi Wallet Balance</p>
+                <div class="bg-white/10 backdrop-blur-md p-6 border border-white/20 inline-block min-w-[260px]">
+                    <p class="text-[10px] opacity-70 mb-1 uppercase font-black tracking-widest">Wasi Wallet Balance</p>
                     <div class="flex items-baseline gap-2">
                         <span class="text-xs font-bold">Rs</span>
                         <span id="user-balance-display" class="text-4xl font-black tracking-tighter">0.00</span>
                     </div>
                 </div>
             </div>
-            <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Selection Card -->
-            <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 space-y-6">
-                <div class="flex items-center gap-2 mb-2">
-                    <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600">
-                        <i class="fas fa-globe text-sm"></i>
+        <div class="marquee-strip mb-8 overflow-hidden">
+            <marquee class="text-white text-[10px] font-bold uppercase tracking-widest" scrollamount="5">
+                🔥 SERVER 04 ACTIVE - PREMIUM NUMBERS - AUTO REFUND IF NO SMS - DEPOSIT VIA WHATSAPP 🔥
+            </marquee>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Order Card -->
+            <div class="bg-white p-8 rounded-none border border-gray-100 shadow-sm space-y-6">
+                <div class="relative">
+                    <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">1. Select Country</label>
+                    <div onclick="toggleDropdown('country-options')" id="country-selected" class="w-full bg-gray-50 p-4 border border-gray-200 flex justify-between items-center cursor-pointer font-bold text-sm">
+                        <span>Select Country</span> <i class="fas fa-chevron-down opacity-30"></i>
                     </div>
-                    <h2 class="font-bold text-sm uppercase tracking-widest text-gray-500">Configuration</h2>
+                    <div id="country-options" class="custom-dropdown-content"></div>
                 </div>
 
-                <div>
-                    <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">1. Select Country</label>
-                    <select id="country-select" class="white-select w-full p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm font-bold shadow-sm">
-                        <option value="">Loading Countries...</option>
-                    </select>
+                <div class="relative">
+                    <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">2. Select Service</label>
+                    <div onclick="toggleDropdown('service-options')" id="service-selected" class="w-full bg-gray-50 p-4 border border-gray-200 flex justify-between items-center cursor-pointer font-bold text-sm">
+                        <span>Choose Country First</span> <i class="fas fa-chevron-down opacity-30"></i>
+                    </div>
+                    <div id="service-options" class="custom-dropdown-content"></div>
                 </div>
 
-                <div>
-                    <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">2. Select Service</label>
-                    <select id="service-select" class="white-select w-full p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm font-bold shadow-sm">
-                        <option value="">Choose Country First</option>
-                    </select>
-                </div>
-
-                <button onclick="buyNumber()" id="buy-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-indigo-200 transition-all active:scale-95 uppercase text-xs tracking-widest">
-                    <span id="buy-loader" class="loader hidden mr-2"></span> Get Number (Server 4)
+                <button onclick="buyNumber()" id="buy-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 shadow-xl transition-all active:scale-95 uppercase text-[10px] tracking-widest">
+                    <span id="buy-loader" class="loader-slim hidden"></span> Purchase Number (S4)
                 </button>
             </div>
 
-            <!-- Result Card -->
-            <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center min-h-[400px]">
+            <!-- OTP Box -->
+            <div class="bg-white p-8 rounded-none border border-gray-100 shadow-sm flex flex-col items-center justify-center min-h-[380px]">
                 <div id="no-order" class="text-center opacity-30">
-                    <i class="fas fa-server text-6xl mb-4 text-indigo-600"></i>
-                    <p class="text-[10px] font-black uppercase tracking-widest leading-relaxed">Server 4 Ready<br>Awaiting Request</p>
+                    <i class="fas fa-microchip text-6xl mb-4 text-blue-600"></i>
+                    <p class="text-[10px] font-black uppercase tracking-widest">Server 04 Standby</p>
                 </div>
 
                 <div id="order-container" class="hidden w-full space-y-8 animate-in fade-in duration-300">
-                    <!-- Timer -->
                     <div class="flex justify-center">
                         <div class="bg-gray-50 px-6 py-2 rounded-full border border-gray-100 flex items-center gap-3">
-                            <i class="fas fa-stopwatch text-indigo-500"></i>
-                            <span id="order-timer" class="font-black font-mono text-lg text-indigo-600 tracking-widest">19:57</span>
+                            <i class="fas fa-stopwatch text-blue-600"></i>
+                            <span id="order-timer" class="font-black font-mono text-lg text-blue-600">19:57</span>
                         </div>
                     </div>
-
-                    <div class="bg-indigo-50 p-6 rounded-3xl border border-indigo-100 text-center relative overflow-hidden">
-                        <p class="text-[9px] text-indigo-400 font-black uppercase mb-1 tracking-widest">Received Number</p>
-                        <p id="phone-number" class="text-3xl font-mono font-bold text-indigo-900 tracking-tighter">-----------</p>
-                        <button onclick="copyText('phone-number')" class="mt-2 text-[10px] text-indigo-600 font-black uppercase tracking-widest italic">Copy to Clipboard</button>
+                    <div class="bg-blue-50 p-6 text-center border border-blue-100">
+                        <p id="phone-number" class="text-3xl font-mono font-bold text-blue-600 tracking-tighter">-----------</p>
+                        <button onclick="copyText('phone-number')" class="mt-2 text-[10px] font-black uppercase text-blue-400 italic">Copy Number</button>
                     </div>
-
                     <div class="text-center">
-                        <div id="otp-display" class="text-7xl font-black text-indigo-600 tracking-widest animate-pulse font-brand">------</div>
-                        <p id="otp-status-text" class="text-[10px] text-gray-400 mt-2 font-black uppercase tracking-widest italic">Waiting for OTP SMS</p>
+                        <div id="otp-display" class="text-7xl font-black text-blue-600 animate-pulse tracking-widest font-brand">------</div>
                     </div>
-
-                    <div class="flex gap-3">
-                        <button id="cancel-btn" onclick="cancelOrder()" class="flex-1 bg-red-50 text-red-500 py-4 rounded-2xl font-bold text-[10px] uppercase shadow-sm border border-red-100 transition-all hover:bg-red-500 hover:text-white">Cancel</button>
-                        <button onclick="checkStatus()" class="flex-1 bg-gray-50 text-gray-500 py-4 rounded-2xl font-bold text-[10px] uppercase border border-gray-100 transition-all hover:bg-gray-100">Refresh</button>
+                    <div class="flex gap-2">
+                        <button id="cancel-btn" onclick="openCancelModal()" class="flex-1 bg-red-50 text-red-500 py-4 font-bold text-[10px] uppercase">Cancel</button>
+                        <button onclick="checkStatus()" class="flex-1 bg-gray-100 text-gray-500 py-4 font-bold text-[10px] uppercase">Refresh</button>
                     </div>
                 </div>
             </div>
@@ -165,144 +169,129 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // Constants
         const API_PATH = '/api/otp';
         const PROFIT = 40;
-        let userBalance = 0, currentOrderId = null, activePrice = 0, otpReceived = false;
-        let timerInterval, timeLeft = 1197;
+        let userBalance = 0, currentOrderId = null, activePrice = 0, selectedCountry = null, selectedService = null;
+        let otpReceived = false, timerInterval, timeLeft = 1197;
 
-        // AUTH & FIREBASE PROTECTION
+        // AUTH & SYNC
         auth.onAuthStateChanged((user) => {
-            if (!user) {
-                window.location.href = "auth.html";
-            } else {
-                loadUserFirestore(user.uid);
-            }
+            if (!user) window.location.href = "auth.html";
+            else fetchUserData(user.uid);
         });
 
-        function loadUserFirestore(uid) {
+        function fetchUserData(uid) {
             db.collection("users").doc(uid).onSnapshot((doc) => {
                 if (doc.exists) {
-                    const data = doc.data();
-                    userBalance = data.balance || 0;
+                    const d = doc.data();
+                    userBalance = d.balance || 0;
                     document.getElementById('user-balance-display').innerText = userBalance.toFixed(2);
                     document.getElementById('top-balance').innerText = userBalance.toFixed(2);
-                    document.getElementById('user-name-display').innerText = data.username || data.name || "User";
+                    document.getElementById('user-name-display').innerText = d.username || "User";
                 }
             });
         }
 
-        // --- API INTEGRATION (PROVIDER 4) ---
-        window.onload = () => { loadCountries(); };
-
+        // --- FETCHING LOGIC (FIXED FOR SERVER 4) ---
         async function loadCountries() {
-            const select = document.getElementById('country-select');
+            const container = document.getElementById('country-options');
             try {
-                // Notice the type=4 added here
+                // Key difference: type=4
                 const res = await fetch(`${API_PATH}?action=getCountries&type=4`);
                 const data = await res.json();
-                const list = data["1"] || [];
-                select.innerHTML = '<option value="">Select Country</option>';
+                
+                // Server 4 might return nested or direct array
+                let list = data["1"] || (Array.isArray(data) ? data : Object.values(data));
+
+                container.innerHTML = "";
                 list.forEach(c => {
-                    let opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.innerText = c.name;
-                    select.appendChild(opt);
+                    const div = document.createElement('div');
+                    div.className = "dropdown-item";
+                    div.innerText = c.name || `Country ${c.id}`;
+                    div.onclick = () => {
+                        selectedCountry = c.id;
+                        document.getElementById('country-selected').querySelector('span').innerText = c.name;
+                        container.classList.remove('show');
+                        loadServices(c.id);
+                    };
+                    container.appendChild(div);
                 });
-            } catch (e) { select.innerHTML = '<option>API Offline</option>'; }
+            } catch (e) { showToast("❌ API Error"); }
         }
 
-        document.getElementById('country-select').addEventListener('change', async (e) => {
-            const countryId = e.target.value;
-            const select = document.getElementById('service-select');
-            if(!countryId) return;
-            select.innerHTML = '<option value="">Scanning Server 4...</option>';
+        async function loadServices(countryId) {
+            const container = document.getElementById('service-options');
+            const selText = document.getElementById('service-selected').querySelector('span');
+            selText.innerText = "Loading Services (S4)...";
             try {
-                // type=4 added here
+                // Key difference: type=4
                 const res = await fetch(`${API_PATH}?action=getServices&country=${countryId}&type=4`);
                 const data = await res.json();
-                const servicesData = data["1"] || data;
-                select.innerHTML = '<option value="">Select Service</option>';
-                Object.keys(servicesData).forEach(code => {
-                    const rawString = servicesData[code];
-                    let serviceName = code.toUpperCase(), apiPrice = 0;
-                    if (typeof rawString === 'string' && rawString.includes(' - ')) {
-                        const parts = rawString.split(' - ');
-                        serviceName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
-                        const match = parts[1].match(/\d+/);
-                        if (match) apiPrice = parseFloat(match[0]);
+                
+                const services = data["1"] || data;
+                container.innerHTML = "";
+                
+                Object.keys(services).forEach(code => {
+                    const raw = services[code];
+                    let sName = code.toUpperCase(), price = 0;
+                    
+                    // Specific Parser for "Service - Price Currency"
+                    if (typeof raw === 'string') {
+                        const parts = raw.split(' - ');
+                        sName = parts[0];
+                        const match = parts[1]?.match(/\d+/);
+                        if (match) price = parseFloat(match[0]);
                     }
-                    const finalPrice = Math.ceil(apiPrice + (apiPrice * (PROFIT / 100)));
-                    let opt = document.createElement('option');
-                    opt.value = code; opt.dataset.price = finalPrice;
-                    opt.innerText = `${serviceName} (Rs ${finalPrice})`;
-                    select.appendChild(opt);
+                    
+                    const finalPrice = Math.ceil(price + (price * (PROFIT / 100)));
+                    const div = document.createElement('div');
+                    div.className = "dropdown-item";
+                    div.innerText = `${sName} (Rs ${finalPrice})`;
+                    div.onclick = () => {
+                        selectedService = { code, price: finalPrice };
+                        document.getElementById('service-selected').querySelector('span').innerText = `${sName} (Rs ${finalPrice})`;
+                        container.classList.remove('show');
+                    };
+                    container.appendChild(div);
                 });
-            } catch (e) { select.innerHTML = '<option>Error</option>'; }
-        });
+                selText.innerText = "Choose Service";
+            } catch (e) { selText.innerText = "Error Loading"; }
+        }
 
-        // --- ORDERING LOGIC ---
+        // BUY & TIMER
         async function buyNumber() {
-            const serviceSelect = document.getElementById('service-select');
-            const countryId = document.getElementById('country-select').value;
-            const serviceCode = serviceSelect.value;
-            const price = parseFloat(serviceSelect.options[serviceSelect.selectedIndex]?.dataset.price || 0);
-
-            if(!countryId || !serviceCode) { showToast("⚠️ Select Country & Service!"); return; }
-            if (userBalance < price) { showToast("❌ Low Balance! Recharge First."); return; }
+            if(!selectedCountry || !selectedService) { showToast("⚠️ Select all fields!"); return; }
+            if (userBalance < selectedService.price) { showToast("❌ Low Balance!"); return; }
 
             const btn = document.getElementById('buy-btn');
             const loader = document.getElementById('buy-loader');
             btn.disabled = true; loader.classList.remove('hidden');
 
             try {
-                // type=4 added here
-                const res = await fetch(`${API_PATH}?action=getNumber&country=${countryId}&service=${serviceCode}&type=4`);
+                // type=4 passed to API
+                const res = await fetch(`${API_PATH}?action=getNumber&country=${selectedCountry}&service=${selectedService.code}&type=4`);
                 const json = await res.json();
+                
                 if(json.raw_text.includes('ACCESS_NUMBER')) {
                     const parts = json.raw_text.split(':');
                     currentOrderId = parts[1];
-                    activePrice = price;
+                    activePrice = selectedService.price;
                     otpReceived = false;
                     document.getElementById('phone-number').innerText = '+' + parts[2];
                     
-                    // Firestore Deduct
-                    db.collection("users").doc(auth.currentUser.uid).update({
-                        balance: firebase.firestore.FieldValue.increment(-price)
-                    });
-
+                    db.collection("users").doc(auth.currentUser.uid).update({ balance: firebase.firestore.FieldValue.increment(-activePrice) });
                     document.getElementById('order-container').classList.remove('hidden');
                     document.getElementById('no-order').classList.add('hidden');
-                    startTimer();
-                    startStatusCheck();
-                } else { showToast("Server: " + json.raw_text); }
-            } catch (e) { showToast("❌ Connection Failed"); }
+                    startTimer(); startStatusCheck();
+                } else { showToast("S4: " + json.raw_text); }
+            } catch (e) { }
             btn.disabled = false; loader.classList.add('hidden');
         }
 
-        async function cancelOrder() {
-            if(otpReceived) {
-                showToast("✅ Order Completed Successfully!");
-                resetUI();
-                return;
-            }
-            if(!confirm("Cancel and refund?")) return;
-            try {
-                await fetch(`${API_PATH}?action=setStatus&id=${currentOrderId}&status=8`);
-                db.collection("users").doc(auth.currentUser.uid).update({
-                    balance: firebase.firestore.FieldValue.increment(activePrice)
-                });
-                resetUI();
-                showToast("💰 Refunded to Wallet!");
-            } catch (e) { showToast("❌ Cancel Failed"); }
-        }
-
         function startTimer() {
-            timeLeft = 1197;
-            clearInterval(timerInterval);
+            timeLeft = 1197; clearInterval(timerInterval);
             timerInterval = setInterval(() => {
-                const mins = Math.floor(timeLeft / 60);
-                const secs = timeLeft % 60;
+                const mins = Math.floor(timeLeft / 60); const secs = timeLeft % 60;
                 document.getElementById('order-timer').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
                 if (timeLeft <= 0) { clearInterval(timerInterval); resetUI(); }
                 timeLeft--;
@@ -310,44 +299,52 @@
         }
 
         function startStatusCheck() {
-            const check = setInterval(async () => {
-                if(!currentOrderId) { clearInterval(check); return; }
+            const checker = setInterval(async () => {
+                if(!currentOrderId) { clearInterval(checker); return; }
                 const res = await fetch(`${API_PATH}?action=getStatus&id=${currentOrderId}`);
                 const json = await res.json();
                 if(json.raw_text.includes('STATUS_OK')) {
                     document.getElementById('otp-display').innerText = json.raw_text.split(':')[1];
                     document.getElementById('otp-display').classList.remove('animate-pulse');
-                    document.getElementById('otp-status-text').innerText = "✅ OTP RECEIVED";
-                    document.getElementById('cancel-btn').innerText = "FINISH";
-                    document.getElementById('cancel-btn').classList.replace('text-red-500', 'text-green-600');
                     otpReceived = true;
                     db.collection("users").doc(auth.currentUser.uid).update({ totalNumbersBought: firebase.firestore.FieldValue.increment(1) });
-                    clearInterval(check);
+                    document.getElementById('cancel-btn').innerText = "FINISH";
+                    clearInterval(checker);
                 }
             }, 5000);
         }
 
+        // UI HELPERS
+        function toggleDropdown(id) { document.getElementById(id).classList.toggle('show'); }
+        function openModal(title, text, icon, color, confirmFn) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-text').innerText = text;
+            document.getElementById('modal-icon').className = `fas ${icon} text-4xl mb-4 ${color}`;
+            const btn = document.getElementById('modal-confirm-btn');
+            btn.className = `flex-1 py-3 rounded-xl font-bold text-xs uppercase text-white ${color.replace('text', 'bg')}`;
+            btn.onclick = confirmFn;
+            document.getElementById('modal-overlay').classList.remove('hidden');
+        }
+        function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }
+        function openCancelModal() {
+            if(otpReceived) { resetUI(); return; }
+            openModal("Refund?", "Order will be cancelled and balance refunded.", "fa-rotate-left", "text-blue-600", async () => {
+                closeModal();
+                await fetch(`${API_PATH}?action=setStatus&id=${currentOrderId}&status=8`);
+                db.collection("users").doc(auth.currentUser.uid).update({ balance: firebase.firestore.FieldValue.increment(activePrice) });
+                resetUI(); showToast("💰 Refunded!");
+            });
+        }
         function resetUI() {
             currentOrderId = null; otpReceived = false; clearInterval(timerInterval);
             document.getElementById('order-container').classList.add('hidden');
             document.getElementById('no-order').classList.remove('hidden');
             document.getElementById('otp-display').innerText = "------";
-            document.getElementById('otp-display').classList.add('animate-pulse');
-            document.getElementById('otp-status-text').innerText = "Waiting for OTP SMS";
             document.getElementById('cancel-btn').innerText = "CANCEL";
         }
-
-        function copyText(id) {
-            navigator.clipboard.writeText(document.getElementById(id).innerText);
-            showToast("📋 Copied!");
-        }
-
-        function showToast(msg) {
-            const x = document.getElementById("toast");
-            x.innerText = msg;
-            x.className = "show";
-            setTimeout(() => { x.className = ""; }, 3000);
-        }
+        function showToast(msg) { const x = document.getElementById("toast"); x.innerText = msg; x.className = "show"; setTimeout(() => x.className = "", 3000); }
+        function copyText(id) { navigator.clipboard.writeText(document.getElementById(id).innerText); showToast("📋 Copied!"); }
+        window.onload = loadCountries;
     </script>
 </body>
 </html>
