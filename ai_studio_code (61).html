@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASI OTP | Master Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Public+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <style>
+        body { font-family: 'Public Sans', sans-serif; background-color: #f1f5f9; visibility: hidden; } /* Hidden until login */
+        .font-brand { font-family: 'Montserrat', sans-serif; }
+        .tab-btn.active { background: #6366f1; color: white; }
+    </style>
+</head>
+<body id="admin-body">
+
+    <!-- Top Bar -->
+    <nav class="bg-slate-900 text-white px-6 py-4 sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-500 p-2 rounded-lg"><i class="fas fa-user-crown text-white"></i></div>
+                <span class="text-xl font-black font-brand italic uppercase tracking-tighter">Wasi <span class="text-indigo-400">Admin</span></span>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-xl text-[10px] font-black border border-emerald-500/30">
+                    API: Rs <span id="api-balance">0.00</span>
+                </div>
+                <button onclick="location.reload()" class="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center"><i class="fas fa-sync"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8 max-w-5xl">
+        
+        <!-- Navigation Tabs -->
+        <div class="flex gap-2 mb-8 overflow-x-auto pb-2">
+            <button onclick="showTab('deposits')" class="tab-btn active px-6 py-3 rounded-2xl font-bold text-xs uppercase shadow-sm bg-white whitespace-nowrap">Deposit Requests</button>
+            <button onclick="showTab('users')" class="tab-btn px-6 py-3 rounded-2xl font-bold text-xs uppercase shadow-sm bg-white whitespace-nowrap">User List</button>
+            <button onclick="showTab('settings')" class="tab-btn px-6 py-3 rounded-2xl font-bold text-xs uppercase shadow-sm bg-white whitespace-nowrap">Payment Settings</button>
+            <a href="ticket" class="px-6 py-3 rounded-2xl font-bold text-xs uppercase shadow-sm bg-white text-indigo-600 border border-indigo-100">Reply Tickets</a>
+        </div>
+
+        <!-- 1. DEPOSIT REQUESTS TAB -->
+        <section id="tab-deposits" class="tab-content">
+            <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-6 border-b flex items-center justify-between">
+                    <h2 class="font-black uppercase tracking-widest text-slate-400 text-xs italic">Pending Approvals</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
+                            <tr>
+                                <th class="p-5">User</th>
+                                <th class="p-5">Amount</th>
+                                <th class="p-5">TRX ID</th>
+                                <th class="p-5 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deposit-body">
+                            <!-- Injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. USER LIST TAB -->
+        <section id="tab-users" class="tab-content hidden">
+            <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6">
+                <input type="text" onkeyup="searchUsers(this.value)" placeholder="Search user by name..." class="w-full bg-slate-50 p-4 rounded-2xl outline-none mb-6 font-bold">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="text-[10px] font-black uppercase text-slate-400">
+                            <tr><th class="p-4">Username</th><th class="p-4">Balance</th><th class="p-4">Action</th></tr>
+                        </thead>
+                        <tbody id="user-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. PAYMENT SETTINGS TAB -->
+        <section id="tab-settings" class="tab-content hidden">
+            <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 max-w-lg mx-auto">
+                <h2 class="text-xl font-black mb-6 uppercase italic">Update Deposit Info</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">EasyPaisa Number</label>
+                        <input type="text" id="set-ep-num" class="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none border focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">JazzCash Number</label>
+                        <input type="text" id="set-jc-num" class="w-full bg-slate-50 p-4 rounded-xl font-bold outline-none border focus:border-indigo-500">
+                    </div>
+                    <button onclick="saveSettings()" class="w-full bg-indigo-600 text-white font-black py-4 rounded-xl shadow-lg shadow-indigo-100 uppercase text-xs">Save Settings</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // 1. FIREBASE CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw",
+            authDomain: "otpbywasi.firebaseapp.com",
+            projectId: "otpbywasi",
+            storageBucket: "otpbywasi.firebasestorage.app",
+            messagingSenderId: "1169252296",
+            appId: "1:1169252296:web:732c1f08f6b6ed7033eafd"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // 2. SECRET LOGIN SYSTEM
+        // Hint: Password "wasi786" ko obfuscate (chupa) diya hai
+        const _0x1a2b = ["d2FzaTc4Ng=="]; // Base64 for wasi786
+        
+        (function authenticate() {
+            const pass = prompt("🔐 ADMIN ACCESS REQUIRED\nEnter Master Password:");
+            if (pass === atob(_0x1a2b[0])) {
+                document.body.style.visibility = "visible";
+                loadAdminData();
+            } else {
+                alert("❌ Wrong Password! Access Denied.");
+                window.location.href = "user";
+            }
+        })();
+
+        // 3. TAB SYSTEM
+        function showTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            event.currentTarget.classList.add('active');
+        }
+
+        // 4. LOAD DATA
+        async function loadAdminData() {
+            // Load API Balance
+            const res = await fetch('/api/otp?action=getBalance');
+            const json = await res.json();
+            document.getElementById('api-balance').innerText = json.raw_text.split(':')[1] || "0.00";
+
+            // Load Deposits
+            db.collection("deposits").where("status", "==", "pending").onSnapshot(snap => {
+                const tbody = document.getElementById('deposit-body');
+                tbody.innerHTML = "";
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    tbody.innerHTML += `
+                        <tr class="border-b border-slate-50">
+                            <td class="p-5 font-bold text-sm">${d.username}</td>
+                            <td class="p-5 text-indigo-600 font-black">Rs ${d.amount}</td>
+                            <td class="p-5 font-mono text-xs text-slate-400">${d.trx_id}</td>
+                            <td class="p-5 flex gap-2 justify-center">
+                                <button onclick="handleDeposit('${doc.id}', '${d.uid}', ${d.amount}, 'approved')" class="bg-emerald-500 text-white px-4 py-2 rounded-lg text-[10px] font-black">APPROVE</button>
+                                <button onclick="handleDeposit('${doc.id}', '${d.uid}', 0, 'rejected')" class="bg-red-500 text-white px-4 py-2 rounded-lg text-[10px] font-black">REJECT</button>
+                            </td>
+                        </tr>`;
+                });
+            });
+
+            // Load Users
+            db.collection("users").onSnapshot(snap => {
+                const ubody = document.getElementById('user-body');
+                ubody.innerHTML = "";
+                snap.forEach(doc => {
+                    const u = doc.data();
+                    ubody.innerHTML += `
+                        <tr class="border-b">
+                            <td class="p-4 font-bold">${u.username}</td>
+                            <td class="p-4 font-black text-indigo-600">Rs ${u.balance.toFixed(2)}</td>
+                            <td class="p-4">
+                                <button onclick="editBalance('${doc.id}', '${u.username}', ${u.balance})" class="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-[10px]">EDIT</button>
+                            </td>
+                        </tr>`;
+                });
+            });
+
+            // Load Settings
+            const setDoc = await db.collection("settings").doc("payments").get();
+            if(setDoc.exists) {
+                document.getElementById('set-ep-num').value = setDoc.data().easypaisa_num;
+                document.getElementById('set-jc-num').value = setDoc.data().jazzcash_num;
+            }
+        }
+
+        // 5. DEPOSIT LOGIC
+        async function handleDeposit(docId, uid, amount, status) {
+            try {
+                if(status === 'approved') {
+                    // Update User Balance
+                    await db.collection("users").doc(uid).update({
+                        balance: firebase.firestore.FieldValue.increment(amount),
+                        totalRecharged: firebase.firestore.FieldValue.increment(amount)
+                    });
+                }
+                // Update Deposit Status
+                await db.collection("deposits").doc(docId).update({ status: status });
+                alert("Deposit " + status);
+            } catch (e) { alert("Error"); }
+        }
+
+        // 6. BALANCE EDIT
+        async function editBalance(uid, name, current) {
+            const val = prompt(`Edit Balance for ${name}\nCurrent: Rs ${current}`, current);
+            if(val != null) {
+                await db.collection("users").doc(uid).update({ balance: parseFloat(val) });
+                alert("Updated!");
+            }
+        }
+
+        // 7. PAYMENT SETTINGS
+        async function saveSettings() {
+            const ep = document.getElementById('set-ep-num').value;
+            const jc = document.getElementById('set-jc-num').value;
+            await db.collection("settings").doc("payments").set({
+                easypaisa_num: ep,
+                jazzcash_num: jc
+            });
+            alert("Payment Numbers Updated!");
+        }
+
+        function searchUsers(q) {
+            const rows = document.getElementById('user-body').rows;
+            for(let r of rows) { r.style.display = r.innerText.toLowerCase().includes(q.toLowerCase()) ? "" : "none"; }
+        }
+    </script>
+</body>
+</html>
