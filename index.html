@@ -356,6 +356,70 @@
             menu.classList.toggle('hidden');
         }
     </script>
+<!-- ==========================================
+     JOIN CHANNEL POPUP (WASI OTP STYLE)
+     ========================================== -->
+<div id="join-popup" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md bg-black/60">
+    <div class="bg-[#ffcc00] w-full max-w-xs md:max-w-sm rounded-[2rem] p-8 shadow-2xl relative transform transition-all scale-90 opacity-0" id="popup-box">
+        
+        <!-- Close Button -->
+        <button onclick="closeJoinPopup()" class="absolute top-5 right-6 text-black hover:opacity-50 transition-all text-xl">
+            <i class="fas fa-times"></i>
+        </button>
 
+        <!-- Content -->
+        <div class="text-center mt-4">
+            <h3 class="font-brand text-2xl font-black text-black uppercase italic tracking-tighter mb-4">JOIN CHANNEL</h3>
+            
+            <p class="text-black text-sm font-bold leading-relaxed mb-8 px-2">
+                Stay ahead with exclusive updates! <br>
+                Subscribe now and never miss the <br>
+                latest news!
+            </p>
+
+            <a href="https://whatsapp.com/channel/0029Vb75PUl4NViorkmONR0T" target="_blank" 
+               class="inline-block bg-[#1a1a1a] text-white px-10 py-3.5 rounded-full font-black text-sm uppercase tracking-widest shadow-xl hover:scale-105 transition-all active:scale-95">
+                JOIN NOW
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Popup Animations */
+    .popup-show { transform: scale(1) !important; opacity: 1 !important; }
+    
+    /* Font style to match your brand */
+    .font-brand { font-family: 'Montserrat', sans-serif; }
+</style>
+
+<script>
+    // Page load hone ke 2 second baad popup show hoga
+    window.addEventListener('load', function() {
+        // Check if already closed in this session
+        if (!sessionStorage.getItem('popupClosed')) {
+            setTimeout(() => {
+                const overlay = document.getElementById('join-popup');
+                const box = document.getElementById('popup-box');
+                
+                overlay.classList.remove('hidden');
+                // Smooth animation
+                setTimeout(() => box.classList.add('popup-show'), 10);
+            }, 2000); // 2 Seconds delay
+        }
+    });
+
+    function closeJoinPopup() {
+        const overlay = document.getElementById('join-popup');
+        const box = document.getElementById('popup-box');
+        
+        box.classList.remove('popup-show');
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+            // User ko bar bar tang na karne ke liye session storage
+            sessionStorage.setItem('popupClosed', 'true');
+        }, 300);
+    }
+</script>
 </body>
 </html>
