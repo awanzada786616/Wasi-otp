@@ -1,6 +1,21 @@
 <!DOCTYPE html>
 <html lang="en" class="light">
 <head>
+    <script>
+    // Right click disable
+    document.addEventListener('contextmenu', event => event.preventDefault());
+
+    // Keyboard shortcuts disable (F12, Ctrl+U, Ctrl+Shift+I)
+    document.onkeydown = function(e) {
+        if (e.keyCode == 123 || 
+            (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) || 
+            (e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) || 
+            (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) || 
+            (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0))) {
+            return false;
+        }
+    }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WASI OTP | Buy Virtual Number S3</title>
