@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASI OTP | Premium Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { primary: '#4834d4', secondary: '#686de0' } } }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Public Sans', sans-serif; background-color: #f4f6f9; transition: all 0.3s ease; overflow-x: hidden; }
+        .dark body { background-color: #0f172a; }
+        .font-brand { font-family: 'Montserrat', sans-serif; }
+        
+        /* New Stylish Hero Card */
+        .glass-hero { background: linear-gradient(135deg, #4834d4 0%, #686de0 100%); border-radius: 2rem; position: relative; overflow: hidden; }
+        .glass-hero::after { content: ''; position: absolute; top: -50%; right: -20%; width: 300px; height: 300px; background: rgba(255,255,255,0.1); border-radius: 50%; }
+        
+        #sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-open #sidebar { transform: translateX(0); }
+        
+        .action-card { transition: all 0.2s ease; border: 1px solid transparent; }
+        .action-card:hover { transform: translateY(-3px); border-color: #4834d4; }
+        
+        .summary-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: #fff; border-radius: 16px; margin-bottom: 10px; border: 1px solid #f1f5f9; cursor: pointer; transition: 0.2s; }
+        .dark .summary-row { background: #1e293b; border-color: #334155; }
+        .summary-row:hover { background: #f8fafc; transform: translateX(5px); }
+
+        #toast { visibility: hidden; min-width: 280px; background-color: #1f2937; color: #fff; text-align: center; border-radius: 16px; padding: 16px; position: fixed; z-index: 200; left: 50%; top: 30px; transform: translateX(-50%); font-weight: 600; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {top: 0; opacity: 0;} to {top: 30px; opacity: 1;} }
+        @keyframes fadeout { from {top: 30px; opacity: 1;} to {top: 0; opacity: 0;} }
+    </style>
+</head>
+<body class="text-slate-900 dark:text-gray-100 min-h-screen">
+
+    <div id="toast">Message</div>
+
+    <!-- Sidebar Menu -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/40 z-[60] hidden backdrop-blur-sm"></div>
+    <aside id="sidebar" class="fixed top-0 left-0 h-full w-72 bg-white dark:bg-slate-900 z-[70] -translate-x-full border-r dark:border-slate-800 p-6 shadow-2xl overflow-y-auto">
+        <div class="flex items-center gap-3 mb-10 p-2">
+            <div class="bg-primary p-2 rounded-xl text-white shadow-lg shadow-indigo-500/30"><i class="fas fa-sms text-xl"></i></div>
+            <span class="text-2xl font-black uppercase tracking-tighter font-brand text-primary">WASI OTP</span>
+        </div>
+        <nav class="space-y-2">
+            <a href="user" class="flex items-center gap-4 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 text-primary font-bold"><i class="fas fa-home"></i> Dashboard</a>
+            <a href="server1" class="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-all font-semibold"><i class="fas fa-server text-indigo-500"></i> Server 1</a>
+            <a href="server3" class="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-all font-semibold"><i class="fas fa-bolt text-red-500"></i> Server 3</a>
+            <a href="server4" class="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-all font-semibold"><i class="fas fa-microchip text-cyan-500"></i> Server 4</a>
+            <a href="history" class="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-all font-semibold"><i class="fas fa-clock-rotate-left text-orange-500"></i> Order History</a>
+            <hr class="my-6 border-gray-100 dark:border-slate-800">
+            <button onclick="confirmLogout()" class="flex items-center gap-4 p-4 rounded-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 w-full font-bold"><i class="fas fa-power-off"></i> Logout</button>
+        </nav>
+    </aside>
+
+    <!-- Top Navbar -->
+    <nav class="bg-white dark:bg-slate-900 border-b dark:border-slate-800 sticky top-0 z-50 px-4 py-3 shadow-sm">
+        <div class="container mx-auto flex justify-between items-center max-w-4xl">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="w-10 h-10 rounded-xl bg-gray-50 dark:bg-slate-800 text-indigo-600 flex items-center justify-center border dark:border-slate-700 active:scale-90 transition-all">
+                    <i class="fas fa-bars-staggered"></i>
+                </button>
+                <span class="text-lg font-bold font-brand text-indigo-600 dark:text-indigo-400 hidden md:block uppercase tracking-wider">WASI OTP</span>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <div class="bg-green-50 dark:bg-green-900/20 text-green-600 px-4 py-2 rounded-xl font-black text-sm border border-green-100 dark:border-green-900/30">
+                    <span id="top-balance">0.00</span> <span class="text-[10px] ml-0.5">PKR</span>
+                </div>
+                <button onclick="toggleTheme()" class="w-10 h-10 flex items-center justify-center text-lg hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-all"><i id="theme-icon" class="fas fa-moon"></i></button>
+                <img src="0d3b68a111a3a08a5f8996e83aeeeba2.jpg" class="w-10 h-10 rounded-full border-2 border-primary shadow-sm object-cover">
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-6 max-w-2xl">
+        
+        <!-- Welcome Hero Card -->
+        <div class="glass-hero p-8 text-white shadow-2xl mb-6 relative">
+            <div class="relative z-10">
+                <p class="text-[10px] font-black uppercase tracking-widest opacity-70 mb-2">Authenticated Session</p>
+                <h1 class="text-2xl font-bold mb-6">Welcome back,<br><span id="user-name-display" class="text-4xl font-black italic drop-shadow-lg">Loading...</span>! 👋</h1>
+                
+                <div class="bg-white/10 backdrop-blur-xl rounded-[1.5rem] p-6 border border-white/20 inline-block min-w-[250px]">
+                    <div class="flex justify-between items-start mb-4">
+                        <p class="text-[9px] font-black uppercase tracking-widest opacity-80">Wallet Balance</p>
+                        <i class="fas fa-wifi text-[10px] opacity-50 animate-pulse"></i>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-xs font-bold opacity-80 font-mono">PKR</span>
+                        <span id="user-balance-display" class="text-4xl font-black tracking-tighter">0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
+            <a href="server1" class="action-card bg-white dark:bg-slate-900 p-5 rounded-[2rem] text-center shadow-sm border dark:border-slate-800">
+                <div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <i class="fas fa-server text-xl"></i>
+                </div>
+                <span class="text-[10px] font-black uppercase text-gray-500 tracking-widest">Server 1</span>
+            </a>
+            <a href="server3" class="action-card bg-white dark:bg-slate-900 p-5 rounded-[2rem] text-center shadow-sm border dark:border-slate-800">
+                <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <i class="fas fa-bolt text-xl"></i>
+                </div>
+                <span class="text-[10px] font-black uppercase text-gray-500 tracking-widest">Server 3</span>
+            </a>
+            <a href="server4" class="action-card bg-white dark:bg-slate-900 p-5 rounded-[2rem] text-center shadow-sm border dark:border-slate-800">
+                <div class="w-12 h-12 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <i class="fas fa-microchip text-xl"></i>
+                </div>
+                <span class="text-[10px] font-black uppercase text-gray-500 tracking-widest">Server 4</span>
+            </a>
+            <a href="history" class="action-card bg-white dark:bg-slate-900 p-5 rounded-[2rem] text-center shadow-sm border dark:border-slate-800">
+                <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 text-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <i class="fas fa-clock-rotate-left text-xl"></i>
+                </div>
+                <span class="text-[10px] font-black uppercase text-gray-500 tracking-widest">History</span>
+            </a>
+            <a href="deposit" class="action-card bg-white dark:bg-slate-900 p-5 rounded-[2rem] text-center shadow-sm border dark:border-slate-800">
+                <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <i class="fas fa-wallet text-xl"></i>
+                </div>
+                <span class="text-[10px] font-black uppercase text-gray-500 tracking-widest">Recharge</span>
+            </a>
+            <button onclick="claimDailyReward()" class="action-card bg-white dark:bg-slate-900 p-5 rounded-[2rem] text-center shadow-sm border dark:border-slate-800">
+                <div class="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner animate-pulse">
+                    <i class="fas fa-gift text-xl"></i>
+                </div>
+                <span class="text-[10px] font-black uppercase text-gray-500 tracking-widest">Free RS 1</span>
+            </button>
+        </div>
+
+        <!-- Activity Summary (Connected to History) -->
+        <div class="bg-white dark:bg-slate-900 p-7 rounded-[2.5rem] shadow-sm border dark:border-slate-800 mb-10">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-black text-indigo-600 italic uppercase tracking-tighter"><i class="fas fa-chart-line mr-2"></i>Summary</h3>
+                <a href="history" class="text-[10px] font-bold text-gray-400 hover:text-primary uppercase">View All</a>
+            </div>
+            
+            <div class="space-y-3">
+                <div onclick="window.location.href='history'" class="summary-row">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-indigo-600"><i class="fas fa-shopping-bag text-xs"></i></div>
+                        <span class="text-sm font-bold text-gray-600 dark:text-gray-300">Total Orders</span>
+                    </div>
+                    <span id="sum-bought" class="text-sm font-black text-indigo-600 tracking-tighter italic">0</span>
+                </div>
+                <div onclick="window.location.href='deposit'" class="summary-row">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-indigo-600"><i class="fas fa-vault text-xs"></i></div>
+                        <span class="text-sm font-bold text-gray-600 dark:text-gray-300">Lifetime Recharge</span>
+                    </div>
+                    <span id="sum-recharged" class="text-sm font-black text-indigo-600 tracking-tighter italic">0.00 PKR</span>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Floating WhatsApp -->
+    <a href="https://wa.me/923342002756" target="_blank" class="fixed bottom-6 right-6 bg-green-500 text-white px-5 py-4 rounded-[1.5rem] shadow-2xl flex items-center gap-3 font-bold z-50 hover:scale-105 active:scale-95 transition-all">
+        <i class="fab fa-whatsapp text-2xl"></i> <span class="text-xs uppercase tracking-widest hidden md:block">Support</span>
+    </a>
+
+    <script>
+        // FIREBASE INITIALIZATION
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw",
+            authDomain: "otpbywasi.firebaseapp.com",
+            projectId: "otpbywasi",
+            storageBucket: "otpbywasi.firebasestorage.app",
+            messagingSenderId: "1169252296",
+            appId: "1:1169252296:web:732c1f08f6b6ed7033eafd"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        let userBalance = 0;
+
+        // AUTH & SYNC
+        auth.onAuthStateChanged((user) => {
+            if (!user) window.location.href = "auth";
+            else fetchUserData(user.uid);
+        });
+
+        function fetchUserData(uid) {
+            db.collection("users").doc(uid).onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    const realName = data.username || data.name || "User";
+                    userBalance = data.balance || 0;
+                    
+                    document.getElementById('user-name-display').innerText = realName;
+                    document.getElementById('user-balance-display').innerText = userBalance.toFixed(2);
+                    document.getElementById('top-balance').innerText = userBalance.toFixed(2);
+                    document.getElementById('sum-recharged').innerText = parseFloat(data.totalRecharged || 0).toFixed(2) + " PKR";
+                    document.getElementById('sum-bought').innerText = data.totalNumbersBought || 0;
+                }
+            });
+        }
+
+        // DAILY REWARD
+        async function claimDailyReward() {
+            const uid = auth.currentUser.uid;
+            const userRef = db.collection("users").doc(uid);
+            const doc = await userRef.get();
+            const today = new Date().toISOString().split('T')[0];
+
+            if (doc.data().lastClaimDate === today) {
+                showToast("❌ Already claimed today!");
+            } else {
+                await userRef.update({
+                    balance: firebase.firestore.FieldValue.increment(1),
+                    lastClaimDate: today
+                });
+                showToast("✅ Rs 1.00 Reward Added!");
+            }
+        }
+
+        // THEME & UI HELPERS
+        function toggleSidebar() { 
+            document.getElementById('sidebar').classList.toggle('-translate-x-full'); 
+            document.getElementById('sidebar-overlay').classList.toggle('hidden'); 
+        }
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.theme = isDark ? 'dark' : 'light';
+            document.getElementById('theme-icon').className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        }
+        if (localStorage.theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.getElementById('theme-icon').className = 'fas fa-sun';
+        }
+
+        function showToast(msg) { const x = document.getElementById("toast"); x.innerText = msg; x.className = "show"; setTimeout(() => x.className = "", 3000); }
+        function confirmLogout() { auth.signOut().then(() => window.location.href = "auth"); }
+    </script>
+</body>
+</html>
