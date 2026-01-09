@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASI OTP | Buy Virtual Number S3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { primary: '#4834d4', btnGrey: '#718093' } } }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Public Sans', sans-serif; background-color: #f4f6f9; transition: all 0.3s ease; }
+        .dark body { background-color: #0f172a; }
+        .shadow-card { box-shadow: 0 10px 30px rgba(0,0,0,0.04); }
+        
+        /* White Searchable Dropdown Styles */
+        .dropdown-container { display: none; position: absolute; width: 100%; max-height: 300px; background: white; z-index: 100; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 15px 35px rgba(0,0,0,0.1); margin-top: 5px; overflow: hidden; flex-direction: column; }
+        .dropdown-container.show { display: flex; animation: fadeIn 0.2s ease-out; }
+        .dropdown-items { overflow-y: auto; flex-grow: 1; max-height: 240px; }
+        .search-input { width: 100%; padding: 12px; border-bottom: 1px solid #f1f5f9; outline: none; font-size: 14px; color: #1e293b; }
+        .drop-item { padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #f8fafc; transition: 0.2s; font-size: 14px; color: #334155; font-weight: 500; }
+        .drop-item:hover { background: #f1f5f9; color: #4834d4; }
+        
+        @keyframes fadeIn { from {opacity:0; transform:translateY(-5px);} to {opacity:1; transform:translateY(0);} }
+        #toast { visibility: hidden; min-width: 250px; background: #1e293b; color: #fff; text-align: center; border-radius: 12px; padding: 14px; position: fixed; z-index: 200; left: 50%; bottom: 30px; transform: translateX(-50%); font-weight: 600; }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        .loader-slim { border: 2px solid #f3f3f3; border-top: 2px solid #fff; border-radius: 50%; width: 14px; height: 14px; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="pb-10">
+
+    <div id="toast">Message</div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4">
+        <div id="modal-box" class="bg-white dark:bg-slate-900 rounded-[2rem] w-full max-w-xs p-8 shadow-2xl text-center">
+            <i id="modal-icon" class="fas fa-question-circle text-4xl mb-4 text-primary"></i>
+            <h3 id="modal-title" class="text-xl font-bold mb-2">Confirm</h3>
+            <p id="modal-text" class="text-gray-500 text-sm mb-6"></p>
+            <div id="modal-footer" class="flex gap-3">
+                <button onclick="closeModal()" class="flex-1 bg-gray-100 dark:bg-slate-800 py-3 rounded-xl font-bold text-xs uppercase">No</button>
+                <button id="modal-confirm-btn" class="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-lg uppercase">Yes</button>
+            </div>
+            <button id="modal-close-only" onclick="closeModal()" class="hidden w-full bg-primary text-white py-3 rounded-xl font-bold text-xs uppercase">Okay</button>
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="bg-[#4834d4] text-white px-4 py-3 sticky top-0 z-50 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <a href="user" class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center"><i class="fas fa-bars"></i></a>
+                <span class="text-lg font-bold tracking-tight">WASI OTP</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="bg-white/10 px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-black border border-white/20">
+                    <i class="fas fa-wallet opacity-60"></i> <span id="top-balance">0.00</span>
+                </div>
+                <button onclick="toggleTheme()" class="w-10 h-10 flex items-center justify-center text-lg"><i id="theme-icon" class="fas fa-moon"></i></button>
+                <!-- Local Profile Image -->
+                <img src="0d3b68a111a3a08a5f8996e83aeeeba2.jpg" class="w-10 h-10 rounded-xl border-2 border-white/20 object-cover">
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-6 max-w-2xl">
+        
+        <!-- Main Card -->
+        <div class="bg-white dark:bg-slate-900 rounded-[1.5rem] p-6 shadow-card border border-gray-100 dark:border-slate-800 mb-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="font-bold flex items-center gap-2 text-slate-800 dark:text-white uppercase text-xs tracking-widest"><i class="fas fa-phone-volume text-primary"></i> Buy Virtual Number</h2>
+                <span class="bg-orange-100 dark:bg-orange-900/30 text-orange-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Server 3</span>
+            </div>
+
+            <!-- Balance Mini Card -->
+            <div class="bg-[#f5f6ff] dark:bg-indigo-900/20 rounded-2xl p-5 border border-indigo-50 dark:border-indigo-900/30 mb-8 flex justify-between items-center relative overflow-hidden">
+                <div>
+                    <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Your Available Balance</p>
+                    <p class="text-2xl font-black text-indigo-700 dark:text-indigo-400"><span id="user-balance">0.00</span> PKR</p>
+                </div>
+                <i class="fas fa-coins text-4xl text-indigo-200 dark:text-indigo-800 opacity-50"></i>
+            </div>
+
+            <!-- Form -->
+            <div class="space-y-6">
+                <div class="relative">
+                    <p class="text-xs font-bold text-slate-400 mb-2 ml-1 uppercase tracking-widest text-[10px]">1. Select Country</p>
+                    <div onclick="toggleDropdown('country-box')" id="country-display" class="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-4 rounded-xl flex justify-between items-center cursor-pointer text-sm font-bold text-gray-400">
+                        <span>Select a country</span> <i class="fas fa-chevron-down text-[10px]"></i>
+                    </div>
+                    <div id="country-box" class="dropdown-container">
+                        <input type="text" id="country-search" class="search-input" placeholder="Search country..." onkeyup="filterCountries()">
+                        <div id="country-list" class="dropdown-items"></div>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <p class="text-xs font-bold text-slate-400 mb-2 ml-1 uppercase tracking-widest text-[10px]">2. Select Service</p>
+                    <div onclick="toggleDropdown('service-box')" id="service-display" class="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-4 rounded-xl flex justify-between items-center cursor-pointer text-sm font-bold text-gray-400">
+                        <span>Select a service</span> <i class="fas fa-chevron-down text-[10px]"></i>
+                    </div>
+                    <div id="service-box" class="dropdown-container">
+                        <input type="text" id="service-search" class="search-input" placeholder="Search service..." onkeyup="filterServices()">
+                        <div id="service-list" class="dropdown-items"></div>
+                    </div>
+                </div>
+
+                <button onclick="buyNumber()" id="buy-btn" class="w-full bg-[#718093] hover:bg-[#2f3640] text-white font-bold py-5 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 uppercase text-[10px] tracking-[0.2em] mt-6">
+                    <i class="fas fa-shopping-basket"></i> BUY NUMBER
+                </button>
+            </div>
+        </div>
+
+        <!-- Active Orders Section -->
+        <div class="bg-white dark:bg-slate-900 rounded-[1.5rem] p-6 shadow-card border border-gray-100 dark:border-slate-800">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="font-bold flex items-center gap-2 text-slate-800 dark:text-white uppercase text-xs tracking-widest"><i class="fas fa-clock text-primary"></i> Active Orders</h2>
+                <span class="bg-cyan-100 dark:bg-cyan-900/30 text-cyan-500 w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black" id="order-count">0</span>
+            </div>
+
+            <div id="no-order" class="py-12 text-center">
+                <div class="w-16 h-16 bg-gray-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-100 dark:border-slate-700">
+                    <i class="fas fa-inbox text-gray-300 dark:text-slate-600 text-2xl"></i>
+                </div>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">No active orders</p>
+            </div>
+
+            <!-- Active Order Details -->
+            <div id="order-container" class="hidden space-y-6">
+                <div class="flex justify-center">
+                    <div class="bg-slate-100 dark:bg-slate-800 px-6 py-2 rounded-full border dark:border-slate-700 flex items-center gap-3 text-sm font-black text-primary">
+                        <i class="fas fa-stopwatch animate-pulse"></i> <span id="order-timer">19:57</span>
+                    </div>
+                </div>
+                <div class="bg-indigo-50 dark:bg-indigo-900/20 p-7 rounded-3xl text-center border border-indigo-100 dark:border-indigo-800">
+                    <p id="phone-number" class="text-3xl font-mono font-bold text-primary tracking-tighter">-----------</p>
+                    <button onclick="copyText('phone-number')" class="mt-3 text-[10px] font-bold uppercase text-indigo-400 italic">Copy Number</button>
+                </div>
+                <div class="text-center">
+                    <div id="otp-display" class="text-7xl font-black text-primary animate-pulse tracking-widest drop-shadow-sm">------</div>
+                    <p id="otp-status-text" class="text-[10px] text-gray-400 mt-4 font-bold uppercase tracking-widest italic">Waiting for SMS Code</p>
+                </div>
+                <div class="flex gap-3">
+                    <button id="cancel-btn" onclick="openCancelModal()" disabled class="flex-1 bg-gray-100 dark:bg-slate-800 text-gray-400 py-4 rounded-2xl font-black text-[10px] uppercase cursor-not-allowed border dark:border-slate-700">Wait to Cancel</button>
+                    <button onclick="checkStatus()" class="flex-1 bg-gray-50 dark:bg-slate-800 text-gray-500 py-4 rounded-2xl font-black text-[10px] uppercase">Refresh</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // 1. FIREBASE CONFIG
+        const firebaseConfig = { apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw", authDomain: "otpbywasi.firebaseapp.com", projectId: "otpbywasi", storageBucket: "otpbywasi.firebasestorage.app", messagingSenderId: "1169252296", appId: "1:1169252296:web:732c1f08f6b6ed7033eafd" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(), auth = firebase.auth();
+
+        const API_PATH = '/api/otp', PROFIT = 40;
+        let userBalance = 0, currentOrderId = null, activePrice = 0, otpReceived = false;
+        let timerInterval, timeLeft = 1197, secondsElapsed = 0;
+        let masterCountries = [], masterServices = [], selectedCountry = null, selectedService = null;
+
+        // AUTH & SYNC
+        auth.onAuthStateChanged((user) => { if (!user) window.location.href = "auth"; else fetchUserData(user.uid); });
+
+        function fetchUserData(uid) {
+            db.collection("users").doc(uid).onSnapshot(doc => {
+                if (doc.exists) {
+                    userBalance = doc.data().balance || 0;
+                    document.getElementById('user-balance').innerText = userBalance.toFixed(2);
+                    document.getElementById('top-balance').innerText = userBalance.toFixed(2);
+                }
+            });
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) { html.classList.remove('dark'); localStorage.theme = 'light'; } 
+            else { html.classList.add('dark'); localStorage.theme = 'dark'; }
+        }
+        if (localStorage.theme === 'dark') document.documentElement.classList.add('dark');
+
+        function toggleSidebar() { 
+            // Simple redirect to home if no complex sidebar built yet
+            window.location.href = "user";
+        }
+
+        // --- Custom Dropdown Search Logic ---
+        function toggleDropdown(id) {
+            const box = document.getElementById(id);
+            const isShowing = box.classList.contains('show');
+            document.querySelectorAll('.dropdown-container').forEach(d => d.classList.remove('show'));
+            if(!isShowing) { box.classList.add('show'); box.querySelector('input').focus(); }
+        }
+
+        async function loadCountries() {
+            const res = await fetch(`${API_PATH}?action=getCountries&type=3`);
+            const data = await res.json();
+            masterCountries = data["3"] || data["1"] || (Array.isArray(data) ? data : []);
+            renderCountries(masterCountries);
+        }
+
+        function renderCountries(list) {
+            const cont = document.getElementById('country-list'); cont.innerHTML = "";
+            list.forEach(c => {
+                const div = document.createElement('div'); div.className = 'drop-item'; div.innerText = c.name;
+                div.onclick = () => {
+                    selectedCountry = c.id;
+                    document.getElementById('country-display').querySelector('span').innerText = c.name;
+                    document.getElementById('country-display').classList.replace('text-gray-400', 'text-primary');
+                    document.getElementById('country-box').classList.remove('show');
+                    loadServices(c.id);
+                };
+                cont.appendChild(div);
+            });
+        }
+
+        function filterCountries() {
+            const q = document.getElementById('country-search').value.toLowerCase();
+            renderCountries(masterCountries.filter(c => c.name.toLowerCase().includes(q)));
+        }
+
+        async function loadServices(cid) {
+            const selText = document.getElementById('service-display').querySelector('span');
+            selText.innerText = "Loading Services (S3)...";
+            const res = await fetch(`${API_PATH}?action=getServices&country=${cid}&type=3`);
+            const data = await res.json();
+            const services = data["3"] || data["1"] || data;
+            masterServices = [];
+            Object.keys(services).forEach(code => {
+                const raw = services[code];
+                let sName = code.toUpperCase(), price = 0;
+                if (typeof raw === 'string' && raw.includes(' - ')) {
+                    const parts = raw.split(' - ');
+                    sName = parts[0].toUpperCase();
+                    const match = parts[1].match(/\d+/);
+                    if(match) price = parseFloat(match[0]);
+                }
+                const finalPrice = Math.ceil(price + (price * (PROFIT / 100)));
+                masterServices.push({ code, name: sName, price: finalPrice });
+            });
+            renderServices(masterServices);
+            selText.innerText = "Select a service";
+        }
+
+        function renderServices(list) {
+            const cont = document.getElementById('service-list'); cont.innerHTML = "";
+            list.forEach(s => {
+                const div = document.createElement('div'); div.className = 'drop-item'; div.innerText = `${s.name} (Rs ${s.price})`;
+                div.onclick = () => {
+                    selectedService = s;
+                    document.getElementById('service-display').querySelector('span').innerText = `${s.name} (Rs ${s.price})`;
+                    document.getElementById('service-display').classList.replace('text-gray-400', 'text-primary');
+                    document.getElementById('service-box').classList.remove('show');
+                };
+                cont.appendChild(div);
+            });
+        }
+
+        function filterServices() {
+            const q = document.getElementById('service-search').value.toLowerCase();
+            renderServices(masterServices.filter(s => s.name.toLowerCase().includes(q)));
+        }
+
+        // --- Ordering ---
+        async function buyNumber() {
+            if(!selectedCountry || !selectedService) return showToast("⚠️ Select Options!");
+            if(userBalance < selectedService.price) return showModal("Low Balance!", "Deposit PKR to proceed.", "fa-wallet", "text-red-500", null, true);
+
+            const btn = document.getElementById('buy-btn');
+            btn.disabled = true; btn.innerHTML = "<span class='loader-slim mr-2'></span> SEARCHING S3...";
+
+            try {
+                const res = await fetch(`${API_PATH}?action=getNumber&country=${selectedCountry}&service=${selectedService.code}&type=3`);
+                const json = await res.json();
+                if(json.raw_text.includes('ACCESS_NUMBER')) {
+                    const parts = json.raw_text.split(':');
+                    currentOrderId = parts[1]; activePrice = selectedService.price; otpReceived = false; secondsElapsed = 0;
+                    document.getElementById('phone-number').innerText = '+' + parts[2];
+                    db.collection("users").doc(auth.currentUser.uid).update({ balance: firebase.firestore.FieldValue.increment(-activePrice) });
+                    document.getElementById('order-container').classList.remove('hidden');
+                    document.getElementById('no-order').classList.add('hidden');
+                    document.getElementById('order-count').innerText = "1";
+                    startTimer(); startStatusCheck(); lockCancelButton();
+                } else showToast(json.raw_text);
+            } catch (e) { showToast("❌ API Error"); }
+            btn.disabled = false; btn.innerHTML = "<i class='fas fa-shopping-basket'></i> BUY NUMBER";
+        }
+
+        function startTimer() {
+            timeLeft = 1197; clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                const m = Math.floor(timeLeft / 60), s = timeLeft % 60;
+                document.getElementById('order-timer').innerText = `${m}:${s.toString().padStart(2, '0')}`;
+                if (timeLeft <= 0) resetUI();
+                timeLeft--;
+            }, 1000);
+        }
+
+        function lockCancelButton() {
+            const btn = document.getElementById('cancel-btn');
+            btn.disabled = true; btn.classList.add('opacity-50');
+            const lockTimer = setInterval(() => {
+                secondsElapsed++;
+                if(otpReceived) { clearInterval(lockTimer); return; }
+                if(secondsElapsed < 120) btn.innerText = `WAIT ${120 - secondsElapsed}S`;
+                else { btn.disabled = false; btn.innerText = "CANCEL"; btn.classList.remove('opacity-50', 'cursor-not-allowed'); btn.classList.replace('bg-gray-100', 'bg-red-50'); clearInterval(lockTimer); }
+            }, 1000);
+        }
+
+        function startStatusCheck() {
+            const check = setInterval(async () => {
+                if(!currentOrderId) return clearInterval(check);
+                const res = await fetch(`${API_PATH}?action=getStatus&id=${currentOrderId}`);
+                const json = await res.json();
+                if(json.raw_text.includes('STATUS_OK')) {
+                    document.getElementById('otp-display').innerText = json.raw_text.split(':')[1];
+                    document.getElementById('otp-display').classList.remove('animate-pulse');
+                    otpReceived = true;
+                    document.getElementById('otp-status-text').innerText = "✅ OTP RECEIVED!";
+                    document.getElementById('cancel-btn').innerText = "FINISH";
+                    document.getElementById('cancel-btn').disabled = false;
+                    document.getElementById('cancel-btn').classList.remove('opacity-50');
+                    db.collection("users").doc(auth.currentUser.uid).update({ totalNumbersBought: firebase.firestore.FieldValue.increment(1) });
+                    clearInterval(check);
+                }
+            }, 5000);
+        }
+
+        function openCancelModal() {
+            if(otpReceived) { resetUI(); return; }
+            showModal("Refund Order?", "Amount will be credited back instantly.", "fa-rotate-left", "text-indigo-600", async () => {
+                closeModal();
+                await fetch(`${API_PATH}?action=setStatus&id=${currentOrderId}&status=8`);
+                db.collection("users").doc(auth.currentUser.uid).update({ balance: firebase.firestore.FieldValue.increment(activePrice) });
+                resetUI(); showToast("💰 Canceled & Refunded!");
+            });
+        }
+
+        function resetUI() {
+            currentOrderId = null; otpReceived = false; clearInterval(timerInterval);
+            document.getElementById('order-container').classList.add('hidden');
+            document.getElementById('no-order').classList.remove('hidden');
+            document.getElementById('order-count').innerText = "0";
+            document.getElementById('otp-display').innerText = "------";
+            document.getElementById('cancel-btn').innerText = "CANCEL";
+        }
+
+        function showModal(t, txt, icon, col, fn, closeOnly=false) {
+            document.getElementById('modal-title').innerText = t; document.getElementById('modal-text').innerText = txt;
+            document.getElementById('modal-icon').className = `fas ${icon} text-4xl mb-4 ${col}`;
+            if(closeOnly) { document.getElementById('modal-footer').classList.add('hidden'); document.getElementById('modal-close-only').classList.remove('hidden'); }
+            else { document.getElementById('modal-footer').classList.remove('hidden'); document.getElementById('modal-close-only').classList.add('hidden'); document.getElementById('modal-confirm-btn').className = `flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-lg ${col.replace('text', 'bg')}`; document.getElementById('modal-confirm-btn').onclick = fn; }
+            document.getElementById('modal-overlay').classList.remove('hidden');
+        }
+        function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }
+        function showToast(m) { const x = document.getElementById("toast"); x.innerText = m; x.className = "show"; setTimeout(() => x.className = "", 3000); }
+        function copyText(id) { navigator.clipboard.writeText(document.getElementById(id).innerText); showToast("📋 Copied!"); }
+
+        window.onload = loadCountries;
+    </script>
+</body>
+</html>
