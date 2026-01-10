@@ -187,42 +187,45 @@
         }
 
         function loadDeposits() {
-            db.collection("deposits").where("status", "==", "pending").orderBy("timestamp", "desc").onSnapshot(snap => {
-                const tbody = document.getElementById('deposit-body');
-                tbody.innerHTML = "";
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    tbody.innerHTML += `
-                        <tr>
-                            <td class="p-6">
-                                <p class="font-bold text-slate-800">${d.username || 'Unknown'}</p>
-                                <p class="text-[10px] text-slate-400 font-normal">UID: ${d.uid.substring(0,8)}...</p>
-                            </td>
-                            <td class="p-6 text-indigo-600 font-black">Rs ${d.amount}</td>
-                            <td class="p-6 font-mono text-xs text-slate-500">${d.trx_id}</td>
-                            <td class="p-6 flex gap-2">
-                                <button onclick="handleDeposit('${doc.id}', '${d.uid}', ${d.amount}, 'approved')" class="bg-emerald-500 text-white px-5 py-2 rounded-xl font-bold text-[10px] uppercase">Approve</button>
-                                <button onclick="handleDeposit('${doc.id}', '${d.uid}', 0, 'rejected')" class="bg-red-500 text-white px-5 py-2 rounded-xl font-bold text-[10px] uppercase">Reject</button>
-                            </td>
-                        </tr>`;
-                });
-            });
-        }
+    // Humne .where() hata diya hai taake indexing ka masla khatam ho jaye
+    db.collection("deposits").onSnapshot(snap => {
+        const dbody = document.getElementById('deposit-body');
+        dbody.innerHTML = "";
+        let pendingCount = 0;
 
-        async function handleDeposit(docId, uid, amt, status) {
-            if(!confirm("Are you sure?")) return;
-            try {
-                if(status === 'approved') {
-                    await db.collection("users").doc(uid).update({
-                        balance: firebase.firestore.FieldValue.increment(amt),
-                        totalRecharged: firebase.firestore.FieldValue.increment(amt)
-                    });
-                }
-                await db.collection("deposits").doc(docId).update({ status: status });
-                alert("Deposit " + status + "!");
-            } catch(e) { alert("Error updating deposit"); }
-        }
+        snap.forEach(doc => {
+            const d = doc.data();
+            
+            // Hum JavaScript ke zariye check karenge ke status pending hai ya nahi
+            // Is se "Pending" aur "pending" dono handle ho jayenge
+            if (d.status && d.status.toLowerCase() === "pending") {
+                pendingCount++;
+                dbody.innerHTML += `
+                    <tr>
+                        <td class="p-5">
+                            <p class="font-bold text-xs text-slate-700">${d.username || 'No Name'}</p>
+                            <p class="text-[9px] text-slate-400 font-mono">UID: ${d.uid ? d.uid.substring(0,8) : 'N/A'}</p>
+                        </td>
+                        <td class="p-5 font-black text-indigo-600 text-xs">Rs ${d.amount}</td>
+                        <td class="p-5 font-mono text-[9px] text-slate-400">${d.trx_id}</td>
+                        <td class="p-5 flex gap-2">
+                            <button onclick="handleDep('${doc.id}','${d.uid}',${d.amount},'approved')" class="bg-emerald-500 text-white px-4 py-2 rounded-xl text-[9px] font-bold shadow-lg shadow-emerald-100">APPROVE</button>
+                            <button onclick="handleDep('${doc.id}','${d.uid}',0,'rejected')" class="bg-red-500 text-white px-4 py-2 rounded-xl text-[9px] font-bold shadow-lg shadow-red-100">REJECT</button>
+                        </td>
+                    </tr>`;
+            }
+        });
 
+        // Agar koi request na ho
+        if (pendingCount === 0) {
+            dbody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-xs text-slate-300 font-bold uppercase tracking-widest">No pending requests</td></tr>`;
+        }
+        
+        console.log("Total Pending Requests:", pendingCount);
+    }, err => {
+        console.error("Deposit Load Error:", err);
+    });
+        }
         function loadUsers() {
             db.collection("users").onSnapshot(snap => {
                 const tbody = document.getElementById('user-body');
