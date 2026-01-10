@@ -245,15 +245,27 @@
     </a>
 
     <script>
-        // FIREBASE INITIALIZATION
-        const firebaseConfig = {
-            apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw",
-            authDomain: "otpbywasi.firebaseapp.com",
-            projectId: "otpbywasi",
-            storageBucket: "otpbywasi.firebasestorage.app",
-            messagingSenderId: "1169252296",
-            appId: "1:1169252296:web:732c1f08f6b6ed7033eafd"
-        };
+        // --- WASI-OTP SECURE CONFIG START ---
+const _0x4a21 = [
+    "QUl6YVN5Q1Z0MFpGb1UyNkRhLWpqQ1FFRXVFRjNBekRBUzMyLVB3", // apiKey
+    "b3RwYnl3YXNpLmZpcmViYXNlYXBwLmNvbQ==",               // authDomain
+    "aHR0cHM6Ly9vdHBieXdhc2ktZGVmYXVsdC1ydGRiLmZpcmViYXNlaW8uY29t", // databaseURL
+    "b3RwYnl3YXNp",                                       // projectId
+    "b3RwYnl3YXNpLmZpcmViYXNlc3RvcmFnZS5hcHA=",           // storageBucket
+    "MTE2OTI1MjI5Ng==",                                   // messagingSenderId
+    "MToxMTY5MjUyMjk2OndlYjo3MzJjMWYwOGY2YjZlZDcwMzNlYWZk" // appId
+];
+
+const firebaseConfig = {
+    apiKey: atob(_0x4a21[0]),
+    authDomain: atob(_0x4a21[1]),
+    databaseURL: atob(_0x4a21[2]),
+    projectId: atob(_0x4a21[3]),
+    storageBucket: atob(_0x4a21[4]),
+    messagingSenderId: atob(_0x4a21[5]),
+    appId: atob(_0x4a21[6])
+};
+// --- WASI-OTP SECURE CONFIG END ---
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
