@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redeem Promo | WASI OTP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-6">
+    <div class="bg-white w-full max-w-md rounded-[2.5rem] p-10 shadow-2xl text-center border">
+        <div class="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-6"><i class="fas fa-gift"></i></div>
+        <h2 class="text-2xl font-black uppercase italic italic tracking-tighter">Promo Code</h2>
+        <p class="text-gray-400 text-xs font-bold mb-8">Redeem your gift code for balance</p>
+        
+        <input type="text" id="promo-input" placeholder="ENTER CODE HERE" class="w-full bg-slate-50 p-5 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-black text-center text-xl uppercase tracking-widest mb-6">
+        <button onclick="redeemCode()" id="redeem-btn" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-xl uppercase text-xs tracking-widest active:scale-95 transition-all">Claim Reward</button>
+        <a href="user" class="block mt-6 text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-indigo-600">Back to Dashboard</a>
+    </div>
+
+    <script>
+        const _0x4a21 = ["QUl6YVN5Q1Z0MFpGb1UyNkRhLWpqQ1FFRXVFRjNBekRBUzMyLVB3","b3RwYnl3YXNpLmZpcmViYXNlYXBwLmNvbQ==","aHR0cHM6Ly9vdHBieXdhc2ktZGVmYXVsdC1ydGRiLmZpcmViYXNlaW8uY29t","b3RwYnl3YXNp","b3RwYnl3YXNpLmZpcmViYXNlc3RvcmFnZS5hcHA=","MTE2OTI1MjI5Ng==","MToxMTY5MjUyMjk2OndlYjo3MzJjMWYwOGY2YjZlZDcwMzNlYWZk"];
+        const firebaseConfig = { apiKey: atob(_0x4a21[0]), authDomain: atob(_0x4a21[1]), databaseURL: atob(_0x4a21[2]), projectId: atob(_0x4a21[3]), storageBucket: atob(_0x4a21[4]), messagingSenderId: atob(_0x4a21[5]), appId: atob(_0x4a21[6]) };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(), auth = firebase.auth();
+
+        async function redeemCode() {
+            const code = document.getElementById('promo-input').value.trim().toUpperCase();
+            if(!code) return alert("Please enter a code!");
+            const btn = document.getElementById('redeem-btn');
+            btn.disabled = true; btn.innerText = "Checking...";
+
+            try {
+                const promoRef = db.collection("promocodes").where("code", "==", code).limit(1);
+                const snap = await promoRef.get();
+                if(snap.empty) { alert("❌ Invalid or Expired Code!"); }
+                else {
+                    const promoData = snap.docs[0].data();
+                    const uid = auth.currentUser.uid;
+                    const usedCheck = await db.collection("users").doc(uid).collection("used_promos").doc(code).get();
+                    
+                    if(usedCheck.exists) { alert("⚠️ You already used this code!"); }
+                    else {
+                        await db.collection("users").doc(uid).update({ balance: firebase.firestore.FieldValue.increment(promoData.amount) });
+                        await db.collection("users").doc(uid).collection("used_promos").doc(code).set({used: true, date: new Date()});
+                        alert(`🎉 Rs ${promoData.amount} Added Successfully!`);
+                        window.location.href = "user";
+                    }
+                }
+            } catch(e) { alert("Error!"); }
+            btn.disabled = false; btn.innerText = "Claim Reward";
+        }
+    </script>
+</body>
+</html>
