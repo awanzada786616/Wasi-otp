@@ -214,28 +214,24 @@
 
         // --- SUBMIT DEPOSIT ---
         async function submitDeposit() {
-            const amt = parseFloat(document.getElementById('deposit-amount').value);
-            const trx = document.getElementById('trx-id').value.trim();
-            if(!amt || !trx) return showToast("⚠️ All fields are required!");
-            if(amt < 50) return showToast("❌ Minimum deposit is Rs 50!");
+    const amt = parseFloat(document.getElementById('deposit-amount').value);
+    const trx = document.getElementById('trx-id').value.trim();
+    
+    if(!amt || !trx) return showToast("⚠️ Fill all fields!");
 
-            const btn = document.getElementById('submit-btn');
-            btn.disabled = true; btn.innerText = "Processing...";
-
-            try {
-                await db.collection("deposits").add({
-                    uid: auth.currentUser.uid,
-                    username: userName,
-                    amount: amt,
-                    trx_id: trx,
-                    status: "pending",
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                showToast("✅ Submitted! Please wait 5-10 mins.");
-                document.getElementById('deposit-amount').value = "";
-                document.getElementById('trx-id').value = "";
-            } catch (e) { showToast("Error: Connection Failed"); }
-            btn.disabled = false; btn.innerText = "Submit Request";
+    try {
+        await db.collection("deposits").add({
+            uid: auth.currentUser.uid,
+            username: userName, // Ensure this variable has the actual username
+            amount: amt,
+            trx_id: trx,
+            status: "pending", // Hamesha small letter mein rakhen
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast("✅ Request Sent!");
+    } catch (e) { 
+        showToast("❌ Error sending request");
+    }
         }
 
         // --- REAL-TIME APPROVAL WATCHER ---
