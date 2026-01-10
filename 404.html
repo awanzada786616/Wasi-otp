@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Page Not Found | WASI OTP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Public Sans', sans-serif; background-color: #fcfcfd; }
+        .error-container { animation: fadeIn 0.8s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-6">
+    <div class="text-center max-w-md error-container">
+        <div class="mb-8">
+            <img src="https://otpget.com/htdocs_error/page_not_found.svg" alt="404" class="w-full h-auto max-w-sm mx-auto pointer-events-none">
+        </div>
+        <h1 class="text-3xl md:text-4xl font-bold text-slate-800 mb-4 tracking-tight">This Page Does Not Exist</h1>
+        <p class="text-slate-500 text-base md:text-lg leading-relaxed mb-10 px-4">Sorry, the page you are looking for could not be found. It's just an accident that was not intentional.</p>
+        <a href="/" class="inline-flex items-center justify-center px-8 py-4 bg-[#6366f1] text-white font-bold rounded-2xl shadow-xl shadow-indigo-100 hover:bg-[#4f46e5] hover:-translate-y-1 transition-all active:scale-95 uppercase text-xs tracking-widest">Back to Home Page</a>
+    </div>
+</body>
+</html>
