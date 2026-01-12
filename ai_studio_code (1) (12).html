@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication | WASI OTP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { font-family: 'Public Sans', sans-serif; background-color: #fcfcfc; }
+        .auth-card { background: #ffffff; border: 1px solid #f1f5f9; box-shadow: 0 4px 25px rgba(0,0,0,0.03); width: 100%; max-width: 380px; border-radius: 8px; padding: 35px 30px; }
+        
+        label { color: #212529; font-weight: 500; font-size: 14px; margin-bottom: 7px; display: block; }
+        input { width: 100%; height: 44px; padding: 0 15px; background-color: #fff; border: 1px solid #ced4da; border-radius: 4px; outline: none; color: #495057; font-size: 14px; transition: all 0.2s; }
+        input:focus { border-color: #050a30; }
+
+        #error-msg { display: none; background-color: #fff5f5; color: #e53e3e; border: 1px solid #feb2b2; padding: 10px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-bottom: 20px; text-align: center; animation: shake 0.3s ease-in-out; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+        .navy-btn { background-color: #050a30; color: white; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; height: 46px; border-radius: 4px; width: 100%; font-size: 13.5px; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .navy-btn:disabled { opacity: 0.8; cursor: not-allowed; }
+
+        /* Spinner */
+        .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #ffffff; border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Modals */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-blur: 4px; display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+        .modal-box { background: white; width: 100%; max-width: 350px; border-radius: 20px; padding: 30px; text-align: center; animation: zoomIn 0.3s ease; }
+        @keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .or-divider { position: relative; text-align: center; margin: 30px 0; border-bottom: 1px solid #f1f5f9; }
+        .or-text { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: white; padding: 0 15px; color: #adb5bd; font-weight: 700; font-size: 11px; text-transform: uppercase; }
+        .hidden { display: none; }
+        .footer-link { color: #212529; font-weight: 700; cursor: pointer; font-size: 13.5px; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- LOGIN SUCCESS MODAL -->
+    <div id="success-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2 class="text-xl font-bold text-slate-800 mb-1">Login Successful</h2>
+            <p class="text-gray-500 text-sm">Welcome back! Redirecting...</p>
+        </div>
+    </div>
+
+    <!-- RESET PASSWORD MODAL -->
+    <div id="reset-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h2 class="text-xl font-bold text-slate-800 mb-2">Reset Password</h2>
+            <p class="text-gray-500 text-xs mb-6 uppercase tracking-widest font-bold">Enter your registered email</p>
+            <input type="email" id="reset-email-input" placeholder="Enter Email" class="mb-4">
+            <button onclick="sendResetLink()" id="reset-send-btn" class="navy-btn">
+                <span class="spinner" id="reset-spinner"></span>
+                <span>Send Reset Link</span>
+            </button>
+            <button onclick="closeResetModal()" class="mt-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Cancel</button>
+        </div>
+    </div>
+
+    <!-- MAIN AUTH CARD -->
+    <div class="auth-card">
+        <div id="error-msg"></div>
+        
+        <!-- SIGN IN VIEW -->
+        <div id="signin-view">
+            <h1 class="text-[21px] font-bold text-[#212529] mb-1 tracking-tight">Sign In</h1>
+            <p class="text-[#6c757d] text-[13.5px] mb-8">Enter your email and password to login</p>
+
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label>Email</label>
+                    <input type="email" id="l-email" placeholder="Enter Email" required>
+                </div>
+                <div>
+                    <label>Password</label>
+                    <input type="password" id="l-password" placeholder="Enter Password" required>
+                </div>
+                <button type="submit" id="login-btn" class="navy-btn mt-2">
+                    <span class="spinner" id="l-spinner"></span>
+                    <span id="l-btn-text">SIGN IN</span>
+                </button>
+            </form>
+
+            <div class="or-divider"><span class="or-text">OR</span></div>
+
+            <div class="text-center space-y-2">
+                <p class="text-[13.5px] text-[#6c757d]">Forgot Password ? <span onclick="openResetModal()" class="footer-link">Reset Password</span></p>
+                <p class="text-[13.5px] text-[#6c757d]">Don't have an account ? <span onclick="toggleView('signup')" class="footer-link">Sign Up</span></p>
+            </div>
+        </div>
+
+        <!-- SIGN UP VIEW -->
+        <div id="signup-view" class="hidden">
+            <h1 class="text-[21px] font-bold text-[#212529] mb-1 tracking-tight">Sign Up</h1>
+            <p class="text-[#6c757d] text-[13.5px] mb-8">Enter your details to register</p>
+
+            <form id="signup-form" class="space-y-4">
+                <div><label>Name</label><input type="text" id="s-name" placeholder="Enter Name" required></div>
+                <div><label>Email</label><input type="email" id="s-email" placeholder="Enter Email" required></div>
+                <div><label>Password</label><input type="password" id="s-password" placeholder="Enter Password" required></div>
+                <div><label>Confirm Password</label><input type="password" id="s-confirm" placeholder="Enter Confirm Password" required></div>
+                <button type="submit" id="signup-btn" class="navy-btn mt-2">
+                    <span class="spinner" id="s-spinner"></span>
+                    <span id="s-btn-text">SIGN UP</span>
+                </button>
+            </form>
+
+            <div class="text-center mt-6">
+                <p class="text-[13.5px] text-[#6c757d]">Already have an account ? <span onclick="toggleView('signin')" class="footer-link">Sign In</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw",
+            authDomain: "otpbywasi.firebaseapp.com",
+            projectId: "otpbywasi",
+            storageBucket: "otpbywasi.firebasestorage.app",
+            messagingSenderId: "1169252296",
+            appId: "1:1169252296:web:732c1f08f6b6ed7033eafd"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // 1. Specific Error Mapping
+        function displayError(code) {
+            const errorDiv = document.getElementById('error-msg');
+            let msg = "Invalid email or password!"; 
+
+            if (code === "auth/invalid-email") msg = "Please enter a valid email address.";
+            if (code === "auth/email-already-in-use") msg = "This email is already registered!";
+            if (code === "auth/weak-password") msg = "Password should be at least 6 characters.";
+            if (code === "auth/too-many-requests") msg = "Too many attempts. Try again later.";
+            if (code === "auth/invalid-credential") msg = "Invalid email or password!";
+            if (code === "Passwords do not match!") msg = code;
+
+            errorDiv.innerText = msg;
+            errorDiv.style.display = "block";
+            setTimeout(() => { errorDiv.style.display = "none"; }, 4000);
+        }
+
+        // 2. View Switching
+        function toggleView(view) {
+            document.getElementById('signin-view').classList.toggle('hidden', view === 'signup');
+            document.getElementById('signup-view').classList.toggle('hidden', view === 'signin');
+            document.getElementById('error-msg').style.display = "none";
+        }
+
+        // 3. Login Logic with Success Popup
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            const spinner = document.getElementById('l-spinner');
+            const btnText = document.getElementById('l-btn-text');
+
+            btn.disabled = true; spinner.style.display = "block"; btnText.innerText = "Verifying...";
+
+            auth.signInWithEmailAndPassword(document.getElementById('l-email').value, document.getElementById('l-password').value)
+                .then(() => {
+                    // Show Success Modal
+                    document.getElementById('success-modal').style.display = 'flex';
+                    setTimeout(() => {
+                        window.location.replace("user");
+                    }, 2000);
+                })
+                .catch(err => {
+                    displayError(err.code);
+                    btn.disabled = false; spinner.style.display = "none"; btnText.innerText = "SIGN IN";
+                });
+        });
+
+        // 4. Signup Logic
+        document.getElementById('signup-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const pass = document.getElementById('s-password').value;
+            const confirm = document.getElementById('s-confirm').value;
+            if(pass !== confirm) { displayError("Passwords do not match!"); return; }
+
+            const btn = document.getElementById('signup-btn');
+            const spinner = document.getElementById('s-spinner');
+            const btnText = document.getElementById('s-btn-text');
+
+            btn.disabled = true; spinner.style.display = "block"; btnText.innerText = "Creating...";
+
+            auth.createUserWithEmailAndPassword(document.getElementById('s-email').value, pass)
+                .then((userCredential) => {
+                    return db.collection("users").doc(userCredential.user.uid).set({
+                        username: document.getElementById('s-name').value,
+                        email: document.getElementById('s-email').value,
+                        balance: 0, totalRecharged: 0, totalNumbersBought: 0, role: "user",
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                })
+                .then(() => {
+                    window.location.replace("user");
+                })
+                .catch(err => {
+                    displayError(err.code);
+                    btn.disabled = false; spinner.style.display = "none"; btnText.innerText = "SIGN UP";
+                });
+        });
+
+        // 5. Password Reset Logic
+        function openResetModal() { document.getElementById('reset-modal').style.display = 'flex'; }
+        function closeResetModal() { document.getElementById('reset-modal').style.display = 'none'; }
+
+        async function sendResetLink() {
+            const email = document.getElementById('reset-email-input').value;
+            const btn = document.getElementById('reset-send-btn');
+            const spinner = document.getElementById('reset-spinner');
+
+            if(!email) { alert("Please enter email!"); return; }
+
+            btn.disabled = true; spinner.style.display = 'block';
+
+            auth.sendPasswordResetEmail(email)
+                .then(() => {
+                    alert("✅ Reset link sent to your email! Please check your inbox (and spam folder).");
+                    closeResetModal();
+                })
+                .catch(err => {
+                    alert("❌ Error: " + err.message);
+                })
+                .finally(() => {
+                    btn.disabled = false; spinner.style.display = 'none';
+                });
+        }
+
+        // Auto redirect if already logged in
+        auth.onAuthStateChanged((user) => { 
+            // We only auto-redirect if we're not currently in the success modal process
+            if (user && document.getElementById('success-modal').style.display !== 'flex') { 
+                window.location.replace("user"); 
+            } 
+        });
+    </script>
+</body>
+</html>
