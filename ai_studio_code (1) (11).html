@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASI OTP | Premium Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { primary: '#0061ff', hardBlue: '#0055ff' } } }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Public Sans', sans-serif; background-color: #f8f9fa; transition: all 0.3s ease; }
+        .dark body { background-color: #0f172a; }
+        .font-brand { font-family: 'Montserrat', sans-serif; }
+        
+        /* Hard Blue Hero Box */
+        .hero-box { background: linear-gradient(135deg, #0055ff 0%, #0044cc 100%); position: relative; overflow: hidden; }
+        .hero-circle { position: absolute; width: 250px; height: 250px; background: rgba(255,255,255,0.1); border-radius: 50%; right: -80px; top: -40px; }
+
+        /* Sidebar Logic */
+        #sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-open #sidebar { transform: translateX(0); }
+
+        /* Marquee Fix */
+        .marquee-strip { background: #0055ff; color: white; height: 30px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        
+        .summary-item { background: white; border: 1px solid #edf2f7; padding: 12px 16px; border-radius: 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+        .dark .summary-item { background: #1e293b; border-color: #334155; }
+
+        #toast { visibility: hidden; min-width: 250px; background: #1f2937; color: #fff; text-align: center; border-radius: 12px; padding: 14px; position: fixed; z-index: 200; left: 50%; bottom: 30px; transform: translateX(-50%); font-weight: 600; }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+    </style>
+</head>
+<body class="text-slate-900 dark:text-gray-100 min-h-screen pb-10">
+
+    <div id="toast">Message</div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/40 z-[60] hidden"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed top-0 left-0 h-full w-72 bg-white dark:bg-slate-900 z-[70] -translate-x-full border-r dark:border-slate-800 p-6 shadow-2xl transition-transform">
+        <div class="flex items-center gap-3 mb-10 p-2">
+            <div class="bg-primary p-2 rounded-lg text-white"><i class="fas fa-sms text-xl"></i></div>
+            <span class="text-xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">WASI OTP</span>
+        </div>
+        <nav class="space-y-2">
+            <a href="user" class="flex items-center gap-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-primary font-bold"><i class="fas fa-home"></i> Dashboard</a>
+            <a href="server1" class="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-all font-semibold"><i class="fas fa-server"></i> Server 01</a>
+            <a href="server3" class="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-all font-semibold"><i class="fas fa-bolt text-red-500"></i> Server 03</a>
+            <a href="server4" class="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-all font-semibold"><i class="fas fa-microchip text-cyan-500"></i> Server 04</a>
+            <a href="deposit" class="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-all font-semibold"><i class="fas fa-wallet text-green-500"></i> Recharge Wallet</a>
+            <a href="ticket" class="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-all font-semibold"><i class="fas fa-headset text-orange-500"></i> Support Ticket</a>
+            <hr class="my-6 border-gray-100 dark:border-slate-800">
+            <button onclick="auth.signOut()" class="flex items-center gap-4 p-4 rounded-xl text-red-500 hover:bg-red-50 w-full font-bold"><i class="fas fa-power-off"></i> Logout</button>
+        </nav>
+    </aside>
+
+    <!-- Top Navigation -->
+    <nav class="bg-white dark:bg-slate-900 border-b dark:border-slate-800 sticky top-0 z-50 px-4 py-3 shadow-sm">
+        <div class="container mx-auto flex justify-between items-center max-w-2xl">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="w-10 h-10 rounded-xl bg-gray-50 dark:bg-slate-800 text-slate-500 flex items-center justify-center">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <span class="text-lg font-black tracking-widest text-primary uppercase">WASI OTP</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs uppercase hidden sm:block">PKR</div>
+                <!-- Theme Toggle Button Fixed -->
+                <button onclick="toggleTheme()" class="w-10 h-10 flex items-center justify-center text-gray-400 dark:text-yellow-400 text-lg">
+                    <i id="theme-icon" class="fas fa-moon"></i>
+                </button>
+                <div class="bg-white dark:bg-slate-800 border dark:border-slate-700 px-4 py-1.5 rounded-full flex items-center gap-2 shadow-sm">
+                    <span id="top-balance" class="text-sm font-bold">0.00</span> <span class="text-[9px] text-gray-400 font-bold">PKR</span>
+                </div>
+                <img src="0d3b68a111a3a08a5f8996e83aeeeba2.jpg" class="w-9 h-9 rounded-full border border-gray-200">
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-6 max-w-2xl">
+        
+        <!-- Welcome Hero Box -->
+        <div class="hero-box rounded-[1.5rem] p-8 text-white shadow-xl mb-6 relative overflow-hidden">
+            <div class="hero-circle"></div>
+            <div class="relative z-10">
+                <h2 class="text-lg opacity-80 font-medium font-brand">Welcome:</h2>
+                <h1 id="user-name-display" class="text-3xl font-black tracking-tighter uppercase italic">Loading...</h1>
+                
+                <div class="mt-8 bg-white/10 backdrop-blur-md rounded-xl p-5 border border-white/20 inline-block min-w-[200px] relative">
+                    <a href="deposit" class="absolute -left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center"><i class="fas fa-plus text-xs"></i></a>
+                    <p class="text-[10px] opacity-70 mb-1 uppercase font-black tracking-widest ml-6">Available Balance</p>
+                    <p class="text-2xl font-black ml-6">Rs <span id="user-balance-display">0.00</span> PKR</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Marquee Strip Fix -->
+        <div class="marquee-strip rounded-lg mb-8">
+            <marquee behavior="scroll" direction="left" scrollamount="6">
+                USE OUR WEBSITE IF YOU AGREE WITH OUR TERMS. [ REGARDS: TEAM WASI-OTP ] — FASTEST DELIVERY IN PAKISTAN — 24/7 SUPPORT
+            </marquee>
+        </div>
+
+        <h3 class="font-bold text-gray-700 dark:text-gray-300 mb-4 text-sm uppercase italic tracking-widest">Quick Actions</h3>
+
+        <!-- Buttons Grid Updated with 3 Servers -->
+        <div class="grid grid-cols-2 gap-3 mb-10">
+            <a href="server1" class="bg-primary text-white py-3.5 rounded-lg text-center text-[11px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all italic">Numbers Server 1</a>
+            <a href="server3" class="bg-primary text-white py-3.5 rounded-lg text-center text-[11px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all italic">Numbers Server 3</a>
+            <a href="server4" class="bg-primary text-white py-3.5 rounded-lg text-center text-[11px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all italic">Numbers Server 4</a>
+            <a href="deposit" class="bg-primary text-white py-3.5 rounded-lg text-center text-[11px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all italic">Recharge Balance</a>
+            <a href="history" class="bg-primary text-white py-3.5 rounded-lg text-center text-[11px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all italic">Numbers History</a>
+            <a href="ticket" class="bg-primary text-white py-3.5 rounded-lg text-center text-[11px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all italic">Open Ticket</a>
+            <a href="howtouse" class="bg-primary text-white py-3.5 rounded-lg text-center text-[11px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all italic">Video Tutorial</a>
+            <a href="https://whatsapp.com/channel/0029Vb75PUl4NViorkmONR0T" target="_blank" class="bg-primary text-white py-3.5 rounded-lg text-center text-[11px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all italic">Whatsapp Channel</a>
+        </div>
+
+        <!-- Summary Section -->
+        <h3 class="font-bold text-gray-700 dark:text-gray-300 mb-4 text-sm uppercase tracking-widest">Account Summary</h3>
+        <div class="space-y-3 mb-10">
+            <div class="summary-item shadow-sm">
+                <div class="flex items-center gap-4 text-slate-900 dark:text-white">
+                    <div class="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-xl flex items-center justify-center"><i class="fas fa-shopping-bag"></i></div>
+                    <div><p class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Recharge - Life Time</p><p class="text-sm font-black">Rs <span id="sum-recharged">0.00</span> PKR</p></div>
+                </div>
+            </div>
+            <div class="summary-item shadow-sm border-l-4 border-l-primary">
+                <div class="flex items-center gap-4 text-slate-900 dark:text-white">
+                    <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-xl flex items-center justify-center"><i class="fas fa-wallet"></i></div>
+                    <div><p class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Available Balance</p><p class="text-sm font-black text-primary">Rs <span id="sum-balance">0.00</span> PKR</p></div>
+                </div>
+            </div>
+            <div class="summary-item shadow-sm">
+                <div class="flex items-center gap-4 text-slate-900 dark:text-white">
+                    <div class="w-10 h-10 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 rounded-xl flex items-center justify-center"><i class="fas fa-tags"></i></div>
+                    <div><p class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Purchased Numbers</p><p id="sum-bought" class="text-sm font-black">0</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Fixed -->
+        <div class="bg-white dark:bg-slate-900 rounded-[1.5rem] p-6 shadow-sm border dark:border-slate-800">
+            <h3 class="text-lg font-black mb-6 italic uppercase tracking-tighter text-slate-800 dark:text-gray-100">Recent Transactions</h3>
+            <div class="overflow-hidden">
+                <table class="w-full text-left">
+                    <tbody id="transaction-body" class="text-[11px] divide-y divide-gray-50 dark:divide-slate-800">
+                        <!-- Fetched from Firebase -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- WhatsApp Us Button -->
+    <a href="https://wa.me/923342002756" target="_blank" class="fixed bottom-6 right-6 bg-[#25d366] text-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 font-bold z-50 hover:scale-105 active:scale-95 transition-all">
+        <i class="fab fa-whatsapp text-2xl"></i> <span class="text-[10px] uppercase tracking-widest hidden md:block">WhatsApp Us</span>
+    </a>
+
+    <script>
+        // 1. FIREBASE CONFIG
+        const firebaseConfig = { apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw", authDomain: "otpbywasi.firebaseapp.com", projectId: "otpbywasi", storageBucket: "otpbywasi.firebasestorage.app", messagingSenderId: "1169252296", appId: "1:1169252296:web:732c1f08f6b6ed7033eafd" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // AUTH & SYNC
+        auth.onAuthStateChanged((user) => {
+            if (!user) window.location.href = "auth";
+            else { 
+                fetchUserData(user.uid); 
+                fetchRecentTransactions(user.uid);
+            }
+        });
+
+        function fetchUserData(uid) {
+            db.collection("users").doc(uid).onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    // Fix: User Name fetching from username or name field
+                    const name = data.username || data.name || data.displayName || "User";
+                    const bal = (data.balance || 0).toFixed(2);
+                    
+                    document.getElementById('user-name-display').innerText = name;
+                    document.getElementById('user-balance-display').innerText = bal;
+                    document.getElementById('top-balance').innerText = bal;
+                    document.getElementById('sum-balance').innerText = bal;
+                    document.getElementById('sum-recharged').innerText = (data.totalRecharged || 0).toFixed(2);
+                    document.getElementById('sum-bought').innerText = data.totalNumbersBought || 0;
+                }
+            });
+        }
+
+        // Transaction logs fixed by removing orderBy (prevents indexing crash)
+        async function fetchRecentTransactions(uid) {
+            const tbody = document.getElementById('transaction-body');
+            db.collection("deposits")
+              .where("uid", "==", uid)
+              .limit(10)
+              .onSnapshot(snap => {
+                  tbody.innerHTML = "";
+                  if (snap.empty) {
+                      tbody.innerHTML = '<tr><td class="py-10 text-center opacity-30">No logs found</td></tr>';
+                      return;
+                  }
+                  snap.forEach(doc => {
+                      const d = doc.data();
+                      const statusColor = d.status === 'approved' ? 'text-green-500' : 'text-orange-500';
+                      tbody.innerHTML += `
+                        <tr class="text-slate-600 dark:text-gray-400">
+                            <td class="py-4 font-bold">RECHARGE</td>
+                            <td class="py-4 font-black text-slate-800 dark:text-gray-200">Rs ${d.amount}</td>
+                            <td class="py-4 text-right font-black uppercase ${statusColor}">${d.status}</td>
+                        </tr>`;
+                  });
+              });
+        }
+
+        function toggleSidebar() { 
+            document.body.classList.toggle('sidebar-open');
+            document.getElementById('sidebar-overlay').classList.toggle('hidden'); 
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icon.className = 'fas fa-moon';
+                localStorage.theme = 'light';
+            } else {
+                html.classList.add('dark');
+                icon.className = 'fas fa-sun';
+                localStorage.theme = 'dark';
+            }
+        }
+        if (localStorage.theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.getElementById('theme-icon').className = 'fas fa-sun';
+        }
+    </script>
+</body>
+</html>
