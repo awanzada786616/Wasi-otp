@@ -1,282 +1,217 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script>
-    // 1. Right click block karna
-    document.addEventListener('contextmenu', event => event.preventDefault());
-
-    // 2. Keyboard shortcuts block karna (F12, Ctrl+U, Ctrl+Shift+I, etc.)
-    document.onkeydown = function(e) {
-        if (e.keyCode == 123 || 
-            (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) || 
-            (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0))) {
-            return false;
-        }
-    };
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WASI OTP - Authentication</title>
-
-    <!-- Tailwind CSS -->
+    <title>Authentication | WASI OTP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: '#0d6efd',
-                        brandDark: '#0a58ca',
-                        slate: '#f8f9fa',
-                        textDark: '#212529'
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <!-- React & Firebase -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-
-    <!-- Firebase SDK -->
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
     <style>
-        body { background-color: #f0f2f5; font-family: 'Inter', sans-serif; }
-        
-        .auth-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.1);
-            overflow: hidden;
+        body { font-family: 'Public Sans', sans-serif; background-color: #fcfcfc; }
+        .auth-card { 
+            background: #ffffff;
+            border: 1px solid #f1f5f9;
+            box-shadow: 0 4px 25px rgba(0,0,0,0.03);
             width: 100%;
-            max-width: 420px;
-            border: 1px solid #e5e7eb;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid #e2e8f0;
+            max-width: 380px;
             border-radius: 8px;
-            font-size: 14px;
-            outline: none;
-            transition: all 0.2s;
-            background: #f8fafc;
-            color: #1e293b;
-        }
-        .input-group input:focus {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
-            background: white;
+            padding: 35px 30px;
         }
 
-        .marquee-container {
-            background: #fff3cd;
-            color: #856404;
-            border-bottom: 1px solid #ffeeba;
-            padding: 8px;
-            font-size: 12px;
-            font-weight: 600;
+        label { color: #212529; font-weight: 500; font-size: 14px; margin-bottom: 7px; display: block; }
+
+        input {
+            width: 100%; height: 44px; padding: 0 15px; background-color: #fff;
+            border: 1px solid #ced4da; border-radius: 4px; outline: none;
+            color: #495057; font-size: 14px; transition: all 0.2s;
         }
+        input:focus { border-color: #050a30; }
+
+        /* Stylish Red Error Box */
+        #error-msg {
+            display: none; background-color: #fff5f5; color: #e53e3e;
+            border: 1px solid #feb2b2; padding: 10px; border-radius: 6px;
+            font-size: 13px; font-weight: 600; margin-bottom: 20px;
+            text-align: center; animation: shake 0.3s ease-in-out;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .navy-btn { 
+            background-color: #050a30; color: white; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.5px; height: 46px;
+            border-radius: 4px; width: 100%; font-size: 13.5px;
+            transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .navy-btn:disabled { opacity: 0.8; cursor: not-allowed; }
+
+        .spinner {
+            width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #ffffff; border-radius: 50%; animation: spin 0.8s linear infinite; display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .or-divider { position: relative; text-align: center; margin: 30px 0; border-bottom: 1px solid #f1f5f9; }
+        .or-text { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: white; padding: 0 15px; color: #adb5bd; font-weight: 700; font-size: 11px; text-transform: uppercase; }
+        .hidden { display: none; }
+        .footer-link { color: #212529; font-weight: 700; cursor: pointer; font-size: 13.5px; }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4">
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <div id="root"></div>
+    <div class="auth-card">
+        
+        <div id="error-msg"></div>
+        
+        <!-- 1. SIGN IN VIEW -->
+        <div id="signin-view">
+            <h1 class="text-[21px] font-bold text-[#212529] mb-1 tracking-tight">Sign In</h1>
+            <p class="text-[#6c757d] text-[13.5px] mb-8">Enter your email and password to login</p>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label>Email</label>
+                    <input type="email" id="l-email" placeholder="Enter Email" required>
+                </div>
+                <div>
+                    <label>Password</label>
+                    <input type="password" id="l-password" placeholder="Enter Password" required>
+                </div>
+                <button type="submit" id="login-btn" class="navy-btn mt-2">
+                    <span class="spinner" id="l-spinner"></span>
+                    <span id="l-btn-text">SIGN IN</span>
+                </button>
+            </form>
 
-        // --- WASI-OTP SECURE CONFIG START ---
-const _0x4a21 = [
-    "QUl6YVN5Q1Z0MFpGb1UyNkRhLWpqQ1FFRXVFRjNBekRBUzMyLVB3", // apiKey
-    "b3RwYnl3YXNpLmZpcmViYXNlYXBwLmNvbQ==",               // authDomain
-    "aHR0cHM6Ly9vdHBieXdhc2ktZGVmYXVsdC1ydGRiLmZpcmViYXNlaW8uY29t", // databaseURL
-    "b3RwYnl3YXNp",                                       // projectId
-    "b3RwYnl3YXNpLmZpcmViYXNlc3RvcmFnZS5hcHA=",           // storageBucket
-    "MTE2OTI1MjI5Ng==",                                   // messagingSenderId
-    "MToxMTY5MjUyMjk2OndlYjo3MzJjMWYwOGY2YjZlZDcwMzNlYWZk" // appId
-];
+            <div class="or-divider"><span class="or-text">OR</span></div>
 
-const firebaseConfig = {
-    apiKey: atob(_0x4a21[0]),
-    authDomain: atob(_0x4a21[1]),
-    databaseURL: atob(_0x4a21[2]),
-    projectId: atob(_0x4a21[3]),
-    storageBucket: atob(_0x4a21[4]),
-    messagingSenderId: atob(_0x4a21[5]),
-    appId: atob(_0x4a21[6])
-};
-// --- WASI-OTP SECURE CONFIG END ---
+            <div class="text-center space-y-2">
+                <p class="text-[13.5px] text-[#6c757d]">Forgot Password ? <span class="footer-link">Reset Password</span></p>
+                <p class="text-[13.5px] text-[#6c757d]">Don't have an account ? <span onclick="toggleView('signup')" class="footer-link">Sign Up</span></p>
+            </div>
+        </div>
 
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        <!-- 2. SIGN UP VIEW -->
+        <div id="signup-view" class="hidden">
+            <h1 class="text-[21px] font-bold text-[#212529] mb-1 tracking-tight">Sign Up</h1>
+            <p class="text-[#6c757d] text-[13.5px] mb-8">Enter your details to register</p>
+
+            <form id="signup-form" class="space-y-4">
+                <div><label>Name</label><input type="text" id="s-name" placeholder="Enter Name" required></div>
+                <div><label>Email</label><input type="email" id="s-email" placeholder="Enter Email" required></div>
+                <div><label>Password</label><input type="password" id="s-password" placeholder="Enter Password" required></div>
+                <div><label>Confirm Password</label><input type="password" id="s-confirm" placeholder="Enter Confirm Password" required></div>
+                <button type="submit" id="signup-btn" class="navy-btn mt-2">
+                    <span class="spinner" id="s-spinner"></span>
+                    <span id="s-btn-text">SIGN UP</span>
+                </button>
+            </form>
+
+            <div class="text-center mt-6">
+                <p class="text-[13.5px] text-[#6c757d]">Already have an account ? <span onclick="toggleView('signin')" class="footer-link">Sign In</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw",
+            authDomain: "otpbywasi.firebaseapp.com",
+            projectId: "otpbywasi",
+            storageBucket: "otpbywasi.firebasestorage.app",
+            messagingSenderId: "1169252296",
+            appId: "1:1169252296:web:732c1f08f6b6ed7033eafd"
+        };
+        firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        const notify = (msg, type="success") => {
-            Toastify({ text: msg, duration: 3000, style: { background: type==="success"?"#0d6efd":"#dc3545" }, position: "top-center" }).showToast();
-        };
+        // Error display logic (No Firebase names used)
+        function displayError(code) {
+            const errorDiv = document.getElementById('error-msg');
+            let msg = "Invalid email or password!"; // Default message
 
-        const AuthPage = () => {
-            const [view, setView] = useState('login'); // login, signup, reset
-            const [email, setEmail] = useState("");
-            const [password, setPassword] = useState("");
-            const [name, setName] = useState("");
-            const [loading, setLoading] = useState(false);
+            // Specific code mapping
+            if (code === "auth/invalid-email") msg = "Please enter a valid email address.";
+            if (code === "auth/email-already-in-use") msg = "This email is already registered!";
+            if (code === "auth/weak-password") msg = "Password should be at least 6 characters.";
+            if (code === "auth/too-many-requests") msg = "Too many attempts. Try again later.";
+            if (code === "Passwords do not match!") msg = code;
 
-            // Auto Redirect if Logged In
-            useEffect(() => {
-                const unsub = auth.onAuthStateChanged(user => {
-                    if(user && !loading) {
-                        // Ensure DB record exists before redirecting
-                        db.collection('users').doc(user.uid).get().then((doc) => {
-                            if (!doc.exists) {
-                                // Repair if missing
-                                db.collection('users').doc(user.uid).set({
-                                    name: user.displayName || user.email.split('@')[0],
-                                    email: user.email,
-                                    balance: 0,
-                                    status: 'Active',
-                                    createdAt: Date.now()
-                                }).then(() => window.location.href = "user.html");
-                            } else {
-                                window.location.href = "user.html";
-                            }
-                        });
-                    }
+            errorDiv.innerText = msg;
+            errorDiv.style.display = "block";
+            setTimeout(() => { errorDiv.style.display = "none"; }, 4000);
+        }
+
+        function toggleView(view) {
+            document.getElementById('signin-view').classList.toggle('hidden', view === 'signup');
+            document.getElementById('signup-view').classList.toggle('hidden', view === 'signin');
+            document.getElementById('error-msg').style.display = "none";
+        }
+
+        // LOGIN
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            const spinner = document.getElementById('l-spinner');
+            const btnText = document.getElementById('l-btn-text');
+
+            btn.disabled = true; spinner.style.display = "block"; btnText.innerText = "Verifying...";
+
+            auth.signInWithEmailAndPassword(document.getElementById('l-email').value, document.getElementById('l-password').value)
+                .then(() => {
+                    window.location.replace("user"); // Redirect immediately
+                })
+                .catch(err => {
+                    displayError(err.code);
+                    btn.disabled = false; spinner.style.display = "none"; btnText.innerText = "SIGN IN";
                 });
-                return () => unsub();
-            }, []);
+        });
 
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                setLoading(true);
+        // SIGNUP
+        document.getElementById('signup-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const pass = document.getElementById('s-password').value;
+            const confirm = document.getElementById('s-confirm').value;
 
-                try {
-                    if (view === 'signup') {
-                        // 1. Create Auth
-                        const cred = await auth.createUserWithEmailAndPassword(email, password);
-                        
-                        // 2. Create Database Record (Await ensures it finishes)
-                        await db.collection('users').doc(cred.user.uid).set({
-                            id: cred.user.uid,
-                            name: name,
-                            email: email,
-                            balance: 0,
-                            status: 'Active',
-                            createdAt: Date.now()
-                        });
+            if(pass !== confirm) { displayError("Passwords do not match!"); return; }
 
-                        // 3. Update Profile
-                        await cred.user.updateProfile({ displayName: name });
-                        
-                        notify("Account Created Successfully!");
-                        setTimeout(() => window.location.href = "user.html", 1000);
-                    } 
-                    else if (view === 'login') {
-                        await auth.signInWithEmailAndPassword(email, password);
-                        notify("Login Successful!");
-                        // Redirect handled by useEffect
-                    }
-                    else if (view === 'reset') {
-                        await auth.sendPasswordResetEmail(email);
-                        notify("Reset link sent! Check Spam folder.");
-                        setLoading(false);
-                        setView('login');
-                    }
-                } catch (err) {
-                    let msg = err.message;
-                    if(err.code === 'auth/email-already-in-use') msg = "Email already registered.";
-                    if(err.code === 'auth/user-not-found') msg = "User not found.";
-                    if(err.code === 'auth/wrong-password') msg = "Incorrect password.";
-                    notify(msg, "error");
-                    setLoading(false);
-                }
-            };
+            const btn = document.getElementById('signup-btn');
+            const spinner = document.getElementById('s-spinner');
+            const btnText = document.getElementById('s-btn-text');
 
-            return (
-                <div className="auth-card animate-fade-in">
-                    
-                    {/* Marquee Header */}
-                    <div className="marquee-container">
-                        <marquee behavior="scroll" direction="left">
-                            Note: While resetting your password please check spam section if email not found in inbox.
-                        </marquee>
-                    </div>
+            btn.disabled = true; spinner.style.display = "block"; btnText.innerText = "Creating...";
 
-                    <div className="p-8">
-                        <div className="text-center mb-8">
-                            <h1 className="text-3xl font-black text-brand mb-2 tracking-tight">WASI OTP</h1>
-                            <p className="text-gray-500 text-sm font-medium">
-                                {view === 'login' ? 'Welcome back! Please login.' : 
-                                 view === 'signup' ? 'Create a new account.' : 
-                                 'Reset your password.'}
-                            </p>
-                        </div>
+            auth.createUserWithEmailAndPassword(document.getElementById('s-email').value, pass)
+                .then((userCredential) => {
+                    return db.collection("users").doc(userCredential.user.uid).set({
+                        username: document.getElementById('s-name').value,
+                        email: document.getElementById('s-email').value,
+                        balance: 0, totalRecharged: 0, totalNumbersBought: 0, role: "user",
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                })
+                .then(() => {
+                    window.location.replace("user");
+                })
+                .catch(err => {
+                    displayError(err.code);
+                    btn.disabled = false; spinner.style.display = "none"; btnText.innerText = "SIGN UP";
+                });
+        });
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            
-                            {view === 'signup' && (
-                                <div className="input-group">
-                                    <label className="block text-xs font-bold text-gray-600 mb-1 ml-1 uppercase">Full Name</label>
-                                    <input type="text" placeholder="e.g. Ali Khan" onChange={(e) => setName(e.target.value)} required />
-                                </div>
-                            )}
-
-                            <div className="input-group">
-                                <label className="block text-xs font-bold text-gray-600 mb-1 ml-1 uppercase">Email Address</label>
-                                <input type="email" placeholder="name@example.com" onChange={(e) => setEmail(e.target.value)} required />
-                            </div>
-
-                            {view !== 'reset' && (
-                                <div className="input-group">
-                                    <label className="block text-xs font-bold text-gray-600 mb-1 ml-1 uppercase">Password</label>
-                                    <input type="password" placeholder="••••••••" onChange={(e) => setPassword(e.target.value)} required />
-                                </div>
-                            )}
-
-                            <button disabled={loading} className="w-full bg-brand hover:bg-brandDark text-white font-bold py-3.5 rounded-lg transition-all shadow-lg shadow-brand/20 flex items-center justify-center gap-2 mt-4 disabled:opacity-70">
-                                {loading ? <i className="fa-solid fa-circle-notch fa-spin"></i> : (view === 'login' ? "SIGN IN" : view === 'signup' ? "CREATE ACCOUNT" : "SEND LINK")}
-                            </button>
-                        </form>
-
-                        <div className="mt-8 pt-6 border-t border-gray-100 text-center space-y-3">
-                            {view === 'login' && (
-                                <>
-                                    <p className="text-sm text-gray-600">Forgot Password? <button onClick={() => setView('reset')} className="text-brand font-bold hover:underline">Reset</button></p>
-                                    <p className="text-sm text-gray-600">New User? <button onClick={() => setView('signup')} className="text-brand font-bold hover:underline">Register</button></p>
-                                </>
-                            )}
-                            
-                            {view === 'signup' && (
-                                <p className="text-sm text-gray-600">Already have an account? <button onClick={() => setView('login')} className="text-brand font-bold hover:underline">Sign In</button></p>
-                            )}
-
-                            {view === 'reset' && (
-                                <p className="text-sm text-gray-600">Remembered it? <button onClick={() => setView('login')} className="text-brand font-bold hover:underline">Back to Login</button></p>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<AuthPage />);
+        // Auto redirect if already logged in
+        auth.onAuthStateChanged((user) => { if (user) window.location.replace("user"); });
     </script>
 </body>
 </html>
