@@ -300,14 +300,22 @@
         <span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
     </span>
 </a>
-    <!-- WASI OTP LOADER SCRIPT -->
+    <!-- WASI OTP LOADER SCRIPT - (5 SECONDS VERSION) -->
 <script>
     window.addEventListener("load", function() {
         const loader = document.getElementById("wasi-loader-boxes");
-        // 1.2 second ka stay taake animation user dekh sakay
+        
+        // Humne time barha kar 4500ms (4.5 seconds) kar diya hai
+        // Is se animation 4-5 baar smoothly ghoomay gi
         setTimeout(() => {
             loader.classList.add("loader-hidden");
-        }, 1200); 
+            
+            // Halka sa extra delay taake transition smooth ho
+            setTimeout(() => {
+                loader.style.display = "none";
+            }, 800);
+            
+        }, 4500); 
     });
 </script>
 </body>
