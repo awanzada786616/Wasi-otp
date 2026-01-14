@@ -13,7 +13,31 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
+<!-- WASI OTP LOADER CSS -->
+<style>
+    #wasi-loader-boxes {
+        position: fixed; inset: 0; background: #ffffff; z-index: 100000;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        transition: opacity 0.8s ease, visibility 0.8s;
+    }
+    /* Dark Mode support agar aapki site dark hai */
+    .dark #wasi-loader-boxes { background: #0f172a; }
 
+    .boxes-wrapper { position: relative; width: 50px; height: 50px; transform: rotate(45deg); animation: rotateAll 3s infinite ease-in-out; }
+    .box { position: absolute; width: 25px; height: 25px; background: #0061ff; border: 2px solid #ffffff; animation: boxMove 3s infinite ease-in-out; }
+    .box:nth-child(1) { top: 0; left: 0; animation-delay: 0s; }
+    .box:nth-child(2) { top: 0; right: 0; animation-delay: 0.2s; background: #60a5fa; }
+    .box:nth-child(3) { bottom: 0; right: 0; animation-delay: 0.4s; }
+    .box:nth-child(4) { bottom: 0; left: 0; animation-delay: 0.6s; background: #60a5fa; }
+
+    @keyframes rotateAll { 0% { transform: rotate(45deg); } 100% { transform: rotate(405deg); } }
+    @keyframes boxMove { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(12px, 12px); border-radius: 50%; } }
+
+    .loader-text { margin-top: 40px; font-family: 'Public Sans', sans-serif; font-weight: 800; font-size: 16px; letter-spacing: 3px; color: #1e293b; text-transform: uppercase; }
+    .dark .loader-text { color: white; }
+    .loader-text span { color: #0061ff; }
+    .loader-hidden { opacity: 0; visibility: hidden; }
+                       </style>
 
     <script>
         tailwind.config = {
@@ -86,6 +110,16 @@
     </script>
 </head>
 <body class="min-h-screen pb-10">
+    <!-- WASI OTP LOADER HTML -->
+<div id="wasi-loader-boxes">
+    <div class="boxes-wrapper">
+        <div class="box"></div>
+        <div class="box"></div>
+        <div class="box"></div>
+        <div class="box"></div>
+    </div>
+    <div class="loader-text">WASI<span>OTP</span></div>
+</div>
 
     <div id="toast">Message</div>
 
@@ -266,5 +300,15 @@
         <span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
     </span>
 </a>
+    <!-- WASI OTP LOADER SCRIPT -->
+<script>
+    window.addEventListener("load", function() {
+        const loader = document.getElementById("wasi-loader-boxes");
+        // 1.2 second ka stay taake animation user dekh sakay
+        setTimeout(() => {
+            loader.classList.add("loader-hidden");
+        }, 1200); 
+    });
+</script>
 </body>
 </html>
