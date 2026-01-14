@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deposit Balance | WASI OTP</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <style>
+        html { display: none; }
+        body { font-family: 'Public Sans', sans-serif; transition: all 0.3s ease; background-color: #f8f9fa; color: #1e293b; }
+        .font-brand { font-family: 'Montserrat', sans-serif; }
+        
+        /* THE SIGNATURE SQUARE HERO BOX */
+        .hero-box { 
+            background: linear-gradient(to right, #60a5fa 0%, #0061ff 100%); 
+            border-radius: 0px !important; 
+            position: relative; overflow: hidden; height: 160px;
+            display: flex; flex-direction: column; justify-content: center;
+            box-shadow: 0 10px 25px rgba(0, 97, 255, 0.15);
+        }
+        .hero-box::after {
+            content: ''; position: absolute; right: -25px; top: 0; width: 45%; height: 100%;
+            background-color: #0055ff; border-radius: 100% 0 0 100%; z-index: 1;
+        }
+
+        /* Bubbles */
+        .bubble { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.15); z-index: 2; }
+        .b1 { width: 15px; height: 15px; right: 85px; bottom: 35px; border: 1px solid rgba(255,255,255,0.3); }
+        .b2 { width: 9px; height: 9px; right: 125px; bottom: 55px; }
+
+        /* Gateway Card Design */
+        .gateway-card { background: white; border: 1px solid #e2e8f0; border-radius: 0px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .desc-box { background-color: #f0f7ff; border-top: 1px solid #e0eefc; padding: 12px 20px; }
+
+        /* Input Styling */
+        .form-input { width: 100%; height: 50px; padding: 0 15px; background: white; border: 2px solid #e2e8f0; border-radius: 4px; outline: none; transition: 0.2s; font-weight: 600; color: #1e293b; }
+        .form-input:focus { border-color: #0061ff; }
+
+        #sidebar { transition: transform 0.3s ease; }
+        .sidebar-open #sidebar { transform: translateX(0); }
+        
+        #toast { visibility: hidden; min-width: 250px; background: #1f2937; color: #fff; text-align: center; border-radius: 12px; padding: 14px; position: fixed; z-index: 200; left: 50%; bottom: 30px; transform: translateX(-50%); font-weight: 600; }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+    </style>
+
+    <script>
+        const _0x4a21 = ["QUl6YVN5Q1Z0MFpGb1UyNkRhLWpqQ1FFRXVFRjNBekRBUzMyLVB3","b3RwYnl3YXNpLmZpcmViYXNlYXBwLmNvbQ==","aHR0cHM6Ly9vdHBieXdhc2ktZGVmYXVsdC1ydGRiLmZpcmViYXNlbW8uY29t","b3RwYnl3YXNp","b3RwYnl3YXNpLmZpcmViYXNlc3RvcmFnZS5hcHA=","MTE2OTI1MjI5Ng==","MToxMTY5MjUyMjk2OndlYjo3MzJjMWYwOGY2YjZlZDcwMzNlYWZk"];
+        const firebaseConfig = { apiKey: atob(_0x4a21[0]), authDomain: atob(_0x4a21[1]), databaseURL: atob(_0x4a21[2]), projectId: atob(_0x4a21[3]), storageBucket: atob(_0x4a21[4]), messagingSenderId: atob(_0x4a21[5]), appId: atob(_0x4a21[6]) };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(), auth = firebase.auth();
+
+        auth.onAuthStateChanged((user) => {
+            if (!user) window.location.replace("auth");
+            else { document.documentElement.style.display = "block"; }
+        });
+    </script>
+</head>
+<body class="min-h-screen pb-20">
+
+    <div id="toast">Message</div>
+
+    <!-- Header -->
+    <nav class="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-50 shadow-sm flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <button onclick="toggleSidebar()" class="w-9 h-9 bg-gray-50 rounded flex items-center justify-center text-gray-500"><i class="fas fa-bars"></i></button>
+            <span class="text-[17px] font-bold text-primary uppercase font-brand tracking-tighter italic">Deposit Balance</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <div class="border border-gray-300 rounded-full px-4 py-1.5 flex items-center gap-1.5 bg-white shadow-sm">
+                <span id="top-balance" class="text-[14px] font-bold text-slate-800">0.00</span> 
+                <span class="text-[10px] font-bold text-gray-400 uppercase">PKR</span>
+            </div>
+            <img src="0d3b68a111a3a08a5f8996e83aeeeba2.jpg" class="w-10 h-10 rounded-full border-2 border-primary object-cover">
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/40 z-[60] hidden"></div>
+    <aside id="sidebar" class="fixed top-0 left-0 h-full w-72 bg-white z-[70] -translate-x-full border-r border-gray-200 p-6 shadow-2xl transition-transform overflow-y-auto">
+        <h2 class="text-2xl font-black text-primary mb-10 font-brand italic tracking-tighter uppercase">WASI OTP</h2>
+        <nav class="space-y-4 font-semibold text-gray-600 text-sm uppercase tracking-widest">
+            <a href="user" class="block p-2 hover:text-primary"><i class="fas fa-home mr-2 w-5"></i> Dashboard</a>
+            <a href="deposit" class="block p-2 text-primary font-bold border-l-4 border-primary pl-4"><i class="fas fa-wallet mr-2 w-5"></i> Deposit</a>
+            <a href="history" class="block p-2 hover:text-primary"><i class="fas fa-history mr-2 w-5"></i> My History</a>
+            <hr class="my-6">
+            <button onclick="auth.signOut()" class="block p-2 text-red-500 w-full text-left font-bold"><i class="fas fa-power-off mr-2 w-5"></i> Logout</button>
+        </nav>
+    </aside>
+
+    <main class="container mx-auto px-4 py-6 max-w-2xl">
+        
+        <!-- Instruction Hero -->
+        <div class="hero-box p-8 text-white mb-8 shadow-xl">
+            <div class="bubble b1"></div><div class="bubble b2"></div>
+            <h1 class="text-2xl font-black italic uppercase tracking-tighter">Add Balance</h1>
+            <p class="text-sm font-bold opacity-80 mb-2">Recharge your wasi wallet</p>
+            <div class="bg-white/20 border border-white/20 px-3 py-1.5 rounded text-[10px] uppercase font-black tracking-widest inline-flex items-center gap-2">
+                <i class="fas fa-info-circle text-yellow-300"></i> Min Deposit: Rs 50.00
+            </div>
+        </div>
+
+        <!-- GATEWAYS LIST (Proper Colors & Visibility) -->
+        <div id="gateways-list" class="space-y-4 mb-10">
+            <div class="text-center py-10 opacity-20"><i class="fas fa-circle-notch animate-spin text-3xl text-primary"></i></div>
+        </div>
+
+        <!-- Submission Form -->
+        <div class="bg-white p-8 rounded-none border border-gray-100 shadow-sm">
+            <h2 class="text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8 italic"><i class="fas fa-file-pen text-primary mr-2"></i>Submission Form</h2>
+            
+            <div class="space-y-6">
+                <div>
+                    <label class="text-[11px] font-black text-slate-600 uppercase mb-2 ml-1 tracking-widest block">Enter Amount (PKR)</label>
+                    <input type="number" id="deposit-amount" placeholder="Min 50" class="form-input text-lg">
+                </div>
+                <div>
+                    <label class="text-[11px] font-black text-slate-600 uppercase mb-2 ml-1 tracking-widest block">Transaction ID (TRX ID)</label>
+                    <input type="text" id="trx-id" placeholder="Paste ID from payment app" class="form-input font-mono">
+                </div>
+                
+                <button onclick="submitDeposit()" id="submit-btn" class="w-full bg-[#0061ff] hover:bg-[#0044cc] text-white font-black py-4 rounded-none shadow-xl active:scale-95 transition-all text-[13px] uppercase tracking-widest italic">
+                    Submit Request Now
+                </button>
+            </div>
+        </div>
+
+        <p class="text-center text-slate-400 text-[9px] font-black uppercase mt-12 tracking-[0.3em] opacity-60 italic">
+            Payments verified manually within 10 minutes
+        </p>
+
+    </main>
+
+    <!-- SUCCESS MODAL (MATCHING STYLE) -->
+    <div id="approval-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[120] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-none w-full max-w-sm p-10 shadow-2xl text-center border-t-8 border-green-500">
+            <div class="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">
+                <i class="fas fa-check"></i>
+            </div>
+            <h3 class="text-2xl font-black mb-2 font-brand uppercase italic text-slate-800 tracking-tighter">Deposit Added!</h3>
+            <p class="text-slate-500 text-sm mb-8 font-semibold leading-relaxed px-4">Your funds have been successfully added to your wasi otp wallet.</p>
+            <button onclick="document.getElementById('approval-modal').classList.add('hidden')" class="w-full bg-green-600 text-white py-4 rounded-none font-black text-xs uppercase shadow-xl transition-all active:scale-95">Go to Dashboard</button>
+        </div>
+    </div>
+
+    <script>
+        let userName = "";
+
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                db.collection("users").doc(user.uid).onSnapshot(doc => {
+                    if (doc.exists) {
+                        const d = doc.data();
+                        document.getElementById('top-balance').innerText = (d.balance || 0).toFixed(2);
+                        userName = d.username || d.name || user.email.split('@')[0];
+                    }
+                });
+                watchApprovals(user.uid);
+            }
+        });
+
+        // LOAD GATEWAYS (FIXED COLORS & DESCRIPTION)
+        db.collection("gateways").onSnapshot(snap => {
+            const cont = document.getElementById('gateways-list');
+            cont.innerHTML = snap.empty ? "<p class='text-center text-xs opacity-30 font-bold uppercase'>No Payment Gateways Found</p>" : "";
+            
+            snap.forEach(doc => {
+                const g = doc.data();
+                cont.innerHTML += `
+                    <div class="gateway-card">
+                        <!-- Upper Section: Main Info -->
+                        <div class="p-6 flex items-center gap-5">
+                            <div class="w-14 h-14 bg-blue-50 rounded-lg flex items-center justify-center p-2 border border-blue-100 shadow-inner">
+                                <img src="${g.logo}" class="w-full h-full object-contain">
+                            </div>
+                            <div class="flex-grow">
+                                <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-0.5">${g.name}</p>
+                                <p class="text-xl font-black font-brand tracking-tighter text-slate-800 italic">${g.number}</p>
+                                <p class="text-[11px] text-slate-500 font-bold uppercase opacity-80">${g.title}</p>
+                            </div>
+                            <button onclick="copyText('${g.number}')" class="w-11 h-11 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500 hover:text-primary transition-all">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Lower Section: Description Box (ALWAYS VISIBLE IF EXISTS) -->
+                        ${g.desc ? `
+                        <div class="desc-box">
+                            <p class="text-[10px] text-indigo-600 font-bold leading-relaxed italic">
+                                <i class="fas fa-info-circle mr-1"></i> ${g.desc}
+                            </p>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+        });
+
+        async function submitDeposit() {
+            const amt = parseFloat(document.getElementById('deposit-amount').value);
+            const trx = document.getElementById('trx-id').value.trim();
+            if(!userName) return showToast("⚠️ Loading Profile...");
+            if(!amt || !trx) return showToast("⚠️ Enter amount and Transaction ID!");
+            if(amt < 50) return showToast("❌ Minimum Recharge is Rs 50!");
+
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true; btn.innerText = "Processing Request...";
+
+            try {
+                await db.collection("deposits").add({
+                    uid: auth.currentUser.uid,
+                    username: userName,
+                    amount: amt,
+                    trx_id: trx,
+                    status: "pending",
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showToast("✅ Request Submitted Successfully!");
+                document.getElementById('deposit-amount').value = "";
+                document.getElementById('trx-id').value = "";
+            } catch (e) { showToast("Error connecting to database!"); }
+            btn.disabled = false; btn.innerText = "Submit Request Now";
+        }
+
+        function watchApprovals(uid) {
+            db.collection("deposits").where("uid", "==", uid).where("status", "==", "approved").onSnapshot(snap => {
+                snap.docChanges().forEach(change => {
+                    if (change.type === "added" || change.type === "modified") {
+                        if (!localStorage.getItem(`approved_${change.doc.id}`)) {
+                            document.getElementById('approval-modal').classList.remove('hidden');
+                            localStorage.setItem(`approved_${change.doc.id}`, 'true');
+                        }
+                    }
+                });
+            });
+        }
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); document.getElementById('sidebar-overlay').classList.toggle('hidden'); }
+        function toggleTheme() { document.documentElement.classList.toggle('dark'); }
+        function showToast(msg) { const x = document.getElementById("toast"); x.innerText = msg; x.className = "show"; setTimeout(() => x.className = "", 3000); }
+        function copyText(val) { navigator.clipboard.writeText(val); showToast("📋 Copied: " + val); }
+    </script>
+</body>
+</html>
