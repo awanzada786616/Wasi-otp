@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | WASI OTP</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <script src="//code.tidio.co/mdg4ow7myt0gzm5k5ibaungymmw9xiby.js" async></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { primary: '#0061ff' } } }
+        }
+    </script>
+
+    <style>
+        html { display: none; }
+        body { font-family: 'Public Sans', sans-serif; transition: all 0.3s ease; background-color: #f8f9fa; }
+        .dark body { background-color: #0f172a; color: white; }
+        
+        /* HERO BOX MATCH */
+        .hero-box { 
+            background: linear-gradient(to right, #60a5fa 0%, #0061ff 100%); 
+            border-radius: 0px !important; 
+            position: relative; overflow: hidden; height: 180px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            box-shadow: 0 10px 25px rgba(0, 97, 255, 0.15);
+        }
+        .hero-box::after {
+            content: ''; position: absolute; right: -25px; top: 0; width: 45%; height: 100%;
+            background-color: #0055ff; border-radius: 100% 0 0 100%; z-index: 1;
+        }
+
+        /* BUBBLES (BULBULY) */
+        .bubble { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.15); z-index: 2; }
+        .b1 { width: 15px; height: 15px; right: 85px; bottom: 35px; border: 1px solid rgba(255,255,255,0.3); }
+        .b2 { width: 9px; height: 9px; right: 125px; bottom: 55px; }
+        .b3 { width: 45px; height: 45px; right: 15px; bottom: -15px; border: 2px solid rgba(255,255,255,0.1); }
+
+        .balance-sub-box {
+            border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 8px; padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.12); display: inline-flex; flex-direction: column; z-index: 10;
+        }
+
+        .marquee-container { background-color: #0000ff; color: white; height: 28px; display: flex; align-items: center; overflow: hidden; }
+        
+        .grid-btn { background-color: #0061ff; color: white; padding: 12px 0; border-radius: 4px; font-size: 13px; text-align: center; font-weight: 400; text-transform: uppercase; }
+
+        .summary-item { background: white; border: 1px solid #edf2f7; padding: 14px; border-radius: 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+        .dark .summary-item { background: #1e293b; border-color: #334155; }
+
+        #sidebar { transition: transform 0.3s ease; }
+        .sidebar-open #sidebar { transform: translateX(0); }
+        #tidio-chat-iframe { left: 10px !important; right: auto !important; bottom: 10px !important; }
+        #toast { visibility: hidden; min-width: 250px; background: #1f2937; color: #fff; text-align: center; border-radius: 12px; padding: 14px; position: fixed; z-index: 200; left: 50%; bottom: 30px; transform: translateX(-50%); font-weight: 600; }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+    </style>
+
+    <script>
+        const _0x4a21 = ["QUl6YVN5Q1Z0MFpGb1UyNkRhLWpqQ1FFRXVFRjNBekRBUzMyLVB3","b3RwYnl3YXNpLmZpcmViYXNlYXBwLmNvbQ==","aHR0cHM6Ly9vdHBieXdhc2ktZGVmYXVsdC1ydGRiLmZpcmViYXNlbW8uY29t","b3RwYnl3YXNp","b3RwYnl3YXNpLmZpcmViYXNlc3RvcmFnZS5hcHA=","MTE2OTI1MjI5Ng==","MToxMTY5MjUyMjk2OndlYjo3MzJjMWYwOGY2YjZlZDcwMzNlYWZk"];
+        const firebaseConfig = { apiKey: atob(_0x4a21[0]), authDomain: atob(_0x4a21[1]), databaseURL: atob(_0x4a21[2]), projectId: atob(_0x4a21[3]), storageBucket: atob(_0x4a21[4]), messagingSenderId: atob(_0x4a21[5]), appId: atob(_0x4a21[6]) };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(), auth = firebase.auth();
+
+        auth.onAuthStateChanged((user) => {
+            if (!user) { window.location.replace("auth"); }
+            else {
+                document.documentElement.style.display = "block";
+                const fallback = user.email.split('@')[0].toUpperCase();
+                document.getElementById('user-name-display').innerText = fallback;
+                fetchUserData(user.uid, fallback);
+                fetchRecentTransactions(user.uid);
+            }
+        });
+    </script>
+</head>
+<body class="min-h-screen pb-10">
+
+    <div id="toast">Message</div>
+
+    <nav class="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-4 py-3 sticky top-0 z-50 shadow-sm flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <button onclick="toggleSidebar()" class="w-9 h-9 bg-gray-100 dark:bg-slate-800 rounded flex items-center justify-center text-gray-500"><i class="fas fa-bars"></i></button>
+            <span class="text-[17px] font-bold text-primary uppercase font-brand">WASI OTP</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="toggleTheme()" class="w-10 h-10 flex items-center justify-center text-gray-400 dark:text-yellow-400 text-lg"><i id="theme-icon" class="fas fa-moon"></i></button>
+            <div class="bg-indigo-600 text-white px-3 py-1 rounded font-bold text-[12px] hidden sm:block uppercase italic">PKR</div>
+            <div class="border border-gray-300 dark:border-slate-700 rounded-full px-4 py-1.5 flex items-center gap-1 bg-white dark:bg-slate-800 shadow-sm">
+                <span id="top-balance" class="text-[14px] font-bold">0.00</span> 
+                <span class="text-[10px] font-bold text-gray-400">PKR</span>
+            </div>
+            <img src="0d3b68a111a3a08a5f8996e83aeeeba2.jpg" class="w-10 h-10 rounded-full border-2 border-primary object-cover">
+        </div>
+    </nav>
+
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/40 z-[60] hidden"></div>
+    <aside id="sidebar" class="fixed top-0 left-0 h-full w-72 bg-white dark:bg-slate-900 z-[70] -translate-x-full border-r border-gray-200 dark:border-slate-800 p-6 shadow-2xl transition-transform overflow-y-auto">
+        <h2 class="text-2xl font-black text-primary mb-10 font-brand uppercase tracking-tighter italic">WASI OTP</h2>
+        <nav class="space-y-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">
+            <a href="user" class="block p-2 text-primary font-bold"><i class="fas fa-home mr-2 w-5"></i> Dashboard</a>
+            <a href="server1" class="block p-2"><i class="fas fa-server mr-2 w-5"></i> Server 1</a>
+            <a href="server3" class="block p-2 text-red-500"><i class="fas fa-bolt mr-2 w-5"></i> Server 3</a>
+            <a href="server4" class="block p-2 text-cyan-500"><i class="fas fa-microchip mr-2 w-5"></i> Server 4</a>
+            <a href="deposit" class="block p-2 text-green-500"><i class="fas fa-wallet mr-2 w-5"></i> Recharge Balance</a>
+            <a href="history" class="block p-2"><i class="fas fa-history mr-2 w-5"></i> History</a>
+            <a href="howtouse" class="block p-2"><i class="fas fa-play-circle mr-2 w-5"></i> Tutorial</a>
+            <button onclick="auth.signOut()" class="block p-2 text-red-500 w-full text-left font-bold"><i class="fas fa-power-off mr-2 w-5"></i> Logout</button>
+        </nav>
+    </aside>
+
+    <main class="container mx-auto px-4 py-6 max-w-2xl">
+        <div class="hero-box p-8 text-white mb-6 shadow-xl">
+            <!-- Bubbles Re-added -->
+            <div class="bubble b1"></div><div class="bubble b2"></div><div class="bubble b3"></div>
+            
+            <div class="flex justify-between items-start z-10 relative">
+                <span class="text-[18px] font-normal tracking-wide">Welcome:</span>
+                <span id="user-name-display" class="text-[18px] font-bold tracking-tight uppercase italic">...</span>
+            </div>
+            
+            <div class="flex items-end z-10 relative">
+                <div class="balance-sub-box">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 border border-white/40 rounded flex items-center justify-center mr-2"><i class="fas fa-plus text-[9px]"></i></div>
+                        <span class="text-[15px] font-normal uppercase tracking-widest leading-none">Balance</span>
+                    </div>
+                    <span class="text-[24px] font-bold mt-1 leading-none">Rs <span id="user-balance-display">0.00</span> PKR</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Marquee Fix -->
+        <div class="marquee-container rounded mb-8 shadow-sm">
+            <marquee behavior="scroll" direction="left" scrollamount="6" class="w-full">
+                USE OUR WEBSITE IF YOU AGREE WITH OUR TERMS. [ REGARDS: TEAM WASI-OTP ] — FASTEST DELIVERY IN PAKISTAN — 24/7 SUPPORT
+            </marquee>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mb-10">
+            <a href="server1" class="grid-btn italic">Server 1</a>
+            <a href="server3" class="grid-btn italic">Server 3</a>
+            <a href="server4" class="grid-btn italic">Server 4</a>
+            <a href="deposit" class="grid-btn italic">Recharge Balance</a>
+            <a href="history" class="grid-btn italic">Numbers History</a>
+            <button onclick="claimDailyReward()" class="grid-btn italic">Daily Free Rs 1</button>
+            <a href="promo" class="grid-btn italic">Promo Code</a>
+            <a href="howtouse" class="grid-btn italic">How To Use</a>
+        </div>
+
+        <h4 class="text-[14px] font-bold mb-4 uppercase tracking-widest text-slate-400">Account Summary</h4>
+        <div class="space-y-2 mb-10 text-slate-700 dark:text-gray-300">
+            <div class="summary-item shadow-sm">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-purple-50 dark:bg-purple-900/20 text-purple-600 rounded flex items-center justify-center text-lg"><i class="fas fa-shopping-bag"></i></div>
+                    <div><p class="text-[11px] text-gray-400 font-bold uppercase">Lifetime Recharged</p><p class="text-[14px] font-bold">Rs <span id="sum-recharged">0.00</span></p></div>
+                </div>
+            </div>
+            <div class="summary-item shadow-sm border-l-4 border-l-primary">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded flex items-center justify-center text-lg"><i class="fas fa-wallet"></i></div>
+                    <div><p class="text-[11px] text-gray-400 font-bold uppercase">Current Balance</p><p class="text-[14px] font-bold text-primary">Rs <span id="sum-balance">0.00</span></p></div>
+                </div>
+            </div>
+            <div class="summary-item shadow-sm">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 rounded flex items-center justify-center text-lg"><i class="fas fa-tags"></i></div>
+                    <div><p class="text-[11px] text-gray-400 font-bold uppercase">Total Purchased Numbers</p><p id="sum-bought" class="text-[14px] font-bold">0</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border dark:border-slate-800">
+            <h3 class="text-[17px] font-black italic uppercase tracking-tighter mb-6">Recent Transactions</h3>
+            <div class="overflow-x-auto text-[12px]">
+                <table class="w-full text-left divide-y divide-gray-50 dark:divide-slate-800">
+                    <tbody id="transaction-body">
+                        <tr><td colspan="3" class="py-10 text-center opacity-30 italic font-bold">No Records Found</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function fetchUserData(uid, fallback) {
+            db.collection("users").doc(uid).onSnapshot((doc) => {
+                const d = doc.exists ? doc.data() : null;
+                const name = d?.username || d?.name || fallback;
+                const bal = d ? (d.balance || 0).toFixed(2) : "0.00";
+                
+                document.getElementById('user-name-display').innerText = name;
+                document.getElementById('user-balance-display').innerText = bal;
+                document.getElementById('top-balance').innerText = bal;
+                document.getElementById('sum-balance').innerText = bal;
+                document.getElementById('sum-recharged').innerText = (d?.totalRecharged || 0).toFixed(2);
+                document.getElementById('sum-bought').innerText = d?.totalNumbersBought || 0;
+            });
+        }
+
+        async function fetchRecentTransactions(uid) {
+            const tbody = document.getElementById('transaction-body');
+            db.collection("deposits").where("uid", "==", uid).limit(10).onSnapshot(snap => {
+                tbody.innerHTML = snap.empty ? '<tr><td colspan="3" class="py-10 text-center opacity-30 italic font-bold">No History</td></tr>' : "";
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    const sCol = data.status === 'approved' ? 'text-green-500' : 'text-orange-500';
+                    tbody.innerHTML += `<tr><td class="py-4 text-gray-400 italic">Recharge Log</td><td class="py-4 font-bold text-center">Rs ${data.amount || 0}</td><td class="py-4 text-right font-black uppercase ${sCol}">${data.status}</td></tr>`;
+                });
+            });
+        }
+
+        // CRITICAL FIX: Use .set with merge taake error na aye agar user doc na ho
+        async function claimDailyReward() {
+            const user = auth.currentUser;
+            const today = new Date().toISOString().split('T')[0];
+            const userRef = db.collection("users").doc(user.uid);
+            
+            try {
+                const doc = await userRef.get();
+                if (doc.exists && doc.data().lastClaimDate === today) {
+                    showToast("❌ Already Claimed Today!");
+                } else {
+                    await userRef.set({ 
+                        balance: firebase.firestore.FieldValue.increment(1), 
+                        lastClaimDate: today 
+                    }, { merge: true });
+                    showToast("✅ Rs 1.00 Added!");
+                }
+            } catch(e) {
+                console.log(e);
+                showToast("❌ System Error");
+            }
+        }
+
+        function toggleTheme() { document.documentElement.classList.toggle('dark'); localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light'; }
+        if (localStorage.theme === 'dark') document.documentElement.classList.add('dark');
+        function toggleSidebar() { document.body.classList.toggle('sidebar-open'); document.getElementById('sidebar-overlay').classList.toggle('hidden'); }
+        function showToast(msg) { const x = document.getElementById("toast"); x.innerText = msg; x.className = "show"; setTimeout(() => x.className = "", 3000); }
+        window.addEventListener("tidioChat-ready", function() { window.tidioChatApi.setWidgetPosition("left"); });
+    </script>
+</body>
+</html>
