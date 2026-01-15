@@ -3,26 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deposit Funds | WASI OTP</title>
+    <title>Auto Deposit | WASI OTP</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
     <style>
-        body { font-family: 'Public Sans', sans-serif; background-color: #f8f9fa; color: #1e293b; transition: 0.3s; }
-        .dark body { background-color: #0f172a; color: white; }
+        body { font-family: 'Public Sans', sans-serif; background-color: #f8f9fa; transition: 0.3s; }
         .font-brand { font-family: 'Montserrat', sans-serif; }
         
+        /* SHARP SQUARE BOX */
         .hero-box { 
             background: linear-gradient(to right, #60a5fa 0%, #0061ff 100%); 
             border-radius: 0px !important; position: relative; overflow: hidden; height: 160px;
-            display: flex; flex-direction: column; justify-content: center; shadow: 0 10px 25px rgba(0, 97, 255, 0.15);
+            display: flex; flex-direction: column; justify-content: center; box-shadow: 0 10px 25px rgba(0, 97, 255, 0.15);
         }
         .hero-box::after {
             content: ''; position: absolute; right: -25px; top: 0; width: 45%; height: 100%;
@@ -30,45 +29,52 @@
         }
 
         .gateway-card { background: white; border: 1px solid #e2e8f0; border-radius: 0px; overflow: hidden; margin-bottom: 12px; }
-        .dark .gateway-card { background: #1e293b; border-color: #334155; }
-        
-        .form-input { width: 100%; height: 50px; padding: 0 15px; background: white; border: 2px solid #e2e8f0; border-radius: 4px; outline: none; transition: 0.2s; font-weight: 600; color: #1e293b; }
-        .dark .form-input { background: #111827; border-color: #334155; color: white; }
-        .form-input:focus { border-color: #0061ff; }
+        .form-input { width: 100%; height: 50px; padding: 0 15px; background: white; border: 2px solid #e2e8f0; border-radius: 4px; outline: none; transition: 0.2s; font-weight: 600; color: #1e293b; text-align: center; }
+        .form-input:focus { border-color: #0061ff; box-shadow: 0 0 0 4px rgba(0, 97, 255, 0.1); }
+
+        /* Status Animations */
+        .verifying-loader { border: 4px solid #f3f3f3; border-top: 4px solid #0061ff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         #toast { visibility: hidden; min-width: 250px; background: #1f2937; color: #fff; text-align: center; border-radius: 12px; padding: 14px; position: fixed; z-index: 200; left: 50%; bottom: 30px; transform: translateX(-50%); font-weight: 600; }
         #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
-        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
     </style>
 </head>
 <body class="min-h-screen pb-20">
 
     <div id="toast">Message</div>
 
-    <!-- SUCCESS POPUP (Show when deposit is auto-approved) -->
-    <div id="success-popup" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[150] hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-sm p-10 text-center border-t-8 border-green-500 shadow-2xl">
-            <div class="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">
-                <i class="fas fa-check"></i>
-            </div>
-            <h3 class="text-2xl font-black font-brand uppercase italic text-slate-800 dark:text-white">Deposit Added!</h3>
-            <p class="text-slate-500 dark:text-gray-400 text-sm mb-8 font-semibold">Your funds have been successfully verified and added to your wallet.</p>
-            <button onclick="location.href='user'" class="w-full bg-green-600 text-white py-4 font-black text-xs uppercase shadow-xl transition-all active:scale-95">Go to Dashboard</button>
+    <!-- 1. AUTO VERIFICATION SCREEN (Hidden by default) -->
+    <div id="verification-overlay" class="fixed inset-0 bg-white z-[200] hidden flex flex-col items-center justify-center p-6 text-center">
+        <div class="verifying-loader mb-6"></div>
+        <h2 class="text-2xl font-black font-brand uppercase italic text-slate-800">Verifying Payment</h2>
+        <p class="text-slate-500 mt-2 max-w-xs">System is matching your TRX ID with our bank records. This usually takes 10-30 seconds. <br><strong>Do not close this page.</strong></p>
+        
+        <div class="mt-10 p-4 bg-blue-50 border border-blue-100 rounded-xl w-full max-w-xs">
+            <p class="text-[10px] font-black text-blue-400 uppercase mb-1">Checking ID</p>
+            <p id="checking-trx" class="font-mono font-bold text-lg text-blue-700">---</p>
         </div>
     </div>
 
-    <!-- Top Navbar -->
-    <nav class="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-4 py-3 sticky top-0 z-50 flex justify-between items-center shadow-sm">
-        <div class="flex items-center gap-4">
-            <a href="user" class="w-9 h-9 bg-gray-50 dark:bg-slate-800 rounded flex items-center justify-center text-gray-500"><i class="fas fa-arrow-left"></i></a>
-            <span class="text-[17px] font-bold text-primary uppercase font-brand tracking-tighter italic">RECHARGE WALLET</span>
+    <!-- 2. SUCCESS SCREEN (Hidden by default) -->
+    <div id="success-screen" class="fixed inset-0 bg-white z-[300] hidden flex flex-col items-center justify-center p-6 text-center">
+        <div class="w-24 h-24 bg-green-100 text-green-500 rounded-full flex items-center justify-center text-5xl mb-6 shadow-lg shadow-green-100 animate-bounce">
+            <i class="fas fa-check"></i>
         </div>
-        <div class="flex items-center gap-2">
-            <div class="border border-gray-300 dark:border-slate-700 rounded-full px-4 py-1.5 flex items-center gap-1.5 bg-white dark:bg-slate-800 shadow-sm">
-                <span id="top-balance" class="text-[14px] font-bold text-slate-800 dark:text-white">0.00</span> 
-                <span class="text-[10px] font-bold text-gray-400 uppercase">PKR</span>
-            </div>
+        <h2 class="text-3xl font-black font-brand uppercase italic text-slate-800">Deposit Success!</h2>
+        <p class="text-slate-500 mt-2 mb-10">Your balance has been added automatically.</p>
+        <button onclick="location.href='user'" class="w-full max-w-xs bg-green-600 text-white py-5 rounded-none font-black uppercase tracking-widest shadow-xl shadow-green-100">Go to Dashboard</button>
+    </div>
+
+    <!-- MAIN PAGE CONTENT -->
+    <nav class="bg-white border-b border-gray-100 sticky top-0 z-50 px-4 py-3 flex justify-between items-center shadow-sm">
+        <div class="flex items-center gap-4">
+            <a href="user" class="w-9 h-9 bg-gray-50 rounded flex items-center justify-center text-gray-500"><i class="fas fa-arrow-left"></i></a>
+            <span class="text-[17px] font-bold text-primary uppercase font-brand italic tracking-tighter">Auto Recharge</span>
+        </div>
+        <div class="bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full font-black text-sm border border-indigo-100">
+            <span id="top-balance">0.00</span> <span class="text-[9px]">PKR</span>
         </div>
     </nav>
 
@@ -76,44 +82,32 @@
         
         <!-- Hero Box -->
         <div class="hero-box p-8 text-white mb-8 shadow-xl">
-            <h1 class="text-2xl font-black italic uppercase tracking-tighter">Add Balance</h1>
-            <p class="text-sm font-bold opacity-80 mb-2">Instant Automatic Deposit</p>
+            <h1 class="text-2xl font-black italic uppercase tracking-tighter">Auto Deposit</h1>
+            <p class="text-sm font-bold opacity-80 mb-2">No Manual Approval Needed</p>
             <div class="bg-white/20 border border-white/20 px-3 py-1.5 rounded text-[10px] uppercase font-black tracking-widest inline-flex items-center gap-2">
-                <i class="fas fa-info-circle text-yellow-300"></i> Min Deposit: Rs 50.00
+                <i class="fas fa-bolt text-yellow-300 animate-pulse"></i> Instant Verification
             </div>
         </div>
 
-        <!-- Payment Gateways (Fetched from Admin) -->
+        <!-- Payment Methods -->
+        <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 ml-1">1. Send Payment</h3>
         <div id="gateways-list" class="space-y-3 mb-10">
-            <div class="text-center py-10 opacity-20"><i class="fas fa-spinner animate-spin text-3xl text-primary"></i></div>
+            <!-- Loaded from Admin -->
         </div>
 
-        <!-- Automated Submission Form -->
-        <div class="bg-white dark:bg-slate-900 p-8 rounded-none border border-gray-100 dark:border-slate-800 shadow-sm">
-            <div class="flex items-center gap-2 mb-8">
-                <div class="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
-                <h2 class="text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Instant Verification Form</h2>
-            </div>
-            
-            <div class="space-y-6">
-                <div>
-                    <label class="text-[11px] font-black text-slate-600 dark:text-gray-400 uppercase mb-2 ml-1 tracking-widest block">Recharge Amount (PKR)</label>
-                    <input type="number" id="deposit-amount" placeholder="e.g. 500" class="form-input text-lg">
-                </div>
-                <div>
-                    <label class="text-[11px] font-black text-slate-600 dark:text-gray-400 uppercase mb-2 ml-1 tracking-widest block">Transaction ID (TRX ID)</label>
-                    <input type="text" id="trx-id" placeholder="Enter Transaction ID" class="form-input font-mono">
-                </div>
+        <!-- Submit Form -->
+        <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 ml-1">2. Verify Transaction</h3>
+        <div class="bg-white p-8 rounded-none border border-gray-100 shadow-sm">
+            <div class="space-y-6 text-center">
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Enter the TRX ID from your app/notification</p>
                 
-                <button onclick="submitDeposit()" id="submit-btn" class="w-full bg-[#0061ff] hover:bg-[#0044cc] text-white font-black py-4 rounded-none shadow-xl active:scale-95 transition-all text-[13px] uppercase tracking-widest italic">
-                    Submit TRX ID
+                <input type="text" id="trx-id" placeholder="8 to 11 Digit ID" class="form-input text-xl tracking-[0.3em] font-black uppercase">
+                
+                <button onclick="startAutoVerify()" id="submit-btn" class="w-full bg-[#0061ff] hover:bg-[#0044cc] text-white font-black py-4 rounded-none shadow-xl active:scale-95 transition-all text-[13px] uppercase tracking-widest italic">
+                    Verify My Deposit
                 </button>
             </div>
         </div>
-
-        <p class="text-center text-slate-400 text-[9px] font-black uppercase mt-12 tracking-[0.3em] opacity-60 italic">
-            System will match your TRX ID automatically.
-        </p>
 
     </main>
 
@@ -125,24 +119,18 @@
 
         let currentUserName = "";
 
-        // AUTH & REAL-TIME WATCHER
         auth.onAuthStateChanged((user) => {
             if (user) {
                 db.collection("users").doc(user.uid).onSnapshot(doc => {
                     if (doc.exists) {
-                        const d = doc.data();
-                        document.getElementById('top-balance').innerText = (d.balance || 0).toFixed(2);
-                        currentUserName = d.username || d.name || user.email.split('@')[0];
+                        document.getElementById('top-balance').innerText = (doc.data().balance || 0).toFixed(2);
+                        currentUserName = doc.data().username || "User";
                     }
                 });
-                // Start watching for this user's approved deposits
-                watchAutoApproval(user.uid);
-            } else {
-                window.location.replace("auth");
-            }
+            } else { window.location.replace("auth"); }
         });
 
-        // 1. LOAD GATEWAYS (Admin Controlled)
+        // LOAD GATEWAYS
         db.collection("gateways").onSnapshot(snap => {
             const cont = document.getElementById('gateways-list');
             cont.innerHTML = "";
@@ -151,75 +139,59 @@
                 cont.innerHTML += `
                     <div class="gateway-card">
                         <div class="p-6 flex items-center gap-5">
-                            <div class="w-14 h-14 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center p-2">
-                                <img src="${g.logo}" class="w-full h-full object-contain">
-                            </div>
+                            <div class="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center p-2"><img src="${g.logo}" class="w-full h-full object-contain"></div>
                             <div class="flex-grow">
-                                <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-0.5">${g.name}</p>
-                                <p class="text-xl font-black font-brand tracking-tighter text-slate-800 dark:text-white italic">${g.number}</p>
-                                <p class="text-[11px] text-slate-500 font-bold uppercase opacity-80">${g.title}</p>
+                                <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest">${g.name}</p>
+                                <p class="text-xl font-black text-slate-800 italic">${g.number}</p>
+                                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${g.title}</p>
                             </div>
-                            <button onclick="copyText('${g.number}')" class="w-11 h-11 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-slate-500 hover:text-primary transition-all">
-                                <i class="fas fa-copy"></i>
-                            </button>
+                            <button onclick="copyText('${g.number}')" class="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 transition-all hover:text-primary"><i class="fas fa-copy"></i></button>
                         </div>
-                        ${g.desc ? `<div class="bg-blue-50/50 dark:bg-slate-800/40 px-6 py-3 border-t dark:border-slate-800"><p class="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold italic"><i class="fas fa-info-circle mr-1"></i> ${g.desc}</p></div>` : ''}
                     </div>
                 `;
             });
         });
 
-        // 2. SUBMIT TRX ID TO SYSTEM
-        async function submitDeposit() {
-            const amt = parseFloat(document.getElementById('deposit-amount').value);
+        // --- THE AUTO DEPOSIT LOGIC ---
+        async function startAutoVerify() {
             const trx = document.getElementById('trx-id').value.trim();
-            
-            if(!amt || !trx) return showToast("⚠️ Enter amount and TRX ID!");
-            if(amt < 50) return showToast("❌ Minimum Rs 50 required!");
+            if(!trx || trx.length < 5) return showToast("⚠️ Invalid TRX ID!");
 
-            const btn = document.getElementById('submit-btn');
-            btn.disabled = true; btn.innerText = "WAITING FOR SYSTEM...";
+            document.getElementById('checking-trx').innerText = trx;
+            document.getElementById('verification-overlay').style.display = "flex";
 
             try {
-                // Add to Firestore - Status PENDING
-                // The mobile app / backend webhook will change this to APPROVED
-                await db.collection("deposits").add({
+                // 1. Create a pending record
+                const depositRef = await db.collection("deposits").add({
                     uid: auth.currentUser.uid,
                     username: currentUserName,
-                    amount: amt,
+                    amount: 0, // Amount will be updated by backend notification parser
                     trx_id: trx,
                     status: "pending",
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                showToast("✅ TRX ID Submitted! Wait 10-30 seconds.");
-            } catch (e) { showToast("❌ Database Error"); }
-            btn.disabled = false; btn.innerText = "Submit Request";
+
+                // 2. Start Real-time Listening for this specific document
+                const unsubscribe = db.collection("deposits").doc(depositRef.id)
+                    .onSnapshot((doc) => {
+                        const data = doc.data();
+                        if (data && data.status === "approved") {
+                            // STOP LISTENING
+                            unsubscribe();
+                            // SHOW SUCCESS
+                            document.getElementById('verification-overlay').style.display = "none";
+                            document.getElementById('success-screen').style.display = "flex";
+                        }
+                    });
+
+            } catch (e) { 
+                document.getElementById('verification-overlay').style.display = "none";
+                showToast("❌ Error connecting to server!"); 
+            }
         }
 
-        // 3. WATCH FOR AUTO APPROVAL (Real-time Success Popup)
-        function watchAutoApproval(uid) {
-            db.collection("deposits")
-              .where("uid", "==", uid)
-              .where("status", "==", "approved")
-              .onSnapshot(snap => {
-                  snap.docChanges().forEach(change => {
-                      if (change.type === "added" || change.type === "modified") {
-                          const id = change.doc.id;
-                          // If this specific deposit was just approved, show popup
-                          if (!localStorage.getItem(`popup_shown_${id}`)) {
-                              document.getElementById('success-popup').classList.remove('hidden');
-                              localStorage.setItem(`popup_shown_${id}`, 'true');
-                          }
-                      }
-                  });
-              });
-        }
-
-        // UI HELPERS
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); document.getElementById('sidebar-overlay').classList.toggle('hidden'); }
-        function toggleTheme() { document.documentElement.classList.toggle('dark'); }
         function showToast(msg) { const x = document.getElementById("toast"); x.innerText = msg; x.className = "show"; setTimeout(() => x.className = "", 3000); }
-        function copyText(val) { navigator.clipboard.writeText(val); showToast("📋 Copied: " + val); }
+        function copyText(val) { navigator.clipboard.writeText(val); showToast("📋 Copied!"); }
     </script>
 </body>
 </html>
