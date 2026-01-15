@@ -179,10 +179,10 @@
                 } else if (res.status === "NOT_FOUND") {
                     showNotification("Payment not Received", "error");
                 } else {
-                    showNotification(res.msg || "System error", "error");
+                    showNotification(res.msg || "Payment not verified try again", "error");
                 }
             } catch (e) {
-                showNotification("Server error, try later", "error");
+                showNotification("Payment not Recived try after 5 minutes", "error");
             }
             btn.disabled = false;
             btn.innerText = "Add Fund";
