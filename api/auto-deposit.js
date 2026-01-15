@@ -16,41 +16,58 @@ export default async function handler(req, res) {
 
     const { text, secret, action, trx_id, amount, uid, username } = req.body;
 
-    // --- 1. USER VERIFICATION ACTION ---
+    // --- 1. ACTION: VERIFY USER TRX (USER DABATA HAI) ---
     if (action === "verify_user_trx") {
         try {
             const payRef = db.collection("received_payments").doc(trx_id);
             const payDoc = await payRef.get();
 
+            // Check A: Payment system mein hai hi nahi
             if (!payDoc.exists) {
-                return res.status(200).json({ status: "NOT_FOUND", msg: "ID not verified by system yet!" });
+                return res.status(200).json({ status: "NOT_FOUND", msg: "Payment record not found. Please wait 1 minute." });
             }
 
             const payData = payDoc.data();
+
+            // Check B: Pehle use ho chuki hai
             if (payData.status === "used") {
-                return res.status(200).json({ status: "USED", msg: "This TRX ID already claimed!" });
+                return res.status(200).json({ status: "USED", msg: "This TRX ID has already been claimed!" });
             }
 
-            // SUCCESS logic
+            // --- VVIP SECURITY: ACTUAL AMOUNT VERIFICATION ---
+            // Hum user ki bheji hui 'amount' ko ignore kar ke asli raqam uthayenge jo bank se aayi
+            const actualBankAmount = Number(payData.amount);
+            const userClaimedAmount = Number(amount);
+
+            // Agar user ne asli raqam se zyada likha hai, toh reject kar do
+            if (userClaimedAmount > actualBankAmount) {
+                return res.status(200).json({ 
+                    status: "MISMATCH", 
+                    msg: `Fraud Detected! You sent Rs ${actualBankAmount} but claimed Rs ${userClaimedAmount}.` 
+                });
+            }
+
+            // SUCCESS: Asli raqam (Bank wali) user ke balance mein add karna
             await db.collection("users").doc(uid).update({
-                balance: admin.firestore.FieldValue.increment(Number(payData.amount)),
-                totalRecharged: admin.firestore.FieldValue.increment(Number(payData.amount))
+                balance: admin.firestore.FieldValue.increment(actualBankAmount),
+                totalRecharged: admin.firestore.FieldValue.increment(actualBankAmount)
             });
 
+            // Mark TRX ID as used
             await payRef.update({ status: "used", usedBy: uid });
             
+            // Add to transaction logs
             await db.collection("deposits").add({
-                uid, username, amount: payData.amount, trx_id, status: "approved", timestamp: new Date()
+                uid, username, amount: actualBankAmount, trx_id, status: "approved", timestamp: new Date()
             });
 
-            return res.status(200).json({ status: "SUCCESS" });
+            return res.status(200).json({ status: "SUCCESS", added: actualBankAmount });
 
         } catch (e) { return res.status(200).json({ status: "ERROR", msg: e.message }); }
     }
 
-    // --- 2. PHONE NOTIFICATION ACTION ---
+    // --- 2. ACTION: PHONE NOTIFICATION (MOBILE BHEJTA HAI) ---
     if (secret === "WASI_SECRET_786" && text) {
-        // Naya Regex jo "Trx ID", "Rs.", aur "Rs" sab ko parh sakay
         const trxMatch = text.match(/(?:ID|TID|Trx ID|Trans ID)[:\s]*(\d{10,12})/i);
         const amountMatch = text.match(/(?:Rs|Amount)[:\s.]*([\d,]+\.?\d*)/i);
 
@@ -58,17 +75,14 @@ export default async function handler(req, res) {
             const tid = trxMatch[1];
             const amt = parseFloat(amountMatch[1].replace(/,/g, ''));
 
-            // Database mein save karna
+            // System mein raqam save karna (Status: unused)
             await db.collection("received_payments").doc(tid).set({
                 amount: amt,
                 status: "unused",
-                timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                raw_text: text
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
             });
-
-            return res.status(200).json({ success: true, parsed_id: tid, parsed_amt: amt });
+            return res.status(200).json({ success: true });
         }
-        return res.status(200).json({ success: false, error: "Regex mismatch", text: text });
     }
 
     res.status(400).json({ error: "Invalid Request" });
