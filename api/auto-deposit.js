@@ -12,55 +12,64 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ error: "Only POST allowed" });
+    if (req.method !== 'POST') return res.status(405).json({ error: "Method not allowed" });
 
     const { text, secret, action, trx_id, amount, uid, username } = req.body;
 
-    // 1. SECRET CHECK
-    if (secret !== "WASI_SECRET_786") {
-        return res.status(200).json({ error: "Wrong Secret Key in App" });
-    }
-
-    try {
-        // --- 2. ACTION: VERIFY USER TRX (Dashboard se jab request aye) ---
-        if (action === "verify_user_trx") {
+    // --- 1. USER VERIFICATION ACTION ---
+    if (action === "verify_user_trx") {
+        try {
             const payRef = db.collection("received_payments").doc(trx_id);
             const payDoc = await payRef.get();
-            if (!payDoc.exists) return res.status(200).json({ status: "NOT_FOUND", msg: "Payment not verified yet!" });
-            const payData = payDoc.data();
-            if (payData.status === "used") return res.status(200).json({ status: "USED", msg: "Already used!" });
 
-            await db.collection("users").doc(uid).update({
-                balance: admin.firestore.FieldValue.increment(payData.amount),
-                totalRecharged: admin.firestore.FieldValue.increment(payData.amount)
-            });
-            await payRef.update({ status: "used", usedBy: uid });
-            await db.collection("deposits").add({ uid, username, amount: payData.amount, trx_id, status: "approved", timestamp: new Date() });
-            return res.status(200).json({ status: "SUCCESS" });
-        }
-
-        // --- 3. ACTION: PHONE NOTIFICATION (SMS Forwarder se aye) ---
-        if (text) {
-            // Regex for Easypaisa Notification
-            const amountMatch = text.match(/Rs\.?\s*([\d,]+\.?\d*)/i);
-            const trxMatch = text.match(/(?:ID|Trans ID|TID|T-ID|ID:)\s*(\d+)/i);
-
-            if (amountMatch && trxMatch) {
-                const amt = parseFloat(amountMatch[1].replace(/,/g, ''));
-                const tid = trxMatch[1];
-
-                await db.collection("received_payments").doc(tid).set({
-                    amount: amt,
-                    status: "unused",
-                    timestamp: admin.firestore.FieldValue.serverTimestamp()
-                });
-                return res.status(200).json({ success: true, msg: "Payment Stored" });
-            } else {
-                return res.status(200).json({ success: false, msg: "Message format not recognized" });
+            if (!payDoc.exists) {
+                return res.status(200).json({ status: "NOT_FOUND", msg: "ID not verified by system yet!" });
             }
-        }
 
-    } catch (error) {
-        return res.status(200).json({ error: error.message });
+            const payData = payDoc.data();
+            if (payData.status === "used") {
+                return res.status(200).json({ status: "USED", msg: "This TRX ID already claimed!" });
+            }
+
+            // SUCCESS logic
+            await db.collection("users").doc(uid).update({
+                balance: admin.firestore.FieldValue.increment(Number(payData.amount)),
+                totalRecharged: admin.firestore.FieldValue.increment(Number(payData.amount))
+            });
+
+            await payRef.update({ status: "used", usedBy: uid });
+            
+            await db.collection("deposits").add({
+                uid, username, amount: payData.amount, trx_id, status: "approved", timestamp: new Date()
+            });
+
+            return res.status(200).json({ status: "SUCCESS" });
+
+        } catch (e) { return res.status(200).json({ status: "ERROR", msg: e.message }); }
     }
-                                                 }
+
+    // --- 2. PHONE NOTIFICATION ACTION ---
+    if (secret === "WASI_SECRET_786" && text) {
+        // Naya Regex jo "Trx ID", "Rs.", aur "Rs" sab ko parh sakay
+        const trxMatch = text.match(/(?:ID|TID|Trx ID|Trans ID)[:\s]*(\d{10,12})/i);
+        const amountMatch = text.match(/(?:Rs|Amount)[:\s.]*([\d,]+\.?\d*)/i);
+
+        if (trxMatch && amountMatch) {
+            const tid = trxMatch[1];
+            const amt = parseFloat(amountMatch[1].replace(/,/g, ''));
+
+            // Database mein save karna
+            await db.collection("received_payments").doc(tid).set({
+                amount: amt,
+                status: "unused",
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                raw_text: text
+            });
+
+            return res.status(200).json({ success: true, parsed_id: tid, parsed_amt: amt });
+        }
+        return res.status(200).json({ success: false, error: "Regex mismatch", text: text });
+    }
+
+    res.status(400).json({ error: "Invalid Request" });
+}
