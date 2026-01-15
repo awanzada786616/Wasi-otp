@@ -2,6 +2,8 @@
   "name": "wasi-otp-backend",
   "version": "1.0.0",
   "dependencies": {
-    "firebase-admin": "^11.0.0"
+    "firebase-admin": "^11.11.1",
+    "protobufjs": "^7.2.4",
+    "google-gax": "^3.6.0"
   }
 }
