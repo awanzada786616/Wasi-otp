@@ -13,49 +13,62 @@ const db = admin.firestore();
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).send("Method Not Allowed");
-    const { text, secret } = req.body;
+    const { text, secret, action, trx_id, amount, uid, username } = req.body;
 
-    if (secret !== "WASI_SECRET_786") return res.status(403).json({ error: "Unauthorized" });
-
-    try {
-        // --- EASYPAISA NOTIFICATION PARSER ---
-        // Is Regex ko behtar kiya gaya hai
+    // --- 1. PHONE NOTIFICATION COMING IN ---
+    if (secret === "WASI_SECRET_786" && text) {
         const amountMatch = text.match(/Rs\.?\s*([\d,]+\.?\d*)/i);
         const trxMatch = text.match(/(?:ID|Trans ID|TID|T-ID|ID:)\s*(\d+)/i);
 
         if (amountMatch && trxMatch) {
-            const amount = parseFloat(amountMatch[1].replace(/,/g, ''));
-            const trxId = trxMatch[1];
+            const amt = parseFloat(amountMatch[1].replace(/,/g, ''));
+            const tid = trxMatch[1];
 
-            // 1. Dhoondna ke kya koi user iss TRX ID ka intezar kar raha hai?
-            const depositRef = db.collection("deposits")
-                                 .where("trx_id", "==", trxId)
-                                 .where("status", "==", "pending")
-                                 .limit(1);
-            
-            const snapshot = await depositRef.get();
-
-            if (!snapshot.empty) {
-                const depositDoc = snapshot.docs[0];
-                const { uid } = depositDoc.data();
-
-                // 2. User ka balance update karna
-                await db.collection("users").doc(uid).update({
-                    balance: admin.firestore.FieldValue.increment(amount),
-                    totalRecharged: admin.firestore.FieldValue.increment(amount)
-                });
-
-                // 3. Status Approved kar dena (TAKE MANUAL NA KARNA PARAY)
-                await db.collection("deposits").doc(depositDoc.id).update({ 
-                    status: "approved",
-                    auto: true
-                });
-
-                return res.status(200).json({ success: true, msg: "Auto Approved" });
-            }
+            // Save to "khufia" list
+            await db.collection("received_payments").doc(tid).set({
+                amount: amt,
+                status: "unused",
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            });
+            return res.status(200).json({ success: true });
         }
-        res.status(200).json({ success: false, msg: "No matching record" });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
     }
+
+    // --- 2. USER VERIFICATION REQUEST (1 SECOND CHECK) ---
+    if (action === "verify_user_trx") {
+        try {
+            const payRef = db.collection("received_payments").doc(trx_id);
+            const payDoc = await payRef.get();
+
+            if (!payDoc.exists) {
+                return res.status(200).json({ status: "NOT_FOUND", msg: "Payment not verified yet!" });
+            }
+
+            const payData = payDoc.data();
+            if (payData.status === "used") {
+                return res.status(200).json({ status: "USED", msg: "This TRX ID is already used!" });
+            }
+
+            if (Number(payData.amount) < Number(amount)) {
+                return res.status(200).json({ status: "MISMATCH", msg: "Amount does not match!" });
+            }
+
+            // SUCCESS LOGIC
+            await db.collection("users").doc(uid).update({
+                balance: admin.firestore.FieldValue.increment(payData.amount),
+                totalRecharged: admin.firestore.FieldValue.increment(payData.amount)
+            });
+
+            await payRef.update({ status: "used", usedBy: uid });
+            
+            await db.collection("deposits").add({
+                uid, username, amount: payData.amount, trx_id, status: "approved", timestamp: new Date()
+            });
+
+            return res.status(200).json({ status: "SUCCESS", amt: payData.amount });
+
+        } catch (e) { return res.status(500).json({ error: e.message }); }
+    }
+
+    res.status(400).send("Bad Request");
 }
