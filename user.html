@@ -254,7 +254,7 @@
                 snap.forEach(doc => {
                     const data = doc.data();
                     const sCol = data.status === 'approved' ? 'text-green-500' : 'text-orange-500';
-                    tbody.innerHTML += `<tr><td class="py-4 text-gray-400 italic">Recharge Log</td><td class="py-4 font-bold text-center">Rs ${data.amount || 0}</td><td class="py-4 text-right font-black uppercase ${sCol}">${data.status}</td></tr>`;
+                    tbody.innerHTML += `<tr><td class="py-4 text-gray-400 italic">Easypaisa to easypaisa auto</td><td class="py-4 font-bold text-center">Rs ${data.amount || 0}</td><td class="py-4 text-right font-black uppercase ${sCol}">${data.status}</td></tr>`;
                 });
             });
         }
