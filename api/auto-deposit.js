@@ -12,29 +12,43 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ error: "Only POST allowed" });
+    if (req.method !== 'POST') return res.status(405).json({ error: "Method not allowed" });
 
     const { text, secret, action, trx_id, amount, uid, username } = req.body;
 
-    // --- 1. USER SIDE VERIFICATION (Instant Check) ---
+    // --- 1. ADMIN LOGGING (For monitoring) ---
+    await db.collection("debug_logs").add({
+        time: new Date(),
+        data: req.body
+    });
+
+    // --- 2. USER VERIFICATION LOGIC ---
     if (action === "verify_user_trx") {
         try {
             const payRef = db.collection("received_payments").doc(trx_id);
             const payDoc = await payRef.get();
-            if (!payDoc.exists) return res.status(200).json({ status: "NOT_FOUND", msg: "Payment ID not found in system." });
-            
-            const payData = payDoc.data();
-            if (payData.status === "used") return res.status(200).json({ status: "USED", msg: "This TRX ID already claimed!" });
-            
-            // Amount Match Check
-            if (Math.abs(parseFloat(payData.amount) - parseFloat(amount)) > 1) {
-                return res.status(200).json({ status: "MISMATCH", msg: `Amount mismatch! System found Rs ${payData.amount}` });
+
+            if (!payDoc.exists) {
+                return res.status(200).json({ status: "NOT_FOUND", msg: "Payment record not found. Try in 30s." });
             }
 
-            // Success: Update User
-            await db.collection("users").doc(uid).update({
-                balance: admin.firestore.FieldValue.increment(Number(payData.amount)),
-                totalRecharged: admin.firestore.FieldValue.increment(Number(payData.amount))
+            const payData = payDoc.data();
+            
+            // Check if already used
+            if (payData.status === "used") {
+                return res.status(200).json({ status: "USED", msg: "This TRX ID is already claimed!" });
+            }
+
+            // Amount Check (Ignoring small decimals)
+            if (Math.abs(parseFloat(payData.amount) - parseFloat(amount)) > 1) {
+                return res.status(200).json({ status: "MISMATCH", msg: `Amount mismatch! System detected Rs ${payData.amount}` });
+            }
+
+            // SUCCESS logic
+            const userRef = db.collection("users").doc(uid);
+            await userRef.update({
+                balance: admin.firestore.increment(Number(payData.amount)),
+                totalRecharged: admin.firestore.increment(Number(payData.amount))
             });
 
             await payRef.update({ status: "used", usedBy: uid });
@@ -44,35 +58,25 @@ export default async function handler(req, res) {
         } catch (e) { return res.status(200).json({ status: "ERROR", msg: e.message }); }
     }
 
-    // --- 2. NOTIFICATION RECEIVER (From Mobile) ---
-    if (text && secret === "WASI_SECRET_786") {
-        // Advanced Matcher: TRX ID ko dhoondna chahe wo kahin bhi ho
-        const trxMatch = text.match(/(?:Trx ID|ID|TID|T-ID|Trans ID)[\s:]*(\d{10,12})/i);
-        
-        // Amount Matcher: Rs ke baad wali raqam
-        const amountMatch = text.match(/(?:Rs|Amount)[\s:.]*([\d,]+\.?\d*)/i);
+    // --- 3. PHONE NOTIFICATION RECEIVER ---
+    if (secret === "WASI_SECRET_786" && text) {
+        // Updated Regex strictly for: "Trx ID 44709592785. You have Received Rs 50.00"
+        const trxMatch = text.match(/Trx ID\s*(\d{10,12})/i);
+        const amountMatch = text.match(/Received Rs\s*([\d,]+\.?\d*)/i);
 
         if (trxMatch && amountMatch) {
             const tid = trxMatch[1];
             const amt = parseFloat(amountMatch[1].replace(/,/g, ''));
 
-            // Save to database
             await db.collection("received_payments").doc(tid).set({
                 amount: amt,
                 status: "unused",
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 raw: text
             });
-            
-            // Debugging ke liye log bhi banayein
-            await db.collection("debug_logs").add({ type: "phone_received", tid: tid, amt: amt, time: new Date() });
-
             return res.status(200).json({ success: true, tid: tid });
-        } else {
-            // Agar match na ho toh error log karen
-            await db.collection("debug_logs").add({ type: "regex_fail", text: text, time: new Date() });
         }
     }
 
     return res.status(200).json({ msg: "OK" });
-}
+        }
