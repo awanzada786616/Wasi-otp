@@ -16,62 +16,49 @@ export default async function handler(req, res) {
 
     const { text, secret, action, trx_id, amount, uid, username } = req.body;
 
-    // --- 1. USER SIDE VERIFICATION (Instant Check) ---
+    // --- 1. USER SIDE VERIFICATION ---
     if (action === "verify_user_trx") {
-        try {
-            const payRef = db.collection("received_payments").doc(trx_id);
-            const payDoc = await payRef.get();
+        const payRef = db.collection("received_payments").doc(trx_id);
+        const payDoc = await payRef.get();
+        if (!payDoc.exists) return res.status(200).json({ status: "NOT_FOUND", msg: "ID not found in system." });
+        const payData = payDoc.data();
+        if (payData.status === "used") return res.status(200).json({ status: "USED", msg: "Already claimed." });
 
-            if (!payDoc.exists) {
-                return res.status(200).json({ status: "NOT_FOUND", msg: "ID not verified by system yet!" });
-            }
-
-            const payData = payDoc.data();
-            if (payData.status === "used") {
-                return res.status(200).json({ status: "USED", msg: "This TRX ID already claimed!" });
-            }
-
-            // SUCCESS - Add Balance
-            await db.collection("users").doc(uid).update({
-                balance: admin.firestore.FieldValue.increment(Number(payData.amount)),
-                totalRecharged: admin.firestore.FieldValue.increment(Number(payData.amount))
-            });
-
-            await payRef.update({ status: "used", usedBy: uid });
-            
-            await db.collection("deposits").add({
-                uid, username, amount: payData.amount, trx_id, status: "approved", timestamp: new Date()
-            });
-
-            return res.status(200).json({ status: "SUCCESS" });
-
-        } catch (e) { return res.status(200).json({ status: "ERROR", msg: e.message }); }
+        await db.collection("users").doc(uid).update({
+            balance: admin.firestore.FieldValue.increment(payData.amount),
+            totalRecharged: admin.firestore.FieldValue.increment(payData.amount)
+        });
+        await payRef.update({ status: "used", usedBy: uid });
+        await db.collection("deposits").add({ uid, username, amount: payData.amount, trx_id, status: "approved", timestamp: new Date() });
+        return res.status(200).json({ status: "SUCCESS" });
     }
 
     // --- 2. MOBILE APP SIDE (Easypaisa Forwarding) ---
-    if (secret === "WASI_SECRET_786" && text) {
-        // EXACT REGEX MATCH FOR YOUR SCREENSHOT
-        // "Trx ID 44709592785. You have Received Rs 50.00"
-        const trxMatch = text.match(/Trx ID\s*(\d{10,12})/i);
-        const amountMatch = text.match(/Rs\s*([\d,]+\.?\d*)/i);
-
-        if (trxMatch && amountMatch) {
-            const tid = trxMatch[1];
-            const amt = parseFloat(amountMatch[1].replace(/,/g, ''));
-
-            // Store in database as 'unused'
-            await db.collection("received_payments").doc(tid).set({
-                amount: amt,
-                status: "unused",
-                timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                raw_text: text
-            });
-
-            return res.status(200).json({ success: true, tid: tid, amt: amt });
-        } else {
-            return res.status(200).json({ success: false, error: "Regex mismatch", text: text });
-        }
+    // Pehle check karen secret sahi hai?
+    if (secret !== "WASI_SECRET_786") {
+        return res.status(400).json({ error: "Wrong secret key provided by app" });
     }
 
-    res.status(400).json({ error: "Invalid Request" });
+    if (!text) {
+        return res.status(400).json({ error: "No notification text received" });
+    }
+
+    // Advanced Regex for Easypaisa Notification
+    const amountMatch = text.match(/Rs\.?\s*([\d,]+\.?\d*)/i);
+    const trxMatch = text.match(/(?:ID|TID|Trans ID|Trx ID|T-ID)[:\s]*(\d{10,12})/i);
+
+    if (amountMatch && trxMatch) {
+        const tid = trxMatch[1];
+        const amt = parseFloat(amountMatch[1].replace(/,/g, ''));
+
+        await db.collection("received_payments").doc(tid).set({
+            amount: amt,
+            status: "unused",
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            raw_text: text
+        });
+        return res.status(200).json({ success: true, tid: tid });
+    } else {
+        return res.status(400).json({ error: "Could not find TRX ID or Amount in text", text: text });
+    }
 }
