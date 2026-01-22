@@ -16,67 +16,62 @@ export default async function handler(req, res) {
 
     const { text, secret, action, trx_id, amount, uid, username } = req.body;
 
-    // --- 1. ADMIN LOGGING (For monitoring) ---
-    await db.collection("debug_logs").add({
-        time: new Date(),
-        data: req.body
-    });
-
-    // --- 2. USER VERIFICATION LOGIC ---
+    // --- 1. USER SIDE VERIFICATION (Instant Check) ---
     if (action === "verify_user_trx") {
         try {
             const payRef = db.collection("received_payments").doc(trx_id);
             const payDoc = await payRef.get();
 
             if (!payDoc.exists) {
-                return res.status(200).json({ status: "NOT_FOUND", msg: "Payment record not found. Try in 30s." });
+                return res.status(200).json({ status: "NOT_FOUND", msg: "ID not verified by system yet!" });
             }
 
             const payData = payDoc.data();
-            
-            // Check if already used
             if (payData.status === "used") {
-                return res.status(200).json({ status: "USED", msg: "This TRX ID is already claimed!" });
+                return res.status(200).json({ status: "USED", msg: "This TRX ID already claimed!" });
             }
 
-            // Amount Check (Ignoring small decimals)
-            if (Math.abs(parseFloat(payData.amount) - parseFloat(amount)) > 1) {
-                return res.status(200).json({ status: "MISMATCH", msg: `Amount mismatch! System detected Rs ${payData.amount}` });
-            }
-
-            // SUCCESS logic
-            const userRef = db.collection("users").doc(uid);
-            await userRef.update({
-                balance: admin.firestore.increment(Number(payData.amount)),
-                totalRecharged: admin.firestore.increment(Number(payData.amount))
+            // SUCCESS - Add Balance
+            await db.collection("users").doc(uid).update({
+                balance: admin.firestore.FieldValue.increment(Number(payData.amount)),
+                totalRecharged: admin.firestore.FieldValue.increment(Number(payData.amount))
             });
 
             await payRef.update({ status: "used", usedBy: uid });
-            await db.collection("deposits").add({ uid, username, amount: payData.amount, trx_id, status: "approved", timestamp: new Date() });
+            
+            await db.collection("deposits").add({
+                uid, username, amount: payData.amount, trx_id, status: "approved", timestamp: new Date()
+            });
 
             return res.status(200).json({ status: "SUCCESS" });
+
         } catch (e) { return res.status(200).json({ status: "ERROR", msg: e.message }); }
     }
 
-    // --- 3. PHONE NOTIFICATION RECEIVER ---
+    // --- 2. MOBILE APP SIDE (Easypaisa Forwarding) ---
     if (secret === "WASI_SECRET_786" && text) {
-        // Updated Regex strictly for: "Trx ID 44709592785. You have Received Rs 50.00"
+        // EXACT REGEX MATCH FOR YOUR SCREENSHOT
+        // "Trx ID 44709592785. You have Received Rs 50.00"
         const trxMatch = text.match(/Trx ID\s*(\d{10,12})/i);
-        const amountMatch = text.match(/Received Rs\s*([\d,]+\.?\d*)/i);
+        const amountMatch = text.match(/Rs\s*([\d,]+\.?\d*)/i);
 
         if (trxMatch && amountMatch) {
             const tid = trxMatch[1];
             const amt = parseFloat(amountMatch[1].replace(/,/g, ''));
 
+            // Store in database as 'unused'
             await db.collection("received_payments").doc(tid).set({
                 amount: amt,
                 status: "unused",
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                raw: text
+                raw_text: text
             });
-            return res.status(200).json({ success: true, tid: tid });
+
+            return res.status(200).json({ success: true, tid: tid, amt: amt });
+        } else {
+            return res.status(200).json({ success: false, error: "Regex mismatch", text: text });
         }
     }
 
-    return res.status(200).json({ msg: "OK" });
-        }
+    res.status(400).json({ error: "Invalid Request" });
+}
