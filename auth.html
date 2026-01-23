@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication | WASI OTP</title>
+    
+    <!-- CSS & Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Supabase Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        body { font-family: 'Public Sans', sans-serif; background-color: #fcfcfd; }
+        
+        /* Compact Card Design */
+        .auth-card { 
+            background: #ffffff; border: 1px solid #f1f5f9; box-shadow: 0 4px 25px rgba(0,0,0,0.03);
+            width: 100%; max-width: 390px; border-radius: 12px; padding: 40px; 
+        }
+
+        label { color: #212529; font-weight: 500; font-size: 14px; margin-bottom: 8px; display: block; }
+        
+        input {
+            width: 100%; height: 45px; padding: 0 15px; border: 1px solid #ced4da;
+            border-radius: 6px; outline: none; font-size: 14px; margin-bottom: 18px;
+            transition: 0.2s; color: #495057;
+        }
+        input:focus { border-color: #050a30; box-shadow: 0 0 0 3px rgba(5, 10, 48, 0.05); }
+
+        /* Navy Button */
+        .navy-btn { 
+            background-color: #050a30; color: white; width: 100%; height: 50px;
+            border-radius: 6px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1px; transition: 0.3s; display: flex; align-items: center;
+            justify-content: center; position: relative;
+        }
+        .navy-btn:hover { background-color: #000; transform: translateY(-1px); }
+        .navy-btn:disabled { opacity: 0.8; cursor: not-allowed; }
+
+        /* Spinner Styling */
+        .spinner {
+            width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite;
+            display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Top Right Notification (Toast) */
+        #toast {
+            position: fixed; top: 20px; right: -400px; z-index: 1000;
+            min-width: 280px; padding: 16px 20px; border-radius: 10px;
+            color: white; font-weight: 600; font-size: 13px;
+            display: flex; align-items: center; gap: 12px;
+            transition: right 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        #toast.show { right: 20px; }
+        .toast-success { background-color: #050a30; border-right: 6px solid #22c55e; }
+        .toast-error { background-color: #050a30; border-right: 6px solid #ef4444; }
+
+        .hidden { display: none; }
+        .footer-link { color: #212529; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .footer-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- TOP RIGHT NOTIFICATION -->
+    <div id="toast">
+        <i id="toast-icon" class="fas"></i>
+        <span id="toast-msg"></span>
+    </div>
+
+    <div class="auth-card">
+        <!-- 1. SIGN IN VIEW -->
+        <div id="signin-view">
+            <h1 class="text-[24px] font-bold text-[#212529] mb-1">Sign In</h1>
+            <p class="text-[#6c757d] text-sm mb-10">Enter your credentials to login</p>
+
+            <div class="space-y-1">
+                <label>Email Address</label>
+                <input type="email" id="l-email" placeholder="Enter Email">
+                
+                <label>Password</label>
+                <input type="password" id="l-pass" placeholder="Enter Password">
+                
+                <button onclick="login()" id="l-btn" class="navy-btn mt-4">
+                    <span id="l-text">SIGN IN</span>
+                    <span class="spinner" id="l-spinner"></span>
+                </button>
+            </div>
+            
+            <p class="mt-8 text-center text-[14px] text-gray-500">
+                Don't have an account? <span onclick="toggleView('up')" class="footer-link">Sign Up</span>
+            </p>
+        </div>
+
+        <!-- 2. SIGN UP VIEW -->
+        <div id="signup-view" class="hidden">
+            <h1 class="text-[24px] font-bold text-[#212529] mb-1">Sign Up</h1>
+            <p class="text-[#6c757d] text-sm mb-10">Create your official account</p>
+
+            <div class="space-y-1">
+                <label>Full Name</label>
+                <input type="text" id="s-name" placeholder="Enter Full Name">
+                
+                <label>Email Address</label>
+                <input type="email" id="s-email" placeholder="Enter Email">
+                
+                <label>Password</label>
+                <input type="password" id="s-pass" placeholder="Min 6 characters">
+                
+                <label>Confirm Password</label>
+                <input type="password" id="s-confirm" placeholder="Repeat Password">
+                
+                <button onclick="signup()" id="s-btn" class="navy-btn mt-4">
+                    <span id="s-text">CREATE ACCOUNT</span>
+                    <span class="spinner" id="s-spinner"></span>
+                </button>
+            </div>
+            
+            <p class="mt-8 text-center text-[14px] text-gray-500">
+                Already have account? <span onclick="toggleView('in')" class="footer-link">Sign In</span>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // --- SUPABASE CONFIG ---
+        const SUPABASE_URL = "https://aljcxnobmmtcfpvdacbo.supabase.co"; // Replace
+        const SUPABASE_KEY = "sb_publishable_xVWCkX7Gl2m0cFUKlSn3pg_liSvnzmg"; // Replace
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // UI Helpers
+        function toggleView(v) {
+            document.getElementById('signin-view').classList.toggle('hidden', v === 'up');
+            document.getElementById('signup-view').classList.toggle('hidden', v === 'in');
+        }
+
+        function notify(msg, type) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const text = document.getElementById('toast-msg');
+
+            text.innerText = msg;
+            toast.className = (type === 'success') ? 'toast-success show' : 'toast-error show';
+            icon.className = (type === 'success') ? 'fas fa-check-circle' : 'fas fa-triangle-exclamation';
+
+            setTimeout(() => { toast.classList.remove('show'); }, 4000);
+        }
+
+        // --- LOGIN LOGIC ---
+        async function login() {
+            const email = document.getElementById('l-email').value.trim();
+            const pass = document.getElementById('l-pass').value;
+            const btn = document.getElementById('l-btn');
+            const txt = document.getElementById('l-text');
+            const spin = document.getElementById('l-spinner');
+
+            if(!email || !pass) return notify("Please fill all fields!", "error");
+
+            // Start Loading
+            btn.disabled = true; txt.classList.add('hidden'); spin.style.display = "block";
+
+            const { data, error } = await _supabase.auth.signInWithPassword({ email: email, password: pass });
+
+            if (error) {
+                notify("Invalid email or password!", "error");
+                btn.disabled = false; txt.classList.remove('hidden'); spin.style.display = "none";
+            } else {
+                notify("Login Successful! Redirecting...", "success");
+                setTimeout(() => { window.location.href = "user"; }, 1500);
+            }
+        }
+
+        // --- SIGNUP LOGIC ---
+        async function signup() {
+    const name = document.getElementById('s-name').value.trim();
+    const email = document.getElementById('s-email').value.trim();
+    const pass = document.getElementById('s-pass').value;
+    const confirm = document.getElementById('s-confirm').value;
+    const btn = document.getElementById('s-btn');
+    const txt = document.getElementById('s-text');
+    const spin = document.getElementById('s-spinner');
+
+    if(!name || !email || !pass) return notify("Please fill all fields!", "error");
+    if(pass.length < 6) return notify("Password too short!", "error");
+    if(pass !== confirm) return notify("Passwords do not match!", "error");
+
+    btn.disabled = true; txt.classList.add('hidden'); spin.style.display = "block";
+
+    const { data, error } = await _supabase.auth.signUp({
+        email: email,
+        password: pass,
+        options: {
+            data: { username: name },
+            // Is line se signup ke baad foran redirect ho jayega
+            emailRedirectTo: window.location.origin + '/user' 
+        }
+    });
+
+    if (error) {
+        notify(error.message, "error");
+        btn.disabled = false; txt.classList.remove('hidden'); spin.style.display = "none";
+    } else {
+        // Agar email confirmation OFF hai, toh user foran login ho chuka hoga
+        notify("Account Created Successfully!", "success");
+        setTimeout(() => { window.location.href = "user.html"; }, 1500);
+    }
+}
+    </script>
+</body>
+</html>
