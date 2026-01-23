@@ -1,64 +1,66 @@
-import admin from 'firebase-admin';
+import { createClient } from '@supabase/supabase-js';
 
-if (!admin.apps.length) {
-    admin.initializeApp({
-        credential: admin.credential.cert({
-            projectId: "otpbywasi",
-            clientEmail: "firebase-adminsdk-fbsvc@otpbywasi.iam.gserviceaccount.com",
-            privateKey: "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDAkvGHITpdJLYl\nHf8zJ5Nwfhs3y+hyEnvp+7B5ejTcubatFfkRHvAXzRLCmTP1V06kB+knztPiOXpS\nzZZuC0D2zz+5CJLuwRYTOw5Tot/9GFF3TiGjMYjtxzqPYlZjKGGgD7I5KsFZKSwZ\nzxuB3/RPGfbd/VOqkQn7/0Z+Y9bi/KXXC0Eiwd6UHwSfFn1vn7dyD2Hcm8suEUg3\noEO+6PIKtd/3Q6j5zhVRgI6uolZyzssP4neFzdHtkQTu9/X0k82nfArkhiyc5hPU\ntOpDJY/PGPp4l2qRxpk5CARyIi0VOwVLamD8a/gvYAKJPDz/fj+9PFA/uAT0Ye/m\nzmvTXOG9AgMBAAECggEAMaMOn3qYnR6T1oBjYc+fKN1QbbLg8NpD111ZMQ6nZod2\nBypFPzz+vNvOrJspseD1s8EYP3sH0WVoWsSENEwxTAzCi5KisOjTJFTSDgvK+WVV\nxk88y2A+v69dME00IC3t8ABru2GCYdWDeQmRuQm9YtA5+iFMeggVjz9O79ATOQFc\n0o7guW1pIAiEe4SmDkVrqs0xOGfv1/LcMBIe5bnxj87b+ELqbDC1hGb37hCYAa6Q\nyuMeGr3DDjF4vwkzZWvxO2WxIhU5v4m2dQdwinxuQuH/hgEISpYE8VFSDcJkkkHU\nwQTEv9KFg1LM166G5X+j9MZnwaUeBHfUhoIRydJpjwKBgQDhK2n1DO11L46Yr6Nc\n1xJOkKsQOlgXZeEcCjWdDJGee9Db0e6Mup8BHVDyv+vK2En2wYA+qu6U5Zu5VAad\nVTn27kKPfciFvPhWhURKi3aktrHiUrzeBbJcWdimjofV2ILJp3YYVxsMBYViNLkE\nl7HalipVn16GIzku1kAPawKtHwKBgQDa8P9ZrKOkqd09hg/wYfFkuYWopn9wKeUM\ng0c4Vc8oT4D9w45uFoG+kh9QFTpvaWi7pIgb3cLRpViwJB+dR12OkSwERDScYjqe\nf0rVrzJ0/YeSeeh8oBvaQWAou6Avegd/zQAR7bK9oDrXNoYD4vmSY/qYS2zBJczd\nL8QC84t5owKBgQCnlTAe+aghd2uhp9bl2gv9/R3TzhiSEXkg7VhJsnkOgwhHEk+A\n3cRJiBAfG0faiG9D/2/7NCytFNZ5cFgb8LpbVaikMvFy19ncSwMwl+uNW4u47esz\nMvo0UYo1LA9c0O9GNiRmqS2wHMvQ83xgNqZgETMg1qP7IWwFt9+lmfc78QKBgQDZ\nDqZJdCOEozcIwLlamu9j6Z2+FtsvCwnevuPD0SagkzmR2+d/8uZMVbefgHw/aiSA\nK10ZK2Dy0Vc8wYNqPQ9ewUP/MtNp2uS8r/w0Hw4J+DQJHr1DmMQkPD4mA+WKTBPV\nOxr/q0VSQ+Ex7gctIUBGRsJxbA1065HQE4PjXSqAuwKBgQCFOqa3r448vibHKSqa\ncb1QVwnxvPXjmeRzsfjZKxWqDpE+QGjnO8usQ0JiyETs70T5w8GX9OFEHWEsyKKP\nL7I4aNN1wpVGBTud1c3jiXHM9NBJ3O20RrQukGkWM9MK8SoS5oOqeCL7ayqv++WB\n3br+IBl788wxZeTAB18d13kU7g==\n-----END PRIVATE KEY-----\n".replace(/\\n/g, '\n')
-        })
-    });
-}
-const db = admin.firestore();
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== 'POST') return res.status(405).send("Method Not Allowed");
 
-    const { text, secret, action, trx_id, amount, uid, username } = req.body;
+  const { text, secret, action, trx_id, amount, uid, username } = req.body;
 
-    // --- 1. USER SIDE VERIFICATION ---
-    if (action === "verify_user_trx") {
-        const payRef = db.collection("received_payments").doc(trx_id);
-        const payDoc = await payRef.get();
-        if (!payDoc.exists) return res.status(200).json({ status: "NOT_FOUND", msg: "ID not found in system." });
-        const payData = payDoc.data();
-        if (payData.status === "used") return res.status(200).json({ status: "USED", msg: "Already claimed." });
+  // --- 1. PHONE NOTIFICATION RECEIVER ---
+  if (secret === "WASI_SECRET_786" && text) {
+    const trxMatch = text.match(/(?:Trx ID|ID|TID|T-ID|Trans ID)[\s:]*(\d{10,12})/i);
+    const amountMatch = text.match(/(?:Rs|Amount)[\s:.]*([\d,]+\.?\d*)/i);
 
-        await db.collection("users").doc(uid).update({
-            balance: admin.firestore.FieldValue.increment(payData.amount),
-            totalRecharged: admin.firestore.FieldValue.increment(payData.amount)
-        });
-        await payRef.update({ status: "used", usedBy: uid });
-        await db.collection("deposits").add({ uid, username, amount: payData.amount, trx_id, status: "approved", timestamp: new Date() });
-        return res.status(200).json({ status: "SUCCESS" });
+    if (trxMatch && amountMatch) {
+      const tid = trxMatch[1];
+      const amt = parseFloat(amountMatch[1].replace(/,/g, ''));
+
+      // Supabase mein save karna
+      const { error } = await supabase.from('received_payments').insert([
+        { trx_id: tid, amount: amt, raw_text: text }
+      ]);
+      
+      return res.status(200).json({ success: !error });
     }
+  }
 
-    // --- 2. MOBILE APP SIDE (Easypaisa Forwarding) ---
-    // Pehle check karen secret sahi hai?
-    if (secret !== "WASI_SECRET_786") {
-        return res.status(400).json({ error: "Wrong secret key provided by app" });
-    }
+  // --- 2. USER VERIFICATION LOGIC (1 SECOND CHECK) ---
+  if (action === "verify_user_trx") {
+    try {
+      // Check if payment exists
+      const { data: payment, error: pError } = await supabase
+        .from('received_payments')
+        .select('*')
+        .eq('trx_id', trx_id)
+        .single();
 
-    if (!text) {
-        return res.status(400).json({ error: "No notification text received" });
-    }
+      if (!payment) return res.json({ status: "NOT_FOUND", msg: "Payment not verified yet!" });
+      if (payment.status === "used") return res.json({ status: "USED", msg: "Already claimed!" });
+      if (Math.abs(payment.amount - amount) > 1) return res.json({ status: "MISMATCH", msg: "Amount mismatch!" });
 
-    // Advanced Regex for Easypaisa Notification
-    const amountMatch = text.match(/Rs\.?\s*([\d,]+\.?\d*)/i);
-    const trxMatch = text.match(/(?:ID|TID|Trans ID|Trx ID|T-ID)[:\s]*(\d{10,12})/i);
+      // Get current user balance
+      const { data: profile } = await supabase.from('profiles').select('balance, total_recharged').eq('id', uid).single();
 
-    if (amountMatch && trxMatch) {
-        const tid = trxMatch[1];
-        const amt = parseFloat(amountMatch[1].replace(/,/g, ''));
+      // UPDATE BALANCE
+      await supabase.from('profiles').update({
+        balance: parseFloat(profile.balance) + parseFloat(payment.amount),
+        total_recharged: parseFloat(profile.total_recharged) + parseFloat(payment.amount)
+      }).eq('id', uid);
 
-        await db.collection("received_payments").doc(tid).set({
-            amount: amt,
-            status: "unused",
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            raw_text: text
-        });
-        return res.status(200).json({ success: true, tid: tid });
-    } else {
-        return res.status(400).json({ error: "Could not find TRX ID or Amount in text", text: text });
-    }
+      // MARK AS USED
+      await supabase.from('received_payments').update({ status: 'used' }).eq('trx_id', trx_id);
+
+      // ADD TO DEPOSITS LOG
+      await supabase.from('deposits').insert([{ uid, username, amount: payment.amount, trx_id, status: 'approved' }]);
+
+      return res.json({ status: "SUCCESS" });
+
+    } catch (e) { return res.status(500).json({ error: e.message }); }
+  }
+
+  res.status(400).send("Bad Request");
 }
