@@ -1,139 +1,160 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Fund | WASI OTP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <!-- Supabase Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
-        body { font-family: 'Public Sans', sans-serif; background-color: #f8f9fa; }
-        .main-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; width: 100%; max-width: 500px; padding: 30px; }
+        /* Head Level Auth Guard */
+        html { display: none; } 
+        body { font-family: 'Public Sans', sans-serif; background-color: #fcfcfd; color: #212529; }
         
-        /* Top Right Toast */
+        /* SHARP SQUARE HERO BOX */
+        .hero-box { 
+            background: linear-gradient(to right, #60a5fa 0%, #0061ff 100%); 
+            border-radius: 0px !important; position: relative; overflow: hidden; height: 160px;
+            display: flex; flex-direction: column; justify-content: center; padding: 0 30px;
+            box-shadow: 0 10px 25px rgba(0, 97, 255, 0.1);
+        }
+        .hero-box::after {
+            content: ''; position: absolute; right: -40px; top: 0; width: 50%; height: 100%;
+            background-color: #0055ff; border-radius: 100% 0 0 100%; z-index: 1;
+        }
+
+        /* Top Right Toast Notification */
         #notification-box {
             position: fixed; top: 20px; right: -400px; z-index: 1000;
-            width: 280px; padding: 15px; border-radius: 10px; color: white;
-            font-weight: 600; font-size: 13px; transition: right 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            width: 300px; padding: 16px; border-radius: 10px; color: white;
+            font-weight: 700; font-size: 13px; transition: right 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: center; gap: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
         #notification-box.show { right: 20px; }
-        .bg-err { background-color: #e53e3e; }
-        .bg-suc { background-color: #38a169; }
+        .bg-err { background-color: #050a30; border-right: 5px solid #ef4444; }
+        .bg-suc { background-color: #050a30; border-right: 5px solid #22c55e; }
 
-        input { width: 100%; height: 45px; padding: 0 15px; border: 1px solid #ced4da; border-radius: 4px; outline: none; font-size: 14px; }
-        input:focus { border-color: #050a30; }
+        input { width: 100%; height: 48px; padding: 0 15px; border: 1.5px solid #ced4da; border-radius: 4px; outline: none; font-size: 15px; transition: 0.2s; font-weight: 600; }
+        input:focus { border-color: #0061ff; }
         
-        .add-fund-btn { background-color: #050a30; color: white; padding: 12px; border-radius: 6px; width: 100%; font-weight: 700; font-size: 14px; transition: 0.3s; text-transform: uppercase; }
-        
-        /* Bottom Marquee Strip */
-        .marquee-strip { position: fixed; bottom: 0; left: 0; width: 100%; background: #0000ff; color: white; height: 30px; display: flex; align-items: center; z-index: 50; }
+        .add-fund-btn { background-color: #050a30; color: white; padding: 14px; border-radius: 6px; width: 100%; font-weight: 800; font-size: 14px; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; }
+        .add-fund-btn:hover { background-color: #000; transform: translateY(-1px); }
+
+        /* Fitted Marquee */
+        .marquee-container { background-color: #0000ff; color: white; height: 28px; display: flex; align-items: center; overflow: hidden; position: fixed; bottom: 0; width: 100%; z-index: 100; }
+        .marquee-text { white-space: nowrap; display: inline-block; padding-left: 100%; animation: marquee-run 25s linear infinite; font-size: 11px; font-weight: 700; }
+        @keyframes marquee-run { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
     </style>
 </head>
-<body class="flex flex-col items-center pt-10 px-4 pb-20">
+<body class="min-h-screen pt-4 pb-20">
 
-    <!-- Top Right Corner Notification -->
+    <!-- Notification Bar -->
     <div id="notification-box">
         <i id="notif-icon" class="fas"></i>
         <span id="notif-text"></span>
     </div>
 
-    <!-- Top Info Bar -->
-    <div class="w-full max-w-[500px] bg-white border border-slate-200 rounded-lg p-3 flex justify-between items-center mb-6 shadow-sm">
+    <!-- Header / Navbar -->
+    <nav class="w-full max-w-[500px] mx-auto bg-white border border-slate-200 rounded-lg p-3 flex justify-between items-center mb-6 shadow-sm">
         <div class="flex items-center gap-2">
-            <div class="bg-slate-900 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs"><i class="fas fa-bell"></i></div>
-            <p class="text-[11px] font-medium text-slate-600">If You Are Facing Any Problem Please</p>
+            <a href="user" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-slate-500"><i class="fas fa-arrow-left text-xs"></i></a>
+            <p class="text-[12px] font-bold text-slate-700 uppercase italic">Add Funds</p>
         </div>
-        <button class="bg-[#050a30] text-white text-[10px] font-bold px-3 py-1.5 rounded uppercase">Contact Us</button>
-    </div>
+        <div class="flex items-center gap-2">
+             <span id="top-balance" class="text-[14px] font-bold text-blue-600">0.00</span> 
+             <span class="text-[10px] font-black text-gray-400">PKR</span>
+        </div>
+    </nav>
 
-    <!-- Main Deposit Container -->
-    <div class="main-card shadow-sm">
-        <div class="flex items-center gap-3 mb-8">
-            <i class="fas fa-mobile-screen text-slate-400"></i>
-            <div>
-                <h2 class="text-[15px] font-bold text-slate-800">Easypaisa to Easypaisa Auto</h2>
-                <p class="text-[11px] text-gray-400 font-medium">You Can Pay Using Easypaisa to Easypaisa</p>
+    <main class="container mx-auto max-w-[500px]">
+        
+        <!-- Hero Box -->
+        <div class="hero-box text-white mb-8 shadow-xl">
+            <h1 class="text-2xl font-black italic uppercase tracking-tighter z-10 relative">Auto Deposit</h1>
+            <p class="text-sm font-bold opacity-80 z-10 relative">Instant Verification System</p>
+        </div>
+
+        <!-- Instructions Card -->
+        <div class="bg-white border border-slate-200 p-8 rounded-none shadow-sm mb-8 text-center">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQY5o995NZOd7RBuf_3LEVFjN4-pG8dsx2DVg&s" alt="Easypaisa" class="mx-auto w-40 mb-6">
+            
+            <h3 class="text-2xl font-black text-slate-800 mb-4 uppercase italic">Instructions</h3>
+            <div class="space-y-1 text-sm font-bold text-slate-600 mb-6">
+                <p>Minimum payment: 50 Rs</p>
+                <p>Only Easypaisa To Easypaisa Auto</p>
+                <p class="text-red-500 text-[11px] italic mt-2">• Sending from other wallets will cause loss</p>
+            </div>
+
+            <div class="bg-gray-50 p-4 border-2 border-dashed border-gray-200 space-y-1">
+                <p class="text-[15px] font-black text-slate-800">NUMBER: 03175768178</p>
+                <p class="text-[15px] font-black text-slate-800">TITLE: Munir Akhtar</p>
             </div>
         </div>
 
-        <!-- Logo -->
-        <div class="text-center mb-10">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQY5o995NZOd7RBuf_3LEVFjN4-pG8dsx2DVg&s" alt="Easypaisa" class="mx-auto w-48">
-        </div>
-
-        <!-- Instructions -->
-        <div class="text-center space-y-2 mb-10">
-            <h3 class="text-3xl font-black text-slate-800 mb-4">Instructions</h3>
-            <p class="text-[14px] font-medium text-slate-600 leading-tight">Minimum payment: 50 Rs</p>
-            <p class="text-[14px] font-medium text-slate-600 leading-tight">Maximum payment: As much as you want</p>
-            <p class="text-[14px] font-medium text-slate-600 leading-tight">Only Easypaisa To Easypaisa Auto</p>
-            <p class="text-[12px] text-slate-500 italic px-4 leading-relaxed">
-                • If You Will Send from other wallets you will waste your payment by yourself
-            </p>
-            <div class="pt-4 space-y-1">
-                <p class="text-[15px] font-bold text-slate-800 uppercase">Account Number:- 03175768178</p>
-                <p class="text-[15px] font-bold text-slate-800 uppercase">Account Title :- Munir Akhtar</p>
-            </div>
-        </div>
-
-        <!-- Form Inputs -->
-        <div class="space-y-6">
+        <!-- Form -->
+        <div class="bg-white p-8 border border-slate-200 shadow-sm space-y-6">
             <div>
-                <label class="text-[14px] font-bold text-slate-700 block mb-2">Enter Amount (PKR)</label>
-                <input type="number" id="amt-input" placeholder="">
+                <label class="text-[12px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Enter Amount (PKR)</label>
+                <input type="number" id="amt-input" placeholder="e.g. 500">
             </div>
             <div>
-                <label class="text-[14px] font-bold text-slate-700 block mb-2">Transaction ID</label>
-                <input type="text" id="trx-input" placeholder="e.g., 12345678901">
+                <label class="text-[12px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Transaction ID (TRX ID)</label>
+                <input type="text" id="trx-input" placeholder="Paste ID here">
             </div>
-            <button onclick="startAutoVerify()" id="add-fund-btn" class="add-fund-btn shadow-lg">
-                Add Fund
+            <button onclick="startAutoVerify()" id="add-fund-btn" class="add-fund-btn shadow-lg active:scale-95 transition-all">
+                Verify & Add Fund
             </button>
         </div>
-    </div>
+    </main>
 
-    <!-- Bottom Marquee Strip -->
-    <div class="marquee-strip">
-        <marquee behavior="scroll" direction="left" scrollamount="6" class="text-[11px] font-black uppercase tracking-widest px-4">
-            MINIMUM PAYMENT IS 50 PLEASE DON'T SEND LESS MINIMUM WE ARE NOT RESPONSIBLE FOR LOSS
-        </marquee>
+    <!-- Bottom Fitted Marquee -->
+    <div class="marquee-container">
+        <div class="marquee-text">
+            🚨 MINIMUM PAYMENT IS 50 RS — PLEASE DON'T SEND LESS THAN MINIMUM — PAYMENTS ARE VERIFIED AUTOMATICALLY WITHIN 1 SECOND 🚨
+        </div>
     </div>
 
     <script>
-        // FIREBASE CONFIG
-        const firebaseConfig = { apiKey: "AIzaSyCVt0ZFoU26Da-jjCQEEuEF3AzDAS32-Pw", authDomain: "otpbywasi.firebaseapp.com", projectId: "otpbywasi", storageBucket: "otpbywasi.firebasestorage.app", messagingSenderId: "1169252296", appId: "1:1169252296:web:732c1f08f6b6ed7033eafd" };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore(), auth = firebase.auth();
+        // --- SUPABASE CONFIG ---
+        const SUPABASE_URL = "https://aljcxnobmmtcfpvdacbo.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_xVWCkX7Gl2m0cFUKlSn3pg_liSvnzmg";
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        let currentUserId = "";
         let currentUserName = "";
 
-        // Auth Redirect
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                db.collection("users").doc(user.uid).get().then(doc => {
-                    if (doc.exists) currentUserName = doc.data().username || "User";
-                });
-            } else { window.location.href = "auth"; }
-        });
+        // Auth Check
+        async function init() {
+            const { data: { user } } = await _supabase.auth.getUser();
+            if (!user) {
+                window.location.replace("auth");
+            } else {
+                currentUserId = user.id;
+                document.documentElement.style.display = "block";
+                fetchProfile(user.id);
+            }
+        }
 
-        // Top Right Notification Function
+        async function fetchProfile(uid) {
+            const { data } = await _supabase.from('profiles').select('*').eq('id', uid).single();
+            if (data) {
+                document.getElementById('top-balance').innerText = parseFloat(data.balance || 0).toFixed(2);
+                currentUserName = data.username || "User";
+            }
+        }
+
         function showNotification(msg, type) {
             const box = document.getElementById('notification-box');
             const icon = document.getElementById('notif-icon');
             const text = document.getElementById('notif-text');
-
             text.innerText = msg;
             box.className = type === 'success' ? 'bg-suc show' : 'bg-err show';
-            icon.className = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-triangle';
-
+            icon.className = type === 'success' ? 'fas fa-check-circle' : 'fas fa-triangle-exclamation';
             setTimeout(() => { box.classList.remove('show'); }, 4000);
         }
 
@@ -142,21 +163,14 @@
             const amt = document.getElementById('amt-input').value;
             const btn = document.getElementById('add-fund-btn');
 
-            if(!trx || !amt) {
-                showNotification("Please fill all fields", "error");
-                return;
-            }
-
-            if(parseFloat(amt) < 50) {
-                showNotification("Minimum payment is 50 Rs", "error");
-                return;
-            }
+            if(!trx || !amt) return showNotification("Please fill all fields!", "error");
+            if(parseFloat(amt) < 50) return showNotification("Minimum amount is 50 Rs!", "error");
 
             btn.disabled = true;
-            btn.innerText = "Checking...";
+            btn.innerHTML = '<i class="fas fa-spinner animate-spin"></i> Verifying...';
 
             try {
-                // Call the Auto-Deposit API Webhook
+                // Call Vercel Backend
                 const response = await fetch('/api/auto-deposit', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -164,7 +178,7 @@
                         action: "verify_user_trx",
                         trx_id: trx,
                         amount: amt,
-                        uid: auth.currentUser.uid,
+                        uid: currentUserId,
                         username: currentUserName
                     })
                 });
@@ -172,21 +186,25 @@
                 const res = await response.json();
 
                 if (res.status === "SUCCESS") {
-                    showNotification("Payment Verified!", "success");
+                    showNotification("✅ Payment Verified! Balance Added.", "success");
                     setTimeout(() => { window.location.href = "user"; }, 2000);
                 } else if (res.status === "USED") {
-                    showNotification("Transaction ID already used", "error");
+                    showNotification("❌ This TRX ID is already used!", "error");
                 } else if (res.status === "NOT_FOUND") {
-                    showNotification("Payment not Received", "error");
+                    showNotification("❌ Payment not verified yet! Wait 1 min.", "error");
+                } else if (res.status === "MISMATCH") {
+                    showNotification("❌ Amount mismatch! Check Sent Amount.", "error");
                 } else {
-                    showNotification(res.msg || "Payment not verified try again", "error");
+                    showNotification("❌ " + (res.msg || "Error"), "error");
                 }
             } catch (e) {
-                showNotification("Payment not Recived try after 5 minutes", "error");
+                showNotification("❌ Connection error!", "error");
             }
             btn.disabled = false;
-            btn.innerText = "Add Fund";
+            btn.innerText = "Verify & Add Fund";
         }
+
+        window.onload = init;
     </script>
 </body>
 </html>
