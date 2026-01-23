@@ -1,156 +1,155 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Fund | WASI OTP</title>
+    <title>Recharge | WASI OTP</title>
     
     <!-- Scripts & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Supabase Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
-        /* Head Level Security */
+        /* Head Level Auth Guard */
         html { display: none; } 
-        body { font-family: 'Public Sans', sans-serif; transition: all 0.3s ease; background-color: #f8f9fa; color: #1e293b; }
-        .font-brand { font-family: 'Montserrat', sans-serif; }
-        
-        /* SHARP SQUARE HERO BOX */
-        .hero-box { 
-            background: linear-gradient(to right, #60a5fa 0%, #0061ff 100%); 
-            border-radius: 0px !important; position: relative; overflow: hidden; height: 160px;
-            display: flex; flex-direction: column; justify-content: center; padding: 0 30px;
-            box-shadow: 0 10px 25px rgba(0, 97, 255, 0.1);
-        }
-        .hero-box::after {
-            content: ''; position: absolute; right: -40px; top: 0; width: 50%; height: 100%;
-            background-color: #0055ff; border-radius: 100% 0 0 100%; z-index: 1;
+        body { font-family: 'Public Sans', sans-serif; background-color: #f8f9fa; color: #212529; }
+
+        /* Main Card Styling */
+        .recharge-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 480px;
+            padding: 30px;
+            margin-bottom: 20px;
         }
 
-        /* Bubbles */
-        .bubble { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.15); z-index: 2; }
-        .b1 { width: 15px; height: 15px; right: 85px; bottom: 35px; border: 1px solid rgba(255,255,255,0.3); }
-        .b2 { width: 9px; height: 9px; right: 125px; bottom: 55px; }
+        /* Input Match */
+        .form-input {
+            width: 100%;
+            height: 45px;
+            padding: 0 15px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            outline: none;
+            font-size: 14px;
+            transition: 0.2s;
+            background-color: #fff;
+        }
+        .form-input:focus { border-color: #050a30; }
 
-        /* Top Right Toast Notification */
-        #notification-box {
+        /* Navy Button */
+        .navy-btn {
+            background-color: #050a30;
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            width: 100%;
+            font-weight: 600;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+        .navy-btn:hover { background-color: #000; transform: translateY(-1px); }
+
+        /* Top Right Notification */
+        #notif-box {
             position: fixed; top: 20px; right: -400px; z-index: 1000;
-            width: 300px; padding: 16px; border-radius: 10px; color: white;
-            font-weight: 700; font-size: 13px; transition: right 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex; align-items: center; gap: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            min-width: 280px; padding: 16px; border-radius: 8px; color: white;
+            font-weight: 600; font-size: 13px; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
-        #notification-box.show { right: 20px; }
+        #notif-box.show { right: 20px; }
         .bg-err { background-color: #050a30; border-right: 5px solid #ef4444; }
         .bg-suc { background-color: #050a30; border-right: 5px solid #22c55e; }
 
-        /* Form Inputs */
-        input { width: 100%; height: 48px; padding: 0 15px; border: 1.5px solid #ced4da; border-radius: 4px; outline: none; font-size: 15px; transition: 0.2s; font-weight: 600; }
-        input:focus { border-color: #0061ff; }
-        
-        .add-fund-btn { background-color: #050a30; color: white; padding: 14px; border-radius: 6px; width: 100%; font-weight: 800; font-size: 14px; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; }
-        .add-fund-btn:hover { background-color: #000; transform: translateY(-1px); }
-
-        /* Marquee */
-        .marquee-container { background-color: #0000ff; color: white; height: 28px; display: flex; align-items: center; overflow: hidden; position: fixed; bottom: 0; width: 100%; z-index: 100; }
-        .marquee-text { white-space: nowrap; display: inline-block; padding-left: 100%; animation: marquee-run 25s linear infinite; font-size: 11px; font-weight: 700; }
-        @keyframes marquee-run { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
-
-        /* Sidebar Logic */
-        #sidebar { transition: transform 0.3s ease; }
-        .sidebar-open #sidebar { transform: translateX(0); }
+        /* Bottom Marquee */
+        .marquee-container {
+            background-color: #0000ff; color: white; height: 28px;
+            width: 100%; overflow: hidden; position: fixed; bottom: 0; left: 0;
+            display: flex; align-items: center; z-index: 50;
+        }
     </style>
 </head>
-<body class="min-h-screen pb-20">
+<body class="flex flex-col items-center pt-8 px-4 pb-20">
 
     <!-- Notification Bar -->
-    <div id="notification-box">
+    <div id="notif-box">
         <i id="notif-icon" class="fas"></i>
         <span id="notif-text"></span>
     </div>
 
-    <!-- Header Navbar -->
-    <nav class="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-50 shadow-sm flex justify-between items-center max-w-2xl mx-auto md:max-w-5xl rounded-b-lg">
-        <div class="flex items-center gap-4">
-            <button onclick="toggleSidebar()" class="w-9 h-9 bg-gray-50 rounded flex items-center justify-center text-gray-500 shadow-inner"><i class="fas fa-bars"></i></button>
-            <span class="text-[17px] font-bold text-blue-600 font-brand uppercase italic tracking-tighter">Add Balance</span>
-        </div>
+    <!-- Top Info Bar (Screenshot Match) -->
+    <div class="w-full max-w-[480px] bg-white border border-slate-200 rounded-lg p-3 flex justify-between items-center mb-6 shadow-sm">
         <div class="flex items-center gap-2">
-             <span id="top-balance" class="text-[14px] font-bold text-slate-800">0.00</span> 
-             <span class="text-[10px] font-black text-gray-400">PKR</span>
-             <img src="0d3b68a111a3a08a5f8996e83aeeeba2.jpg" class="w-9 h-9 rounded-full border border-blue-600 object-cover ml-2">
+            <div class="bg-slate-900 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-md"><i class="fas fa-bell"></i></div>
+            <p class="text-[11px] font-bold text-slate-600 tracking-tight">If You Are Facing Any Problem Please Contact Us</p>
         </div>
-    </nav>
+        <a href="howtouse" class="bg-[#050a30] text-white text-[10px] font-black px-3 py-1.5 rounded uppercase tracking-widest">Contact Us</a>
+    </div>
 
-    <!-- Sidebar Overlay -->
-    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/40 z-[60] hidden"></div>
-    <aside id="sidebar" class="fixed top-0 left-0 h-full w-72 bg-white z-[70] -translate-x-full border-r border-gray-200 p-6 shadow-2xl transition-transform overflow-y-auto">
-        <h2 class="text-2xl font-black text-blue-600 mb-10 font-brand italic uppercase">WASI OTP</h2>
-        <nav class="space-y-4 font-semibold text-gray-600 text-sm">
-            <a href="user" class="block p-2 hover:text-blue-600"><i class="fas fa-home mr-2 w-5"></i> Dashboard</a>
-            <a href="deposit" class="block p-2 text-blue-600 font-bold border-l-4 border-blue-600 pl-4"><i class="fas fa-wallet mr-2 w-5"></i> Deposit</a>
-            <a href="history" class="block p-2 hover:text-blue-600"><i class="fas fa-history mr-2 w-5"></i> My History</a>
-            <hr class="my-6">
-            <button onclick="logout()" class="block p-2 text-red-500 w-full text-left font-bold"><i class="fas fa-power-off mr-2 w-5"></i> Logout</button>
-        </nav>
-    </aside>
-
-    <main class="container mx-auto max-w-[500px] px-4 py-6">
-        
-        <!-- Hero Box -->
-        <div class="hero-box text-white mb-8 shadow-xl">
-            <div class="bubble b1"></div><div class="bubble b2"></div>
-            <h1 class="text-2xl font-black italic uppercase tracking-tighter z-10 relative">Add Balance</h1>
-            <p class="text-sm font-bold opacity-80 z-10 relative">Automatic Verification System</p>
+    <!-- Main Card -->
+    <div class="recharge-card shadow-sm">
+        <!-- Title Section -->
+        <div class="flex items-center gap-3 mb-8">
+            <div class="text-slate-400 text-xl"><i class="fas fa-arrow-left cursor-pointer" onclick="history.back()"></i></div>
+            <div>
+                <h2 class="text-[15px] font-bold text-slate-800 leading-none mb-1">Easypaisa to Easypaisa Auto</h2>
+                <p class="text-[11px] text-gray-400 font-medium">You Can Pay Using Easypaisa to Easypaisa</p>
+            </div>
         </div>
 
-        <!-- Instructions Card -->
-        <div class="bg-white border border-slate-200 p-8 rounded-none shadow-sm mb-8 text-center">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQY5o995NZOd7RBuf_3LEVFjN4-pG8dsx2DVg&s" alt="Easypaisa" class="mx-auto w-40 mb-6">
-            
-            <h3 class="text-2xl font-black text-slate-800 mb-4 uppercase italic">Instructions</h3>
-            <div class="space-y-1 text-sm font-bold text-slate-600 mb-6 tracking-tight">
+        <!-- Easypaisa Logo -->
+        <div class="text-center mb-10">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQY5o995NZOd7RBuf_3LEVFjN4-pG8dsx2DVg&s" alt="Easypaisa" class="mx-auto w-44 pointer-events-none">
+        </div>
+
+        <!-- Instructions (Exact Screenshot Text) -->
+        <div class="text-center mb-10">
+            <h3 class="text-[28px] font-bold text-slate-800 mb-5">Instructions</h3>
+            <div class="space-y-1.5 text-[14px] font-medium text-slate-600 mb-6">
                 <p>Minimum payment: 50 Rs</p>
+                <p>Maximum payment: As much as you want</p>
                 <p>Only Easypaisa To Easypaisa Auto</p>
-                <p class="text-red-500 text-[11px] italic mt-2 leading-relaxed">• Sending from other wallets or manual bank transfer will waste your payment.</p>
+                <p class="text-[12px] text-slate-500 italic px-6 leading-snug">
+                    • If You Will Send from other wallets or not will send in Easypaisa you will waste your payment by yourself
+                </p>
+            </div>
+            <div class="space-y-1 pt-2">
+                <p class="text-[15px] font-bold text-slate-800 uppercase tracking-tighter">Account Number:- 03175768178</p>
+                <p class="text-[15px] font-bold text-slate-800 uppercase tracking-tighter">Account Title :- Munir Akhtar</p>
             </div>
         </div>
 
-        <!-- GATEWAYS LIST (Loaded from Supabase) -->
-        <div id="gateways-list" class="space-y-4 mb-10">
-            <div class="text-center py-10 opacity-20"><i class="fas fa-circle-notch animate-spin text-3xl text-primary"></i></div>
-        </div>
-
-        <!-- Submission Form -->
-        <div class="bg-white p-8 border border-slate-200 shadow-sm space-y-6 mb-10">
-            <h2 class="text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 italic"><i class="fas fa-file-signature text-blue-600 mr-2"></i>Verify Payment</h2>
-            
+        <!-- Inputs -->
+        <div class="space-y-6">
             <div>
-                <label class="text-[12px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Expected Amount (PKR)</label>
-                <input type="number" id="amt-input" placeholder="Enter raqam (e.g. 500)">
+                <label class="text-[14px] font-bold text-slate-700 block mb-2 tracking-tight">Enter Amount (PKR)</label>
+                <input type="number" id="amt-input" class="form-input" placeholder="">
             </div>
             <div>
-                <label class="text-[12px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Transaction ID (TRX ID)</label>
-                <input type="text" id="trx-input" placeholder="Paste TRX ID from app">
+                <label class="text-[14px] font-bold text-slate-700 block mb-2 tracking-tight">Transaction ID</label>
+                <input type="text" id="trx-input" class="form-input" placeholder="e.g., 12345678901">
             </div>
-            <button onclick="startAutoVerify()" id="add-fund-btn" class="add-fund-btn shadow-lg active:scale-95 transition-all">
-                Verify My Deposit
+            <button onclick="verifyDeposit()" id="verify-btn" class="navy-btn shadow-lg active:scale-95">
+                Add Fund
             </button>
-        </div>
-    </main>
-
-    <!-- Bottom Marquee -->
-    <div class="marquee-container">
-        <div class="marquee-text">
-            🚨 MINIMUM PAYMENT IS 50 RS — PLEASE DON'T SEND LESS THAN MINIMUM — PAYMENTS ARE VERIFIED AUTOMATICALLY WITHIN 1 SECOND 🚨
         </div>
     </div>
 
+    <!-- Bottom Marquee -->
+    <div class="marquee-container">
+        <marquee behavior="scroll" direction="left" scrollamount="6" class="text-[11px] font-black uppercase tracking-widest px-4">
+            MINIMUM PAYMENT IS 50 PLEASE DON'T SEND LESS THEN MINIMUM WE ARE NOT RESPONSIBLE FOR LOSS
+        </marquee>
+    </div>
+
     <script>
-        // --- 1. SUPABASE CONFIG ---
+        // --- CONFIG ---
         const SUPABASE_URL = "https://aljcxnobmmtcfpvdacbo.supabase.co";
         const SUPABASE_KEY = "sb_publishable_xVWCkX7Gl2m0cFUKlSn3pg_liSvnzmg";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -165,80 +164,37 @@
             } else {
                 currentUserId = session.user.id;
                 document.documentElement.style.display = "block";
-                fetchProfile(currentUserId);
-                loadGateways();
+                
+                // Fetch Profile
+                const { data: profile } = await _supabase.from('profiles').select('username').eq('id', currentUserId).single();
+                currentUserName = profile ? profile.username : "User";
             }
         }
 
-        async function fetchProfile(uid) {
-            const { data } = await _supabase.from('profiles').select('*').eq('id', uid).single();
-            if (data) {
-                document.getElementById('top-balance').innerText = parseFloat(data.balance || 0).toFixed(2);
-                currentUserName = data.username || "User";
-            }
-        }
-
-        async function loadGateways() {
-            const { data: gateways } = await _supabase.from('gateways').select('*');
-            const cont = document.getElementById('gateways-list');
-            cont.innerHTML = "";
-            
-            if (!gateways || gateways.length === 0) {
-                cont.innerHTML = "<p class='text-center text-xs opacity-30'>No Methods Active</p>";
-                return;
-            }
-
-            gateways.forEach(g => {
-                cont.innerHTML += `
-                    <div class="bg-white border border-slate-200 shadow-sm overflow-hidden">
-                        <div class="p-6 flex items-center gap-5">
-                            <div class="w-14 h-14 bg-blue-50 rounded-lg flex items-center justify-center p-2 border border-blue-100">
-                                <img src="${g.logo}" class="w-full h-full object-contain">
-                            </div>
-                            <div class="flex-grow">
-                                <p class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-0.5">${g.name}</p>
-                                <p class="text-xl font-black font-brand tracking-tighter text-slate-800 italic">${g.number}</p>
-                                <p class="text-[11px] text-slate-500 font-bold uppercase opacity-80 leading-none">${g.title}</p>
-                            </div>
-                            <button onclick="copyText('${g.number}')" class="w-11 h-11 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500 hover:text-blue-600 transition-all">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
-                        ${g.desc ? `
-                        <div class="bg-blue-50/50 px-6 py-3 border-t border-blue-50">
-                            <p class="text-[10px] text-blue-600 font-bold leading-relaxed italic">
-                                <i class="fas fa-info-circle mr-1"></i> ${g.desc}
-                            </p>
-                        </div>
-                        ` : ''}
-                    </div>
-                `;
-            });
-        }
-
-        function showNotification(msg, type) {
-            const box = document.getElementById('notification-box');
+        function showNotif(msg, type) {
+            const box = document.getElementById('notif-box');
             const icon = document.getElementById('notif-icon');
             const text = document.getElementById('notif-text');
+
             text.innerText = msg;
             box.className = type === 'success' ? 'bg-suc show' : 'bg-err show';
             icon.className = type === 'success' ? 'fas fa-check-circle' : 'fas fa-triangle-exclamation';
+
             setTimeout(() => { box.classList.remove('show'); }, 4000);
         }
 
-        async function startAutoVerify() {
+        async function verifyDeposit() {
             const trx = document.getElementById('trx-input').value.trim();
             const amt = document.getElementById('amt-input').value;
-            const btn = document.getElementById('add-fund-btn');
+            const btn = document.getElementById('verify-btn');
 
-            if(!trx || !amt) return showNotification("TRX ID aur Raqam likhen!", "error");
-            if(parseFloat(amt) < 50) return showNotification("Min 50 PKR required!", "error");
+            if(!trx || !amt) return showNotif("Please fill all fields!", "error");
+            if(parseFloat(amt) < 50) return showNotif("Minimum payment is 50 Rs", "error");
 
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner animate-spin"></i> Checking...';
 
             try {
-                // Post request to Vercel Backend
                 const response = await fetch('/api/auto-deposit', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -248,33 +204,32 @@
                         amount: amt,
                         uid: currentUserId,
                         username: currentUserName,
-                        secret: "WASI_SECRET_786" // Secret matching backend
+                        secret: "WASI_SECRET_786"
                     })
                 });
 
                 const res = await response.json();
 
                 if (res.status === "SUCCESS") {
-                    showNotification("✅ Verified! Balance Added.", "success");
+                    showNotif("✅ Payment Verified! Balance Added.", "success");
                     setTimeout(() => window.location.href = "user", 2000);
+                } else if (res.status === "USED") {
+                    showNotif("❌ Transaction ID already used!", "error");
+                } else if (res.status === "NOT_FOUND") {
+                    showNotif("❌ Payment not verified yet! Wait 1 min.", "error");
+                } else if (res.status === "MISMATCH") {
+                    showNotif("❌ Amount mismatch! Sahi raqam likhen.", "error");
                 } else {
-                    // Handled specific errors (Mismatch, Used, Not Found)
-                    showNotification("❌ " + (res.msg || "Not verified"), "error");
-                    btn.disabled = false;
-                    btn.innerText = "Verify & Add Fund";
+                    showNotif("❌ Verification Failed!", "error");
                 }
             } catch (e) {
-                showNotification("❌ Server connection error!", "error");
-                btn.disabled = false;
-                btn.innerText = "Verify & Add Fund";
+                showNotif("❌ Connection error!", "error");
             }
+            btn.disabled = false;
+            btn.innerText = "Add Fund";
         }
 
-        function toggleSidebar() { document.body.classList.toggle('sidebar-open'); document.getElementById('sidebar-overlay').classList.toggle('hidden'); }
-        function logout() { _supabase.auth.signOut().then(() => window.location.replace("auth")); }
-        function copyText(val) { navigator.clipboard.writeText(val); showNotification("📋 Copied: " + val, "success"); }
-
-        init();
+        window.onload = init;
     </script>
 </body>
-    </html>
+</html>
