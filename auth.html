@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Authentication - WASI OTP</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.8.2/css/all.min.css" />
+    
+    <!-- Supabase Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        body { font-family: 'Nunito', sans-serif; background-color: #f6f8fa; }
+
+        /* Eye Loader Animation */
+        .loader { position: relative; width: 78px; height: 78px; border-radius: 50%; background: #fff; border: 8px solid #131a1d; overflow: hidden; box-sizing: border-box; }
+        .loader::after { content: ''; position: absolute; left: 0; top: -50%; width: 100%; height: 100%; background: #263238; z-index: 5; border-bottom: 8px solid #131a1d; box-sizing: border-box; animation: eyeShade 3s infinite; }
+        .loader::before { content: ''; position: absolute; left: 20px; bottom: 15px; width: 32px; z-index: 2; height: 32px; background: #111; border-radius: 50%; animation: eyeMove 3s infinite; }
+        @keyframes eyeShade { 0%, 100% { transform: translateY(10px) } 20% { transform: translateY(5px) } 40%, 50% { transform: translateY(-5px) } 60% { transform: translateY(-8px) } 75% { transform: translateY(5px) } }
+        @keyframes eyeMove { 0%, 100% { transform: translate(0, 10px) } 20% { transform: translate(0px, 5px) } 40%, 50% { transform: translate(0px, -5px) } 60% { transform: translate(-10px, -5px) } 75% { transform: translate(-20px, 5px) } }
+
+        /* Auth Card Look */
+        .auth-card { background: #ffffff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 420px; padding: 35px; }
+
+        /* Bareek (Slim) Inputs Style */
+        .form-label { color: #3b3f5c; font-weight: 700; font-size: 13px; margin-bottom: 6px; display: block; text-transform: uppercase; }
+        .form-input { width: 100%; height: 38px; padding: 0 12px; border: 1px solid #e0e6ed; border-radius: 6px; outline: none; font-size: 13px; transition: 0.3s; color: #3b3f5c; }
+        .form-input:focus { border-color: #4361ee; box-shadow: 0 0 5px rgba(67, 97, 238, 0.2); }
+
+        /* Navy Button */
+        .btn-navy { background-color: #050a30; color: white; width: 100%; height: 45px; border-radius: 6px; font-weight: 700; text-transform: uppercase; transition: 0.3s; display: flex; align-items: center; justify-content: center; font-size: 13px; border: none; }
+        .btn-navy:hover { background-color: #000; transform: translateY(-1px); }
+
+        /* Toast Styling */
+        #toast { position: fixed; top: 20px; right: -400px; z-index: 9999; min-width: 280px; padding: 15px 20px; border-radius: 8px; color: white; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 10px; transition: 0.5s; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        #toast.show { right: 20px; }
+        .toast-success { background-color: #050a30; border-right: 6px solid #22c55e; }
+        .toast-error { background-color: #050a30; border-right: 6px solid #e7515a; }
+
+        .hidden { display: none; }
+        .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Screen Loader -->
+    <div id="screen-loader" class="fixed inset-0 bg-[#fafafa] z-[60] grid place-content-center transition-opacity duration-500">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast">
+        <i id="toast-icon" class="fas"></i>
+        <span id="toast-msg"></span>
+    </div>
+
+    <div class="auth-card">
+        
+        <!-- LOGIN VIEW -->
+        <div id="login-view">
+            <h2 class="text-2xl font-bold text-[#3b3f5c] mb-2">Sign In</h2>
+            <p class="text-gray-500 text-sm mb-8">Enter your email and password to login</p>
+
+            <div class="mb-5">
+                <label class="form-label">Email</label>
+                <input type="email" id="l-email" class="form-input" placeholder="Enter Email">
+            </div>
+            
+            <div class="mb-5">
+                <label class="form-label">Password</label>
+                <input type="password" id="l-pass" class="form-input" placeholder="Enter Password">
+            </div>
+            
+            <button onclick="login()" id="l-btn" class="btn-navy">
+                <span id="l-text">SIGN IN</span>
+                <div class="spinner" id="l-spinner"></div>
+            </button>
+            
+            <div class="flex justify-center items-center my-6 gap-3">
+                <hr class="w-full border-[#ebedf2]"> <span class="text-xs font-bold text-gray-400">OR</span> <hr class="w-full border-[#ebedf2]">
+            </div>
+            
+            <div class="text-center text-sm">
+                <p class="mb-2">Forgot Password? <span onclick="toggleView('reset')" class="text-blue-600 font-bold cursor-pointer hover:underline">Reset Password</span></p>
+                <p>Don't have an account? <span onclick="toggleView('up')" class="text-blue-600 font-bold cursor-pointer hover:underline">Sign Up</span></p>
+            </div>
+        </div>
+
+        <!-- SIGN UP VIEW -->
+        <div id="signup-view" class="hidden">
+            <h2 class="text-2xl font-bold text-[#3b3f5c] mb-2">Sign Up</h2>
+            <p class="text-gray-500 text-sm mb-8">Create your official WASI OTP account</p>
+
+            <div class="mb-4">
+                <label class="form-label">Full Name</label>
+                <input type="text" id="s-name" class="form-input" placeholder="Enter Name">
+            </div>
+            
+            <div class="mb-4">
+                <label class="form-label">Email</label>
+                <input type="email" id="s-email" class="form-input" placeholder="Enter Email">
+            </div>
+            
+            <div class="mb-4">
+                <label class="form-label">Password</label>
+                <input type="password" id="s-pass" class="form-input" placeholder="Enter Password">
+            </div>
+            
+            <div class="mb-4">
+                <label class="form-label">Confirm Password</label>
+                <input type="password" id="s-confirm" class="form-input" placeholder="Confirm Password">
+            </div>
+
+            <div class="flex items-start gap-2 mb-6">
+                <input type="checkbox" id="terms-check" class="mt-1">
+                <span class="text-[12px] text-gray-600">I have read and agreed with <a href="/term" class="text-red-500 font-bold hover:underline">Terms Policy</a> I will not ask fraudulent dispute</span>
+            </div>
+            
+            <button onclick="signup()" id="s-btn" class="btn-navy">
+                <span id="s-text">CREATE ACCOUNT</span>
+                <div class="spinner" id="s-spinner"></div>
+            </button>
+            
+            <p class="mt-6 text-center text-sm">Already have account? <span onclick="toggleView('in')" class="text-blue-600 font-bold cursor-pointer hover:underline">Sign In</span></p>
+        </div>
+
+        <!-- RESET VIEW -->
+        <div id="reset-view" class="hidden">
+            <h2 class="text-2xl font-bold text-[#3b3f5c] mb-2">Reset Password</h2>
+            <p class="text-gray-500 text-sm mb-8">Enter email for reset link</p>
+
+            <div class="mb-6">
+                <label class="form-label">Email Address</label>
+                <input type="email" id="r-email" class="form-input" placeholder="Enter Registered Email">
+            </div>
+            
+            <button onclick="handleReset()" id="r-btn" class="btn-navy">
+                <span id="r-text">SEND LINK</span>
+                <div class="spinner" id="r-spinner"></div>
+            </button>
+
+            <p class="mt-6 text-center text-sm">Remembered? <span onclick="toggleView('in')" class="text-blue-600 font-bold cursor-pointer hover:underline">Sign In</span></p>
+        </div>
+    </div>
+
+    <script>
+        // Supabase Initialization
+        const SUPABASE_URL = "https://aljcxnobmmtcfpvdacbo.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_xVWCkX7Gl2m0cFUKlSn3pg_liSvnzmg";
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Loader control
+        window.onload = () => {
+            setTimeout(() => {
+                document.getElementById('screen-loader').style.opacity = '0';
+                setTimeout(() => document.getElementById('screen-loader').classList.add('hidden'), 500);
+            }, 1000);
+        };
+
+        function toggleView(v) {
+            document.getElementById('login-view').classList.toggle('hidden', v === 'up' || v === 'reset');
+            document.getElementById('signup-view').classList.toggle('hidden', v !== 'up');
+            document.getElementById('reset-view').classList.toggle('hidden', v !== 'reset');
+        }
+
+        function notify(msg, type) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const text = document.getElementById('toast-msg');
+            text.innerText = msg;
+            toast.className = (type === 'success') ? 'toast-success show' : 'toast-error show';
+            icon.className = (type === 'success') ? 'fas fa-check-circle' : 'fas fa-triangle-exclamation';
+            setTimeout(() => { toast.classList.remove('show'); }, 3500);
+        }
+
+        // --- LOGIN LOGIC ---
+        async function login() {
+            const email = document.getElementById('l-email').value.trim();
+            const pass = document.getElementById('l-pass').value;
+            const btn = document.getElementById('l-btn');
+            const txt = document.getElementById('l-text');
+            const spin = document.getElementById('l-spinner');
+
+            if(!email || !pass) return notify("Please fill all fields!", "error");
+
+            btn.disabled = true; txt.classList.add('hidden'); spin.style.display = "block";
+
+            const { data, error } = await _supabase.auth.signInWithPassword({ email, password: pass });
+
+            if (error) {
+                notify("Invalid email or password!", "error");
+                btn.disabled = false; txt.classList.remove('hidden'); spin.style.display = "none";
+            } else {
+                notify("Login Successful! Redirecting...", "success");
+                setTimeout(() => { window.location.replace("user"); }, 1500);
+            }
+        }
+
+
+        // --- SIGNUP LOGIC ---
+        async function signup() {
+            const name = document.getElementById('s-name').value.trim();
+            const email = document.getElementById('s-email').value.trim();
+            const pass = document.getElementById('s-pass').value;
+            const confirm = document.getElementById('s-confirm').value;
+            const btn = document.getElementById('s-btn');
+            const txt = document.getElementById('s-text');
+            const spin = document.getElementById('s-spinner');
+
+            if(!name || !email || !pass) return notify("Please fill all fields!", "error");
+            if(pass.length < 6) return notify("Password must be 6+ chars!", "error");
+            if(pass !== confirm) return notify("Passwords do not match!", "error");
+
+            btn.disabled = true; txt.classList.add('hidden'); spin.style.display = "block";
+
+            const { data, error } = await _supabase.auth.signUp({
+                email: email,
+                password: pass,
+                options: {
+                    data: { username: name } // This will be used by your SQL trigger
+                }
+            });
+
+            if (error) {
+                notify("Registration failed!", "error");
+                btn.disabled = false; txt.classList.remove('hidden'); spin.style.display = "none";
+            } else {
+                notify("Account Created Successfully!", "success");
+                setTimeout(() => { window.location.replace("user"); }, 1500);
+            }
+        }
+
+
+        // --- RESET LOGIC ---
+        async function handleReset() {
+            const email = document.getElementById('r-email').value.trim();
+            if(!email) return notify("Enter email address!", "error");
+            const { error } = await _supabase.auth.resetPasswordForEmail(email);
+            if(error) notify(error.message, "error");
+            else notify("Reset link sent to your email!", "success");
+        }
+    </script>
+</body>
+</html>
