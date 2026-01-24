@@ -51,15 +51,7 @@
     <!-- Ye button aapke '/auth' ya login page par hoga -->
 <button onclick="userLogin()">Login Now</button>
 
-<script>
-    function userLogin() {
-        // 1. Browser mein token save karein (Is se browser ko yaad rahega ke user login hai)
-        localStorage.setItem("login_token", "true");
 
-        // 2. Phir us page par bhej den jo protect kiya tha
-        window.location.href = "user"; // Yahan wo page likhein jahan user ko jana hai
-    }
-</script>
 
     <!-- Screen Loader -->
     <div id="screen-loader" class="fixed inset-0 bg-[#fafafa] z-[60] grid place-content-center transition-opacity duration-500">
