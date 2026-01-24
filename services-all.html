@@ -19,16 +19,6 @@
     <style>
         body { font-family: 'Public Sans', sans-serif; background-color: #fcfcfd; transition: 0.3s; }
         .dark body { background-color: #0f172a; color: white; }
-        
-        .price-card { transition: all 0.3s ease; }
-        .price-card:hover { transform: translateY(-2px); }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-
-        /* Searchable Dropdown */
         .dropdown-content {
             display: none; position: absolute; width: 100%; max-height: 250px;
             overflow-y: auto; background: white; border: 1px solid #e2e8f0;
@@ -37,14 +27,15 @@
         .dark .dropdown-content { background: #1e293b; border-color: #334155; }
         .dropdown-content.show { display: block; }
         .dropdown-item { padding: 10px 15px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #f1f5f9; }
-        .dark .dropdown-item { border-bottom: 1px solid #334155; }
+        .dark .dropdown-item { border-bottom: 1px solid #334155; color: #cbd5e1; }
         .dropdown-item:hover { background: #f8fafc; color: #0061ff; }
         .dark .dropdown-item:hover { background: #334155; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="min-h-screen">
 
-    <!-- Navbar -->
     <nav class="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-6 py-4 sticky top-0 z-50 flex justify-between items-center">
         <div class="flex items-center gap-3">
             <a href="user" class="text-gray-500 hover:text-primary"><i class="fas fa-arrow-left"></i></a>
@@ -54,20 +45,16 @@
     </nav>
 
     <main class="container mx-auto px-4 py-8 max-w-4xl">
-        
-        <!-- Header Section -->
         <div class="text-center mb-10">
-            <h1 class="text-2xl font-extrabold text-slate-800 dark:text-white uppercase tracking-tighter">Check Service Rates</h1>
-            <p class="text-gray-500 text-sm mt-2 uppercase tracking-widest font-medium italic">Compare prices across all 4 servers</p>
+            <h1 class="text-2xl font-extrabold text-slate-800 dark:text-white uppercase tracking-tighter">Server Rates Comparison</h1>
+            <p class="text-gray-500 text-sm mt-2 uppercase tracking-widest font-medium italic">Real-time prices with 40% profit margin</p>
         </div>
 
-        <!-- Selection Controls -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <!-- Country Dropdown -->
             <div class="relative">
                 <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Select Country</label>
                 <div onclick="toggleDrop()" id="selected-country" class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3.5 rounded-xl flex justify-between items-center cursor-pointer shadow-sm">
-                    <span class="text-sm font-semibold">Loading countries...</span>
+                    <span class="text-sm font-semibold">Select Country</span>
                     <i class="fas fa-chevron-down text-xs opacity-50"></i>
                 </div>
                 <div id="drop-menu" class="dropdown-content mt-2">
@@ -76,23 +63,21 @@
                 </div>
             </div>
 
-            <!-- Global Search -->
             <div class="relative">
-                <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Search Service</label>
+                <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Quick Search Service</label>
                 <div class="relative">
                     <i class="fas fa-search absolute left-4 top-4 text-gray-400 text-xs"></i>
-                    <input type="text" id="service-filter" onkeyup="filterTable()" placeholder="E.g. WhatsApp, Telegram..." class="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3.5 pl-10 rounded-xl text-sm font-semibold shadow-sm outline-none focus:border-primary transition-all">
+                    <input type="text" id="service-filter" onkeyup="filterTable()" placeholder="WhatsApp, Facebook, etc..." class="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3.5 pl-10 rounded-xl text-sm font-semibold shadow-sm outline-none">
                 </div>
             </div>
         </div>
 
-        <!-- Price Table -->
         <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xl">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-slate-800/50 text-[10px] uppercase tracking-widest text-gray-500 font-bold">
-                            <th class="px-6 py-4">Service Name</th>
+                            <th class="px-6 py-4">Service</th>
                             <th class="px-4 py-4 text-center">Server 1</th>
                             <th class="px-4 py-4 text-center">Server 2</th>
                             <th class="px-4 py-4 text-center">Server 3</th>
@@ -100,195 +85,136 @@
                         </tr>
                     </thead>
                     <tbody id="price-table-body" class="divide-y divide-gray-100 dark:divide-slate-800">
-                        <!-- Data will be injected here -->
-                        <tr>
-                            <td colspan="5" class="px-6 py-10 text-center text-gray-400 italic text-sm">Please select a country to see prices</td>
-                        </tr>
+                        <tr><td colspan="5" class="px-6 py-10 text-center text-gray-400 italic text-sm">Select a country to view rates</td></tr>
                     </tbody>
                 </table>
             </div>
-        </div>
-
-        <!-- Note -->
-        <div class="mt-6 flex items-start gap-3 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
-            <i class="fas fa-info-circle text-blue-500 mt-1"></i>
-            <p class="text-[11px] text-blue-700 dark:text-blue-300 leading-relaxed font-medium">
-                Note: Prices are in PKR and include profit margin. These rates are updated in real-time based on server availability. If a server price shows 'N/A', it means the service is currently unavailable on that server for the selected country.
-            </p>
         </div>
     </main>
 
     <script>
         const API_PATH = '/api/otp';
-        const PROFIT = 40; // Aapka profit margin percentage
-        let masterCountries = [];
+        const PROFIT = 40;
 
-        // Theme Logic
+        // Service Mapping to fix "Ginti" and codes
+        const serviceMap = {
+            "wa": "WhatsApp", "tg": "Telegram", "fb": "Facebook", "go": "Google/Gmail",
+            "ig": "Instagram", "tk": "TikTok", "nf": "Netflix", "am": "Amazon",
+            "tw": "Twitter (X)", "ot": "Any Other", "vi": "Viber", "tl": "Telegram",
+            "dr": "Daraz", "yl": "Yalla", "mt": "Mail.ru", "vk": "VKontakte"
+        };
+
         function toggleTheme() {
-            const html = document.documentElement;
+            document.documentElement.classList.toggle('dark');
             const icon = document.getElementById('theme-icon');
-            if (html.classList.contains('dark')) {
-                html.classList.remove('dark');
-                localStorage.theme = 'light';
-                icon.className = 'fas fa-moon';
-            } else {
-                html.classList.add('dark');
-                localStorage.theme = 'dark';
-                icon.className = 'fas fa-sun';
-            }
-        }
-        if (localStorage.theme === 'dark') {
-            document.documentElement.classList.add('dark');
-            document.getElementById('theme-icon').className = 'fas fa-sun';
+            icon.className = document.documentElement.classList.contains('dark') ? 'fas fa-sun' : 'fas fa-moon';
+            localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
         }
 
-        // Dropdown Toggle
-        function toggleDrop() {
-            document.getElementById('drop-menu').classList.toggle('show');
-        }
+        function toggleDrop() { document.getElementById('drop-menu').classList.toggle('show'); }
 
-        // Fetch Countries
         async function fetchCountries() {
             try {
-                // Ham Server 3 se list le rahe hain default countries ki
                 const res = await fetch(`${API_PATH}?action=getCountries&type=3`);
                 const data = await res.json();
-                masterCountries = data["3"] || data["1"] || (Array.isArray(data) ? data : []);
-                
+                const countries = data["3"] || data["1"] || (Array.isArray(data) ? data : []);
                 const list = document.getElementById('country-list');
-                const selectedText = document.getElementById('selected-country').querySelector('span');
-                
                 list.innerHTML = "";
-                selectedText.innerText = "Select a Country";
-
-                masterCountries.forEach(c => {
+                countries.forEach(c => {
                     const d = document.createElement('div');
                     d.className = 'dropdown-item';
                     d.innerText = c.name;
                     d.onclick = () => selectCountry(c.id, c.name);
                     list.appendChild(d);
                 });
-            } catch (e) {
-                console.error(e);
-            }
+            } catch (e) { console.error(e); }
         }
 
-        // Search Countries
-        function filterCountries() {
-            const input = document.getElementById('country-search').value.toUpperCase();
-            const items = document.getElementsByClassName('dropdown-item');
-            for (let i = 0; i < items.length; i++) {
-                let txt = items[i].innerText.toUpperCase();
-                items[i].style.display = txt.includes(input) ? "" : "none";
-            }
-        }
-
-        // Select Country & Load Prices
-        async function selectCountry(cid, cname) {
+        function selectCountry(cid, cname) {
             document.getElementById('selected-country').querySelector('span').innerText = cname;
             toggleDrop();
             loadAllPrices(cid);
         }
 
-        // Load All Server Prices
         async function loadAllPrices(cid) {
             const tbody = document.getElementById('price-table-body');
-            tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center"><i class="fas fa-spinner fa-spin text-primary text-xl"></i><p class="text-xs mt-2 text-gray-400 uppercase font-bold">Fetching Prices...</p></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center"><i class="fas fa-circle-notch fa-spin text-primary"></i></td></tr>`;
 
             try {
-                // 4 servers ke liye fetch call kren ge
-                const fetchS1 = fetch(`${API_PATH}?action=getServices&country=${cid}&type=1`).then(r => r.json()).catch(() => ({}));
-                const fetchS2 = fetch(`${API_PATH}?action=getServices&country=${cid}&type=2`).then(r => r.json()).catch(() => ({}));
-                const fetchS3 = fetch(`${API_PATH}?action=getServices&country=${cid}&type=3`).then(r => r.json()).catch(() => ({}));
-                const fetchS4 = fetch(`${API_PATH}?action=getServices&country=${cid}&type=4`).then(r => r.json()).catch(() => ({}));
+                const results = await Promise.all([
+                    fetch(`${API_PATH}?action=getServices&country=${cid}&type=1`).then(r => r.json()).catch(() => ({})),
+                    fetch(`${API_PATH}?action=getServices&country=${cid}&type=2`).then(r => r.json()).catch(() => ({})),
+                    fetch(`${API_PATH}?action=getServices&country=${cid}&type=3`).then(r => r.json()).catch(() => ({})),
+                    fetch(`${API_PATH}?action=getServices&country=${cid}&type=4`).then(r => r.json()).catch(() => ({}))
+                ]);
 
-                const [s1, s2, s3, s4] = await Promise.all([fetchS1, fetchS2, fetchS3, fetchS4]);
-
-                // Services merge kren ge takey unique list bne
-                const allServiceNames = new Set();
-                const data = { s1: s1["1"] || s1, s2: s2["2"] || s2, s3: s3["3"] || s3, s4: s4["4"] || s4 };
-
-                // Collect all service codes
-                Object.values(data).forEach(serverData => {
-                    if(serverData) Object.keys(serverData).forEach(k => allServiceNames.add(k.toLowerCase()));
+                const data = { s1: results[0]["1"] || results[0], s2: results[1]["2"] || results[1], s3: results[2]["3"] || results[2], s4: results[3]["4"] || results[3] };
+                
+                // Get unique codes
+                const allCodes = new Set();
+                Object.values(data).forEach(sData => {
+                    if(sData && typeof sData === 'object') Object.keys(sData).forEach(k => allCodes.add(k.toLowerCase()));
                 });
 
                 tbody.innerHTML = "";
-                const sortedServices = Array.from(allServiceNames).sort();
-
-                sortedServices.forEach(code => {
-                    const row = document.createElement('tr');
-                    row.className = "hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors";
+                Array.from(allCodes).sort().forEach(code => {
+                    // Logic to get the cleanest name
+                    let displayName = serviceMap[code] || code.toUpperCase();
                     
-                    let s1Price = getPrice(data.s1, code);
-                    let s2Price = getPrice(data.s2, code);
-                    let s3Price = getPrice(data.s3, code);
-                    let s4Price = getPrice(data.s4, code);
+                    // Check if Server 3/4 has a better name in string format
+                    [data.s1, data.s2, data.s3, data.s4].forEach(src => {
+                        if(src && src[code] && typeof src[code] === 'string' && src[code].includes(' - ')) {
+                            let partName = src[code].split(' - ')[0].trim();
+                            if(isNaN(partName)) displayName = partName; // Agar ginti nahi hai toh name use karo
+                        }
+                    });
 
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-all";
                     row.innerHTML = `
-                        <td class="px-6 py-4">
-                            <div class="flex flex-col">
-                                <span class="text-sm font-bold text-slate-700 dark:text-gray-200 uppercase">${code}</span>
-                                <span class="text-[9px] text-gray-400 font-medium">OTP SERVICE</span>
-                            </div>
-                        </td>
-                        <td class="px-4 py-4 text-center font-bold text-xs">${s1Price}</td>
-                        <td class="px-4 py-4 text-center font-bold text-xs">${s2Price}</td>
-                        <td class="px-4 py-4 text-center font-bold text-xs">${s3Price}</td>
-                        <td class="px-4 py-4 text-center font-bold text-xs">${s4Price}</td>
+                        <td class="px-6 py-4 font-bold text-xs dark:text-gray-300 uppercase">${displayName}</td>
+                        <td class="px-4 py-4 text-center">${getPrice(data.s1, code)}</td>
+                        <td class="px-4 py-4 text-center">${getPrice(data.s2, code)}</td>
+                        <td class="px-4 py-4 text-center">${getPrice(data.s3, code)}</td>
+                        <td class="px-4 py-4 text-center">${getPrice(data.s4, code)}</td>
                     `;
                     tbody.appendChild(row);
                 });
-
-            } catch (e) {
-                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-red-500">Error loading data.</td></tr>`;
-            }
+            } catch (e) { tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-red-500">Error!</td></tr>`; }
         }
 
-        // Helper to extract and format price
         function getPrice(source, code) {
-            if (!source) return '<span class="text-gray-300">N/A</span>';
-            
-            // Find key case-insensitive
-            const key = Object.keys(source).find(k => k.toLowerCase() === code);
-            if (!key) return '<span class="text-gray-300">N/A</span>';
-
-            const raw = source[key];
+            if (!source || !source[code]) return '<span class="text-gray-300 dark:text-gray-700">-</span>';
+            const val = source[code];
             let cost = 0;
-
-            if (typeof raw === 'string' && raw.includes(' - ')) {
-                cost = parseFloat(raw.split(' - ')[1].replace(/[^0-9.]/g, ''));
-            } else if (typeof raw === 'object') {
-                cost = parseFloat(raw.cost || raw.price || 0);
+            if (typeof val === 'string' && val.includes(' - ')) {
+                cost = parseFloat(val.split(' - ')[1].replace(/[^0-9.]/g, ''));
+            } else if (typeof val === 'object') {
+                cost = parseFloat(val.cost || val.price || 0);
             } else {
-                cost = parseFloat(raw) || 0;
+                cost = parseFloat(val);
             }
-
-            if (cost === 0) return '<span class="text-gray-300">N/A</span>';
-
-            const final = Math.ceil(cost + (cost * (PROFIT / 100)));
-            return `<span class="text-blue-600 dark:text-blue-400">Rs ${final}</span>`;
+            if (!cost || isNaN(cost)) return '<span class="text-gray-300 dark:text-gray-700">-</span>';
+            return `<span class="text-blue-600 dark:text-blue-400 font-bold text-xs">Rs ${Math.ceil(cost + (cost * (PROFIT / 100)))}</span>`;
         }
 
-        // Table Filtering
         function filterTable() {
             const input = document.getElementById('service-filter').value.toUpperCase();
-            const rows = document.querySelector("#price-table-body").getElementsByTagName("tr");
+            const rows = document.getElementById("price-table-body").rows;
             for (let i = 0; i < rows.length; i++) {
-                const cell = rows[i].getElementsByTagName("td")[0];
-                if (cell) {
-                    const txt = cell.textContent || cell.innerText;
-                    rows[i].style.display = txt.toUpperCase().includes(input) ? "" : "none";
-                }
+                rows[i].style.display = rows[i].cells[0].innerText.toUpperCase().includes(input) ? "" : "none";
             }
         }
 
-        window.onclick = function(event) {
-            if (!event.target.closest('.relative')) {
-                document.getElementById('drop-menu').classList.remove('show');
+        function filterCountries() {
+            const input = document.getElementById('country-search').value.toUpperCase();
+            const items = document.getElementsByClassName('dropdown-item');
+            for (let i = 0; i < items.length; i++) {
+                items[i].style.display = items[i].innerText.toUpperCase().includes(input) ? "" : "none";
             }
         }
 
+        if (localStorage.theme === 'dark') document.documentElement.classList.add('dark');
         fetchCountries();
     </script>
 </body>
