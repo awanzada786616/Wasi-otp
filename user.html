@@ -1,4 +1,12 @@
+<script>
+    // 1. Check karein ke 'login_token' majood hai ya nahi
+    var token = localStorage.getItem("login_token");
 
+    // 2. Agar token nahi mila, to wapis '/auth' par bhej do
+    if (!token) {
+        window.location.href = "/auth.html"; // Yahan apni login file ka naam likhein
+    }
+    // Agar token hai, to page khulne dega
 </script>
 <!DOCTYPE html>
 <html lang="en" class="light">
