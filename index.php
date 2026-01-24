@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Wasi OTP - Support</title>
+
+    <!-- Google Font for Urdu -->
+
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400..700&display=swap" rel="stylesheet">
+
+    
+
+    <style>
+
+        :root {
+
+            --primary-green: #0b5134;
+
+            --marquee-bg: #fff9e6;
+
+            --marquee-text: #856404;
+
+            --chat-bg: #e5ddd5;
+
+        }
+
+        /* Full Page Fix */
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+
+        html, body { height: 100%; width: 100%; overflow: hidden; background: #d1d7db; }
+
+        .app-container {
+
+            width: 100%;
+
+            height: 100%; /* Full screen */
+
+            background: white;
+
+            display: flex;
+
+            flex-direction: column;
+
+            position: relative;
+
+        }
+
+        /* --- Logo Section --- */
+
+        .top-brand-logo {
+
+            padding: 10px;
+
+            background: white;
+
+            display: flex;
+
+            justify-content: center;
+
+            border-bottom: 1px solid #eee;
+
+        }
+
+        .top-brand-logo img { width: 100px; height: auto; }
+
+        .logo-bar {
+
+            background: var(--primary-green);
+
+            padding: 12px 15px;
+
+            color: white;
+
+            font-weight: bold;
+
+            font-size: 18px;
+
+        }
+
+        /* --- Marquee --- */
+
+        .marquee-wrapper {
+
+            background: var(--marquee-bg);
+
+            border-bottom: 1px solid #ffeeba;
+
+            padding: 6px 10px;
+
+        }
+
+        marquee { color: var(--marquee-text); font-size: 14px; font-weight: bold; vertical-align: middle; }
+
+        .hidden { display: none !important; }
+
+        /* --- Login Screen --- */
+
+        #login-screen {
+
+            flex: 1;
+
+            display: flex;
+
+            flex-direction: column;
+
+            justify-content: center;
+
+            align-items: center;
+
+            padding: 20px;
+
+            text-align: center;
+
+        }
+
+        .profile-picker { position: relative; margin-bottom: 15px; }
+
+        .profile-picker img { width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--primary-green); object-fit: cover; }
+
+        .profile-picker label { position: absolute; bottom: 0; right: 0; background: var(--primary-green); color: white; padding: 8px; border-radius: 50%; cursor: pointer; }
+
+        .login-input { width: 80%; padding: 12px 20px; border-radius: 25px; border: 1px solid #ccc; margin-bottom: 5px; text-align: center; font-size: 16px; outline: none; }
+
+        .urdu-note { font-family: 'Noto Nastaliq Urdu', serif; color: var(--primary-green); font-size: 16px; margin-bottom: 20px; direction: rtl; }
+
+        .start-btn { width: 80%; padding: 12px; background: var(--primary-green); color: white; border: none; border-radius: 25px; font-weight: bold; cursor: pointer; }
+
+        /* --- Chat Screen Structure (Fix for Typing Bar disappearing) --- */
+
+        #chat-screen {
+
+            flex: 1;
+
+            display: flex;
+
+            flex-direction: column;
+
+            height: 100%;
+
+            overflow: hidden; /* Prevent full page scroll */
+
+        }
+
+        .chat-header {
+
+            background: #ededed;
+
+            padding: 10px 15px;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            border-bottom: 1px solid #ddd;
+
+            z-index: 10;
+
+        }
+
+        .chat-header img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--primary-green); object-fit: cover; }
+
+        /* Banner Fix */
+
+        #banner-container { width: 100%; height: 120px; background: #eee; overflow: hidden; }
+
+        #banner-container img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Message Box Scroll Fix */
+
+        .message-area {
+
+            flex: 1; /* Occupy remaining space */
+
+            background: var(--chat-bg);
+
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+
+            overflow-y: auto; /* Scroll only messages */
+
+            padding: 15px;
+
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 10px;
+
+        }
+
+        .msg { max-width: 85%; padding: 10px; border-radius: 8px; font-size: 14.5px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); word-wrap: break-word; }
+
+        .msg img { max-width: 200px !important; height: auto !important; border-radius: 5px; display: block; margin-top: 5px; }
+
+        .sent { align-self: flex-end; background: #dcf8c6; border-top-right-radius: 0; }
+
+        .received { align-self: flex-start; background: white; border-top-left-radius: 0; }
+
+        .input-bar {
+
+            padding: 10px;
+
+            background: #f0f0f0;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+            z-index: 10;
+
+            border-top: 1px solid #ddd;
+
+        }
+
+        .input-bar input { flex: 1; padding: 12px 18px; border-radius: 25px; border: none; outline: none; font-size: 15px; }
+
+        .send-btn { background: var(--primary-green); color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; }
+
+        #typing-ui { padding: 5px 15px; font-size: 12px; font-style: italic; background: var(--chat-bg); color: #555; }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="app-container">
+
+    <!-- Top Brand Logo -->
+
+    <div class="top-brand-logo" id="brand-logo-div">
+
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQbAr8H45KHRqBAWGoQHL4GBZkzAi7ioonnFkkRdo2xkcSpGsNzSWqjhUg&s=10" alt="Wasi Logo">
+
+    </div>
+
+    <!-- Green Bar -->
+
+    <div class="logo-bar">WASI OTP</div>
+
+    <!-- Marquee -->
+
+    <div class="marquee-wrapper" id="marquee-box">
+
+        <marquee id="marquee-text" scrollamount="5">Connecting to Wasi Support...</marquee>
+
+    </div>
+
+    <!-- Login Screen -->
+
+    <div id="login-screen">
+
+        <div class="profile-picker">
+
+            <img id="p-preview" src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
+
+            <input type="file" id="p-file" hidden accept="image/*">
+
+            <label for="p-file">📷</label>
+
+        </div>
+
+        <input type="text" id="u-name" class="login-input" placeholder="Your Full Name">
+
+        <p class="urdu-note">یہاں اپنا یوزر نیم ڈالیں</p>
+
+        <button id="start-btn" class="start-btn">Start Chat</button>
+
+    </div>
+
+    <!-- Chat Screen -->
+
+    <div id="chat-screen" class="hidden">
+
+        <div id="banner-container"><img id="b-img" src=""></div>
+
+        
+
+        <div class="chat-header">
+
+            <img id="agent-avatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+
+            <div style="flex:1;">
+
+                <p id="agent-name" style="font-weight:bold; font-size:14px;">Support Center</p>
+
+                <small id="agent-status" style="color: green; font-size: 11px;">Active Now</small>
+
+            </div>
+
+        </div>
+
+        <div id="msg-box" class="message-area"></div>
+
+        
+
+        <div id="typing-ui" class="hidden">Agent is typing...</div>
+
+        <div class="input-bar">
+
+            <label style="cursor:pointer; font-size:20px;">➕<input type="file" id="chat-img" hidden accept="image/*"></label>
+
+            <input type="text" id="m-input" placeholder="Describe your question...">
+
+            <button id="send-btn" class="send-btn">➤</button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<audio id="notif" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
+
+<script type="module">
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, query, orderBy, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+
+        apiKey: "AIzaSyDCWx5jPKtZC2B3yBpvGT73DvLVb2TnnvI",
+
+        authDomain: "wasisupport.firebaseapp.com",
+
+        projectId: "wasisupport",
+
+        storageBucket: "wasisupport.firebasestorage.app",
+
+        messagingSenderId: "478383021828",
+
+        appId: "1:478383021828:web:476a5a80cc9f466a42ba51"
+
+    };
+
+    const IMGBB_API = "6015ce7b66862fcecf4d839bf2a1feae";
+
+    const app = initializeApp(firebaseConfig);
+
+    const auth = getAuth(app);
+
+    const db = getFirestore(app);
+
+    let user = null;
+
+    const sound = document.getElementById('notif');
+
+    // Agent Avatars
+
+    const agents = [
+
+        { name: "Aliya", avatar: "https://cdn-icons-png.flaticon.com/512/4140/4140047.png" },
+
+        { name: "Ahmed", avatar: "https://cdn-icons-png.flaticon.com/512/4140/4140048.png" },
+
+        { name: "Sara Support", avatar: "https://cdn-icons-png.flaticon.com/512/6997/6997662.png" },
+
+        { name: "Zain Support", avatar: "https://cdn-icons-png.flaticon.com/512/4140/4140061.png" }
+
+    ];
+
+    document.getElementById('p-file').onchange = e => {
+
+        document.getElementById('p-preview').src = URL.createObjectURL(e.target.files[0]);
+
+    };
+
+    document.getElementById('start-btn').onclick = async () => {
+
+        const name = document.getElementById('u-name').value;
+
+        const file = document.getElementById('p-file').files[0];
+
+        if(!name) return alert("Please enter your name");
+
+        document.getElementById('start-btn').innerText = "Connecting to agent...";
+
+        let pUrl = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+        if(file) {
+
+            let fd = new FormData(); fd.append("image", file);
+
+            const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API}`, { method:"POST", body:fd });
+
+            const d = await res.json(); pUrl = d.data.url;
+
+        }
+
+        const cred = await signInAnonymously(auth);
+
+        user = { uid: cred.user.uid, name, pUrl };
+
+        await setDoc(doc(db, "users", user.uid), { ...user, isTyping: false, lastActive: serverTimestamp() });
+
+        // Random Agent Assignment
+
+        const rand = agents[Math.floor(Math.random() * agents.length)];
+
+        document.getElementById('agent-name').innerText = rand.name;
+
+        document.getElementById('agent-avatar').src = rand.avatar;
+
+        document.getElementById('brand-logo-div').style.display = 'none';
+
+        document.getElementById('login-screen').style.display = 'none';
+
+        document.getElementById('chat-screen').classList.remove('hidden');
+
+        initChat();
+
+    };
+
+    function initChat() {
+
+        // Banner & Settings Load
+
+        onSnapshot(doc(db, "settings", "config"), d => {
+
+            if(d.exists()) {
+
+                const data = d.data();
+
+                document.getElementById('b-img').src = data.bannerUrl;
+
+                document.getElementById('marquee-text').innerText = data.marqueeText;
+
+                window.autoR = data.autoReplyText;
+
+            }
+
+        });
+
+        // Load Messages
+
+        const q = query(collection(db, `chats/${user.uid}/messages`), orderBy("timestamp", "asc"));
+
+        onSnapshot(q, snap => {
+
+            const box = document.getElementById('msg-box');
+
+            box.innerHTML = '';
+
+            snap.forEach(d => {
+
+                const m = d.data();
+
+                const div = document.createElement('div');
+
+                div.className = `msg ${m.senderId === user.uid ? 'sent' : 'received'}`;
+
+                if(m.type === "image") {
+
+                    div.innerHTML = `<img src="${m.url}" onclick="window.open('${m.url}')"><br><small style="font-size:10px;">${m.text || ''}</small>`;
+
+                } else {
+
+                    div.innerHTML = m.text; // Supports colorful HTML replies
+
+                }
+
+                box.appendChild(div);
+
+            });
+
+            box.scrollTop = box.scrollHeight;
+
+            if(snap.docChanges().some(c => c.type === "added")) sound.play();
+
+        });
+
+        // Typing indicator
+
+        onSnapshot(doc(db, "admins", "main_admin"), d => {
+
+            if(d.exists() && d.data().isTyping) document.getElementById('typing-ui').classList.remove('hidden');
+
+            else document.getElementById('typing-ui').classList.add('hidden');
+
+        });
+
+    }
+
+    async function sendMsg(type = "text", file = null) {
+
+        const input = document.getElementById('m-input');
+
+        let text = input.value; let url = "";
+
+        if(type === "image" && file) {
+
+            input.placeholder = "Uploading..."; input.disabled = true;
+
+            let fd = new FormData(); fd.append("image", file);
+
+            const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API}`, { method:"POST", body:fd });
+
+            const d = await res.json(); url = d.data.url;
+
+            input.disabled = false; input.placeholder = "Describe your question...";
+
+        }
+
+        if(!text && !url) return;
+
+        input.value = '';
+
+        await addDoc(collection(db, `chats/${user.uid}/messages`), { text, url, type, senderId: user.uid, timestamp: serverTimestamp() });
+
+        if(document.querySelectorAll('.msg').length <= 1) {
+
+            setTimeout(() => {
+
+                addDoc(collection(db, `chats/${user.uid}/messages`), { text: window.autoR, senderId: "admin", timestamp: serverTimestamp() });
+
+            }, 2000);
+
+        }
+
+    }
+
+    document.getElementById('send-btn').onclick = () => sendMsg("text");
+
+    document.getElementById('m-input').onkeypress = (e) => { if(e.key === 'Enter') sendMsg("text"); };
+
+    document.getElementById('chat-img').onchange = (e) => { if(e.target.files[0]) sendMsg("image", e.target.files[0]); };
+
+    document.getElementById('m-input').oninput = () => {
+
+        updateDoc(doc(db, "users", user.uid), { isTyping: true });
+
+        clearTimeout(window.t);
+
+        window.t = setTimeout(() => updateDoc(doc(db, "users", user.uid), { isTyping: false }), 2000);
+
+    };
+
+</script>
+
+</body>
+
+</html>
