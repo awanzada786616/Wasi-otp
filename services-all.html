@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Prices | WASI OTP</title>
+    <title>Service Rates | WASI OTP</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -19,73 +19,105 @@
     <style>
         body { font-family: 'Public Sans', sans-serif; background-color: #fcfcfd; transition: 0.3s; }
         .dark body { background-color: #0f172a; color: white; }
+        
         .dropdown-content {
             display: none; position: absolute; width: 100%; max-height: 250px;
             overflow-y: auto; background: white; border: 1px solid #e2e8f0;
-            z-index: 100; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            z-index: 100; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
         .dark .dropdown-content { background: #1e293b; border-color: #334155; }
         .dropdown-content.show { display: block; }
-        .dropdown-item { padding: 10px 15px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #f1f5f9; }
+        
+        .dropdown-item { padding: 12px 16px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #f1f5f9; transition: 0.2s; }
         .dark .dropdown-item { border-bottom: 1px solid #334155; color: #cbd5e1; }
-        .dropdown-item:hover { background: #f8fafc; color: #0061ff; }
-        .dark .dropdown-item:hover { background: #334155; }
+        .dropdown-item:hover { background: #f8fafc; color: #0061ff; padding-left: 20px; }
+        .dark .dropdown-item:hover { background: #334155; color: #38bdf8; }
+
+        .search-input { width: 100%; padding: 12px; border-bottom: 1px solid #e2e8f0; outline: none; sticky: top; top: 0; background: white; font-size: 13px; }
+        .dark .search-input { background: #1e293b; border-color: #334155; color: white; }
+
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="min-h-screen">
 
-    <nav class="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-6 py-4 sticky top-0 z-50 flex justify-between items-center">
+    <!-- Header -->
+    <nav class="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-6 py-4 sticky top-0 z-50 flex justify-between items-center shadow-sm">
         <div class="flex items-center gap-3">
-            <a href="user" class="text-gray-500 hover:text-primary"><i class="fas fa-arrow-left"></i></a>
-            <span class="text-lg font-bold tracking-tight italic uppercase">WASI OTP <span class="text-primary">PRICES</span></span>
+            <a href="user" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 dark:bg-slate-800 text-gray-500 hover:text-primary transition-all"><i class="fas fa-arrow-left text-sm"></i></a>
+            <span class="text-lg font-bold tracking-tight italic uppercase">WASI OTP <span class="text-primary">RATES</span></span>
         </div>
-        <button onclick="toggleTheme()" class="text-gray-500 dark:text-yellow-400"><i id="theme-icon" class="fas fa-moon"></i></button>
+        <button onclick="toggleTheme()" class="w-10 h-10 flex items-center justify-center rounded-lg text-gray-500 dark:text-yellow-400 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all">
+            <i id="theme-icon" class="fas fa-moon text-lg"></i>
+        </button>
     </nav>
 
     <main class="container mx-auto px-4 py-8 max-w-4xl">
         <div class="text-center mb-10">
-            <h1 class="text-2xl font-extrabold text-slate-800 dark:text-white uppercase tracking-tighter">Server Rates Comparison</h1>
-            <p class="text-gray-500 text-sm mt-2 uppercase tracking-widest font-medium italic">Real-time prices with 40% profit margin</p>
+            <h1 class="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Check Service Prices</h1>
+            <p class="text-gray-500 text-xs mt-2 uppercase tracking-[0.2em] font-bold italic dark:text-gray-400">High-Quality OTP Services at Best Market Rates</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <!-- Selectors Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            
+            <!-- 1. Country Selector -->
             <div class="relative">
-                <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Select Country</label>
-                <div onclick="toggleDrop()" id="selected-country" class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3.5 rounded-xl flex justify-between items-center cursor-pointer shadow-sm">
-                    <span class="text-sm font-semibold">Select Country</span>
-                    <i class="fas fa-chevron-down text-xs opacity-50"></i>
+                <label class="text-[10px] font-black text-blue-600 uppercase ml-1 tracking-widest mb-1 block">1. Select Country</label>
+                <div onclick="toggleDrop('country-drop')" id="country-selected" class="bg-white dark:bg-slate-800 border-2 border-transparent focus-within:border-primary dark:border-slate-700 p-3.5 rounded-xl flex justify-between items-center cursor-pointer shadow-sm transition-all">
+                    <span class="text-sm font-bold opacity-70">Select Country</span>
+                    <i class="fas fa-globe-americas text-xs opacity-40"></i>
                 </div>
-                <div id="drop-menu" class="dropdown-content mt-2">
-                    <input type="text" id="country-search" onkeyup="filterCountries()" placeholder="Search Country..." class="w-full p-3 border-b border-gray-100 dark:border-slate-700 dark:bg-slate-800 outline-none text-sm sticky top-0">
+                <div id="country-drop" class="dropdown-content mt-2">
+                    <input type="text" id="country-search" onkeyup="filterList('country-search', 'country-list')" placeholder="Search Country..." class="search-input">
                     <div id="country-list"></div>
                 </div>
             </div>
 
+            <!-- 2. Server Selector -->
             <div class="relative">
-                <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Quick Search Service</label>
-                <div class="relative">
-                    <i class="fas fa-search absolute left-4 top-4 text-gray-400 text-xs"></i>
-                    <input type="text" id="service-filter" onkeyup="filterTable()" placeholder="WhatsApp, Facebook, etc..." class="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3.5 pl-10 rounded-xl text-sm font-semibold shadow-sm outline-none">
+                <label class="text-[10px] font-black text-blue-600 uppercase ml-1 tracking-widest mb-1 block">2. Select Server</label>
+                <div onclick="toggleDrop('server-drop')" id="server-selected" class="bg-white dark:bg-slate-800 border-2 border-transparent dark:border-slate-700 p-3.5 rounded-xl flex justify-between items-center cursor-pointer shadow-sm">
+                    <span class="text-sm font-bold opacity-70">Select Server</span>
+                    <i class="fas fa-server text-xs opacity-40"></i>
+                </div>
+                <div id="server-drop" class="dropdown-content mt-2">
+                    <div class="dropdown-item" onclick="selectServer('1')">Server 1 (Global)</div>
+                    <div class="dropdown-item" onclick="selectServer('2')">Server 2 (Special)</div>
+                    <div class="dropdown-item" onclick="selectServer('3')">Server 3 (Fast)</div>
+                    <div class="dropdown-item" onclick="selectServer('4')">Server 4 (Budget)</div>
                 </div>
             </div>
+
+            <!-- 3. Service Filter -->
+            <div class="relative">
+                <label class="text-[10px] font-black text-blue-600 uppercase ml-1 tracking-widest mb-1 block">3. Search Service</label>
+                <div class="relative">
+                    <i class="fas fa-search absolute left-4 top-4 text-gray-400 text-xs"></i>
+                    <input type="text" id="service-filter" onkeyup="filterTable()" placeholder="WhatsApp, TikTok..." class="w-full bg-white dark:bg-slate-800 border-2 border-transparent focus:border-primary dark:border-slate-700 p-3.5 pl-10 rounded-xl text-sm font-bold shadow-sm outline-none transition-all">
+                </div>
+            </div>
+
         </div>
 
-        <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <!-- Table Display -->
+        <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
+                <table class="w-full text-left">
                     <thead>
-                        <tr class="bg-gray-50 dark:bg-slate-800/50 text-[10px] uppercase tracking-widest text-gray-500 font-bold">
-                            <th class="px-6 py-4">Service</th>
-                            <th class="px-4 py-4 text-center">Server 1</th>
-                            <th class="px-4 py-4 text-center">Server 2</th>
-                            <th class="px-4 py-4 text-center">Server 3</th>
-                            <th class="px-4 py-4 text-center">Server 4</th>
+                        <tr class="bg-gray-50 dark:bg-slate-800/50 text-[10px] uppercase tracking-[0.2em] text-gray-400 font-black border-b border-gray-100 dark:border-slate-800">
+                            <th class="px-8 py-5">Service Details</th>
+                            <th class="px-8 py-5 text-right">Unit Price</th>
                         </tr>
                     </thead>
-                    <tbody id="price-table-body" class="divide-y divide-gray-100 dark:divide-slate-800">
-                        <tr><td colspan="5" class="px-6 py-10 text-center text-gray-400 italic text-sm">Select a country to view rates</td></tr>
+                    <tbody id="price-table-body" class="divide-y divide-gray-50 dark:divide-slate-800">
+                        <tr>
+                            <td colspan="2" class="px-6 py-20 text-center">
+                                <div class="opacity-30 mb-4 text-4xl"><i class="fas fa-mouse-pointer"></i></div>
+                                <p class="text-gray-400 font-bold uppercase text-xs tracking-widest italic">Select Country & Server to see prices</p>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -95,13 +127,15 @@
     <script>
         const API_PATH = '/api/otp';
         const PROFIT = 40;
+        let selectedCid = null;
+        let selectedServer = null;
 
-        // Service Mapping to fix "Ginti" and codes
+        // Service Mapping
         const serviceMap = {
             "wa": "WhatsApp", "tg": "Telegram", "fb": "Facebook", "go": "Google/Gmail",
             "ig": "Instagram", "tk": "TikTok", "nf": "Netflix", "am": "Amazon",
             "tw": "Twitter (X)", "ot": "Any Other", "vi": "Viber", "tl": "Telegram",
-            "dr": "Daraz", "yl": "Yalla", "mt": "Mail.ru", "vk": "VKontakte"
+            "dr": "Daraz", "yl": "Yalla", "mt": "Mail.ru", "vk": "VKontakte", "sq": "Snapchat"
         };
 
         function toggleTheme() {
@@ -111,7 +145,12 @@
             localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
         }
 
-        function toggleDrop() { document.getElementById('drop-menu').classList.toggle('show'); }
+        function toggleDrop(id) {
+            document.querySelectorAll('.dropdown-content').forEach(d => {
+                if(d.id !== id) d.classList.remove('show');
+            });
+            document.getElementById(id).classList.toggle('show');
+        }
 
         async function fetchCountries() {
             try {
@@ -124,95 +163,113 @@
                     const d = document.createElement('div');
                     d.className = 'dropdown-item';
                     d.innerText = c.name;
-                    d.onclick = () => selectCountry(c.id, c.name);
+                    d.onclick = () => {
+                        selectedCid = c.id;
+                        document.getElementById('country-selected').querySelector('span').innerText = c.name;
+                        document.getElementById('country-selected').querySelector('span').classList.replace('opacity-70', 'opacity-100');
+                        toggleDrop('country-drop');
+                        checkAndLoad();
+                    };
                     list.appendChild(d);
                 });
             } catch (e) { console.error(e); }
         }
 
-        function selectCountry(cid, cname) {
-            document.getElementById('selected-country').querySelector('span').innerText = cname;
-            toggleDrop();
-            loadAllPrices(cid);
+        function selectServer(srv) {
+            selectedServer = srv;
+            document.getElementById('server-selected').querySelector('span').innerText = `Server ${srv}`;
+            document.getElementById('server-selected').querySelector('span').classList.replace('opacity-70', 'opacity-100');
+            toggleDrop('server-drop');
+            checkAndLoad();
         }
 
-        async function loadAllPrices(cid) {
+        function checkAndLoad() {
+            if(selectedCid && selectedServer) {
+                loadPrices();
+            }
+        }
+
+        async function loadPrices() {
             const tbody = document.getElementById('price-table-body');
-            tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center"><i class="fas fa-circle-notch fa-spin text-primary"></i></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="2" class="px-6 py-20 text-center"><i class="fas fa-spinner fa-spin text-primary text-2xl"></i><p class="mt-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Loading Rates...</p></td></tr>`;
 
             try {
-                const results = await Promise.all([
-                    fetch(`${API_PATH}?action=getServices&country=${cid}&type=1`).then(r => r.json()).catch(() => ({})),
-                    fetch(`${API_PATH}?action=getServices&country=${cid}&type=2`).then(r => r.json()).catch(() => ({})),
-                    fetch(`${API_PATH}?action=getServices&country=${cid}&type=3`).then(r => r.json()).catch(() => ({})),
-                    fetch(`${API_PATH}?action=getServices&country=${cid}&type=4`).then(r => r.json()).catch(() => ({}))
-                ]);
-
-                const data = { s1: results[0]["1"] || results[0], s2: results[1]["2"] || results[1], s3: results[2]["3"] || results[2], s4: results[3]["4"] || results[3] };
+                const res = await fetch(`${API_PATH}?action=getServices&country=${selectedCid}&type=${selectedServer}`);
+                const data = await res.json();
+                const services = data[selectedServer] || data["1"] || data;
                 
-                // Get unique codes
-                const allCodes = new Set();
-                Object.values(data).forEach(sData => {
-                    if(sData && typeof sData === 'object') Object.keys(sData).forEach(k => allCodes.add(k.toLowerCase()));
-                });
-
                 tbody.innerHTML = "";
-                Array.from(allCodes).sort().forEach(code => {
-                    // Logic to get the cleanest name
-                    let displayName = serviceMap[code] || code.toUpperCase();
-                    
-                    // Check if Server 3/4 has a better name in string format
-                    [data.s1, data.s2, data.s3, data.s4].forEach(src => {
-                        if(src && src[code] && typeof src[code] === 'string' && src[code].includes(' - ')) {
-                            let partName = src[code].split(' - ')[0].trim();
-                            if(isNaN(partName)) displayName = partName; // Agar ginti nahi hai toh name use karo
-                        }
-                    });
+                const codes = Object.keys(services).sort();
 
-                    const row = document.createElement('tr');
-                    row.className = "hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-all";
-                    row.innerHTML = `
-                        <td class="px-6 py-4 font-bold text-xs dark:text-gray-300 uppercase">${displayName}</td>
-                        <td class="px-4 py-4 text-center">${getPrice(data.s1, code)}</td>
-                        <td class="px-4 py-4 text-center">${getPrice(data.s2, code)}</td>
-                        <td class="px-4 py-4 text-center">${getPrice(data.s3, code)}</td>
-                        <td class="px-4 py-4 text-center">${getPrice(data.s4, code)}</td>
-                    `;
-                    tbody.appendChild(row);
+                if(codes.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="2" class="px-6 py-10 text-center text-red-500 font-bold">No services found for this server.</td></tr>`;
+                    return;
+                }
+
+                codes.forEach(code => {
+                    const val = services[code];
+                    let cost = 0, name = serviceMap[code] || code.toUpperCase();
+
+                    if (typeof val === 'string' && val.includes(' - ')) {
+                        const parts = val.split(' - ');
+                        if(isNaN(parts[0])) name = parts[0];
+                        cost = parseFloat(parts[1].replace(/[^0-9.]/g, ''));
+                    } else if (typeof val === 'object') {
+                        name = val.name || name;
+                        cost = parseFloat(val.cost || val.price || 0);
+                    } else {
+                        cost = parseFloat(val);
+                    }
+
+                    if (cost > 0) {
+                        const finalPrice = Math.ceil(cost + (cost * (PROFIT / 100)));
+                        const row = document.createElement('tr');
+                        row.className = "hover:bg-gray-50 dark:hover:bg-slate-800/40 transition-all group";
+                        row.innerHTML = `
+                            <td class="px-8 py-5">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center text-[10px] font-black group-hover:scale-110 transition-transform">${code.substring(0,2).toUpperCase()}</div>
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-black text-slate-700 dark:text-gray-200 uppercase tracking-tight">${name}</span>
+                                        <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Digital Verification</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-8 py-5 text-right">
+                                <span class="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-3 py-1.5 rounded-lg text-sm font-black">Rs ${finalPrice}</span>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    }
                 });
-            } catch (e) { tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-red-500">Error!</td></tr>`; }
-        }
-
-        function getPrice(source, code) {
-            if (!source || !source[code]) return '<span class="text-gray-300 dark:text-gray-700">-</span>';
-            const val = source[code];
-            let cost = 0;
-            if (typeof val === 'string' && val.includes(' - ')) {
-                cost = parseFloat(val.split(' - ')[1].replace(/[^0-9.]/g, ''));
-            } else if (typeof val === 'object') {
-                cost = parseFloat(val.cost || val.price || 0);
-            } else {
-                cost = parseFloat(val);
+            } catch (e) { 
+                tbody.innerHTML = `<tr><td colspan="2" class="px-6 py-10 text-center text-red-500 font-bold tracking-widest uppercase text-xs">Failed to fetch data</td></tr>`;
             }
-            if (!cost || isNaN(cost)) return '<span class="text-gray-300 dark:text-gray-700">-</span>';
-            return `<span class="text-blue-600 dark:text-blue-400 font-bold text-xs">Rs ${Math.ceil(cost + (cost * (PROFIT / 100)))}</span>`;
         }
 
         function filterTable() {
             const input = document.getElementById('service-filter').value.toUpperCase();
             const rows = document.getElementById("price-table-body").rows;
             for (let i = 0; i < rows.length; i++) {
-                rows[i].style.display = rows[i].cells[0].innerText.toUpperCase().includes(input) ? "" : "none";
+                const cell = rows[i].getElementsByTagName("td")[0];
+                if(cell) {
+                    const txt = cell.innerText || cell.textContent;
+                    rows[i].style.display = txt.toUpperCase().includes(input) ? "" : "none";
+                }
             }
         }
 
-        function filterCountries() {
-            const input = document.getElementById('country-search').value.toUpperCase();
-            const items = document.getElementsByClassName('dropdown-item');
+        function filterList(inputId, listId) {
+            const input = document.getElementById(inputId).value.toUpperCase();
+            const items = document.getElementById(listId).getElementsByClassName('dropdown-item');
             for (let i = 0; i < items.length; i++) {
                 items[i].style.display = items[i].innerText.toUpperCase().includes(input) ? "" : "none";
             }
         }
+
+        window.onclick = (e) => {
+            if (!e.target.closest('.relative')) document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
+        };
 
         if (localStorage.theme === 'dark') document.documentElement.classList.add('dark');
         fetchCountries();
