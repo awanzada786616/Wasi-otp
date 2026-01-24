@@ -43,10 +43,10 @@
 <body class="min-h-screen">
 
     <!-- Header -->
-    <nav class="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-6 py-4 sticky top-0 z-50 flex justify-between items-center shadow-sm">
+    <nav class="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-6 py-4 sticky top-0 z-50 flex justify-between items-center shadow-sm text-slate-900">
         <div class="flex items-center gap-3">
             <a href="user" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 dark:bg-slate-800 text-gray-500 hover:text-primary transition-all"><i class="fas fa-arrow-left text-sm"></i></a>
-            <span class="text-lg font-bold tracking-tight italic uppercase">WASI OTP <span class="text-primary">RATES</span></span>
+            <span class="text-lg font-bold tracking-tight italic uppercase dark:text-white">WASI OTP <span class="text-primary">RATES</span></span>
         </div>
         <button onclick="toggleTheme()" class="w-10 h-10 flex items-center justify-center rounded-lg text-gray-500 dark:text-yellow-400 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all">
             <i id="theme-icon" class="fas fa-moon text-lg"></i>
@@ -62,12 +62,11 @@
         <!-- Selectors Grid -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             
-            <!-- 1. Country Selector -->
             <div class="relative">
                 <label class="text-[10px] font-black text-blue-600 uppercase ml-1 tracking-widest mb-1 block">1. Select Country</label>
-                <div onclick="toggleDrop('country-drop')" id="country-selected" class="bg-white dark:bg-slate-800 border-2 border-transparent focus-within:border-primary dark:border-slate-700 p-3.5 rounded-xl flex justify-between items-center cursor-pointer shadow-sm transition-all">
-                    <span class="text-sm font-bold opacity-70">Select Country</span>
-                    <i class="fas fa-globe-americas text-xs opacity-40"></i>
+                <div onclick="toggleDrop('country-drop')" id="country-selected" class="bg-white dark:bg-slate-800 border-2 border-transparent dark:border-slate-700 p-3.5 rounded-xl flex justify-between items-center cursor-pointer shadow-sm transition-all">
+                    <span class="text-sm font-bold opacity-70 dark:text-white">Select Country</span>
+                    <i class="fas fa-globe-americas text-xs opacity-40 dark:text-white"></i>
                 </div>
                 <div id="country-drop" class="dropdown-content mt-2">
                     <input type="text" id="country-search" onkeyup="filterList('country-search', 'country-list')" placeholder="Search Country..." class="search-input">
@@ -75,12 +74,11 @@
                 </div>
             </div>
 
-            <!-- 2. Server Selector -->
             <div class="relative">
                 <label class="text-[10px] font-black text-blue-600 uppercase ml-1 tracking-widest mb-1 block">2. Select Server</label>
                 <div onclick="toggleDrop('server-drop')" id="server-selected" class="bg-white dark:bg-slate-800 border-2 border-transparent dark:border-slate-700 p-3.5 rounded-xl flex justify-between items-center cursor-pointer shadow-sm">
-                    <span class="text-sm font-bold opacity-70">Select Server</span>
-                    <i class="fas fa-server text-xs opacity-40"></i>
+                    <span class="text-sm font-bold opacity-70 dark:text-white">Select Server</span>
+                    <i class="fas fa-server text-xs opacity-40 dark:text-white"></i>
                 </div>
                 <div id="server-drop" class="dropdown-content mt-2">
                     <div class="dropdown-item" onclick="selectServer('1')">Server 1 (Global)</div>
@@ -90,12 +88,11 @@
                 </div>
             </div>
 
-            <!-- 3. Service Filter -->
             <div class="relative">
                 <label class="text-[10px] font-black text-blue-600 uppercase ml-1 tracking-widest mb-1 block">3. Search Service</label>
                 <div class="relative">
                     <i class="fas fa-search absolute left-4 top-4 text-gray-400 text-xs"></i>
-                    <input type="text" id="service-filter" onkeyup="filterTable()" placeholder="WhatsApp, TikTok..." class="w-full bg-white dark:bg-slate-800 border-2 border-transparent focus:border-primary dark:border-slate-700 p-3.5 pl-10 rounded-xl text-sm font-bold shadow-sm outline-none transition-all">
+                    <input type="text" id="service-filter" onkeyup="filterTable()" placeholder="WhatsApp, TikTok..." class="w-full bg-white dark:bg-slate-800 border-2 border-transparent focus:border-primary dark:border-slate-700 p-3.5 pl-10 rounded-xl text-sm font-bold shadow-sm outline-none transition-all dark:text-white">
                 </div>
             </div>
 
@@ -107,14 +104,13 @@
                 <table class="w-full text-left">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-slate-800/50 text-[10px] uppercase tracking-[0.2em] text-gray-400 font-black border-b border-gray-100 dark:border-slate-800">
-                            <th class="px-8 py-5">Service Details</th>
-                            <th class="px-8 py-5 text-right">Unit Price</th>
+                            <th class="px-8 py-5">Service Name</th>
+                            <th class="px-8 py-5 text-right">Rate (PKR)</th>
                         </tr>
                     </thead>
                     <tbody id="price-table-body" class="divide-y divide-gray-50 dark:divide-slate-800">
                         <tr>
                             <td colspan="2" class="px-6 py-20 text-center">
-                                <div class="opacity-30 mb-4 text-4xl"><i class="fas fa-mouse-pointer"></i></div>
                                 <p class="text-gray-400 font-bold uppercase text-xs tracking-widest italic">Select Country & Server to see prices</p>
                             </td>
                         </tr>
@@ -130,25 +126,23 @@
         let selectedCid = null;
         let selectedServer = null;
 
-        // Service Mapping
+        // Service Mapping to avoid Codes and Ginti
         const serviceMap = {
             "wa": "WhatsApp", "tg": "Telegram", "fb": "Facebook", "go": "Google/Gmail",
             "ig": "Instagram", "tk": "TikTok", "nf": "Netflix", "am": "Amazon",
             "tw": "Twitter (X)", "ot": "Any Other", "vi": "Viber", "tl": "Telegram",
-            "dr": "Daraz", "yl": "Yalla", "mt": "Mail.ru", "vk": "VKontakte", "sq": "Snapchat"
+            "dr": "Daraz", "yl": "Yalla", "mt": "Mail.ru", "vk": "VKontakte", "sq": "Snapchat",
+            "full": "Full Rent", "ub": "Uber", "cc": "Coca Cola", "mo": "IMO"
         };
 
         function toggleTheme() {
             document.documentElement.classList.toggle('dark');
             const icon = document.getElementById('theme-icon');
             icon.className = document.documentElement.classList.contains('dark') ? 'fas fa-sun' : 'fas fa-moon';
-            localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
         }
 
         function toggleDrop(id) {
-            document.querySelectorAll('.dropdown-content').forEach(d => {
-                if(d.id !== id) d.classList.remove('show');
-            });
+            document.querySelectorAll('.dropdown-content').forEach(d => { if(d.id !== id) d.classList.remove('show'); });
             document.getElementById(id).classList.toggle('show');
         }
 
@@ -166,7 +160,6 @@
                     d.onclick = () => {
                         selectedCid = c.id;
                         document.getElementById('country-selected').querySelector('span').innerText = c.name;
-                        document.getElementById('country-selected').querySelector('span').classList.replace('opacity-70', 'opacity-100');
                         toggleDrop('country-drop');
                         checkAndLoad();
                     };
@@ -178,42 +171,47 @@
         function selectServer(srv) {
             selectedServer = srv;
             document.getElementById('server-selected').querySelector('span').innerText = `Server ${srv}`;
-            document.getElementById('server-selected').querySelector('span').classList.replace('opacity-70', 'opacity-100');
             toggleDrop('server-drop');
             checkAndLoad();
         }
 
-        function checkAndLoad() {
-            if(selectedCid && selectedServer) {
-                loadPrices();
-            }
-        }
+        function checkAndLoad() { if(selectedCid && selectedServer) loadPrices(); }
 
         async function loadPrices() {
             const tbody = document.getElementById('price-table-body');
-            tbody.innerHTML = `<tr><td colspan="2" class="px-6 py-20 text-center"><i class="fas fa-spinner fa-spin text-primary text-2xl"></i><p class="mt-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Loading Rates...</p></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="2" class="px-6 py-20 text-center"><i class="fas fa-spinner fa-spin text-primary text-2xl"></i></td></tr>`;
 
             try {
                 const res = await fetch(`${API_PATH}?action=getServices&country=${selectedCid}&type=${selectedServer}`);
                 const data = await res.json();
-                const services = data[selectedServer] || data["1"] || data;
+                
+                // --- FIX FOR SERVER 1 & 2 ---
+                // Agar data nested hai toh nikal lo, warna pura object use karo
+                let services = data[selectedServer] || data["1"] || data;
                 
                 tbody.innerHTML = "";
                 const codes = Object.keys(services).sort();
 
-                if(codes.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="2" class="px-6 py-10 text-center text-red-500 font-bold">No services found for this server.</td></tr>`;
+                if(codes.length === 0 || typeof services !== 'object') {
+                    tbody.innerHTML = `<tr><td colspan="2" class="px-6 py-10 text-center text-red-500 font-bold uppercase text-xs tracking-widest">No services available for this server.</td></tr>`;
                     return;
                 }
 
                 codes.forEach(code => {
                     const val = services[code];
-                    let cost = 0, name = serviceMap[code] || code.toUpperCase();
+                    let cost = 0;
+                    let name = serviceMap[code.toLowerCase()] || code.toUpperCase();
 
-                    if (typeof val === 'string' && val.includes(' - ')) {
-                        const parts = val.split(' - ');
-                        if(isNaN(parts[0])) name = parts[0];
-                        cost = parseFloat(parts[1].replace(/[^0-9.]/g, ''));
+                    // Logic to extract Price and Clean Name
+                    if (typeof val === 'string') {
+                        if (val.includes(' - ')) {
+                            const parts = val.split(' - ');
+                            // Agar pehla part ginti nahi hai toh name update karo
+                            if (isNaN(parts[0])) name = parts[0].trim();
+                            cost = parseFloat(parts[1].replace(/[^0-9.]/g, ''));
+                        } else {
+                            cost = parseFloat(val);
+                        }
                     } else if (typeof val === 'object') {
                         name = val.name || name;
                         cost = parseFloat(val.cost || val.price || 0);
@@ -221,6 +219,7 @@
                         cost = parseFloat(val);
                     }
 
+                    // Only show if cost is valid
                     if (cost > 0) {
                         const finalPrice = Math.ceil(cost + (cost * (PROFIT / 100)));
                         const row = document.createElement('tr');
@@ -228,22 +227,22 @@
                         row.innerHTML = `
                             <td class="px-8 py-5">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center text-[10px] font-black group-hover:scale-110 transition-transform">${code.substring(0,2).toUpperCase()}</div>
+                                    <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center text-[10px] font-black uppercase group-hover:scale-110 transition-transform">${code.substring(0,2)}</div>
                                     <div class="flex flex-col">
                                         <span class="text-sm font-black text-slate-700 dark:text-gray-200 uppercase tracking-tight">${name}</span>
-                                        <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Digital Verification</span>
+                                        <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Active Server ${selectedServer}</span>
                                     </div>
                                 </div>
                             </td>
                             <td class="px-8 py-5 text-right">
-                                <span class="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-3 py-1.5 rounded-lg text-sm font-black">Rs ${finalPrice}</span>
+                                <span class="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-3 py-1.5 rounded-lg text-sm font-black italic">Rs ${finalPrice}</span>
                             </td>
                         `;
                         tbody.appendChild(row);
                     }
                 });
             } catch (e) { 
-                tbody.innerHTML = `<tr><td colspan="2" class="px-6 py-10 text-center text-red-500 font-bold tracking-widest uppercase text-xs">Failed to fetch data</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="2" class="px-6 py-10 text-center text-red-500 font-bold text-xs uppercase tracking-widest">Error fetching prices</td></tr>`;
             }
         }
 
@@ -251,11 +250,8 @@
             const input = document.getElementById('service-filter').value.toUpperCase();
             const rows = document.getElementById("price-table-body").rows;
             for (let i = 0; i < rows.length; i++) {
-                const cell = rows[i].getElementsByTagName("td")[0];
-                if(cell) {
-                    const txt = cell.innerText || cell.textContent;
-                    rows[i].style.display = txt.toUpperCase().includes(input) ? "" : "none";
-                }
+                const txt = rows[i].innerText || rows[i].textContent;
+                rows[i].style.display = txt.toUpperCase().includes(input) ? "" : "none";
             }
         }
 
@@ -267,11 +263,8 @@
             }
         }
 
-        window.onclick = (e) => {
-            if (!e.target.closest('.relative')) document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
-        };
+        window.onclick = (e) => { if (!e.target.closest('.relative')) document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show')); };
 
-        if (localStorage.theme === 'dark') document.documentElement.classList.add('dark');
         fetchCountries();
     </script>
 </body>
