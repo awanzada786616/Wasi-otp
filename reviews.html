@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Reviews</title>
+    
+    <!-- Design ke liye Tailwind CSS (Internet se chalega) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase Library (Database connect karne ke liye) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        .star { cursor: pointer; font-size: 2rem; color: #e5e7eb; transition: color 0.2s; }
+        .star.active { color: #facc15; } /* Yellow color */
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center py-10 px-4">
+
+    <!-- REVIEW FORM -->
+    <div class="bg-white p-6 rounded-lg shadow-md w-full max-w-md mb-8">
+        <h2 class="text-2xl font-bold mb-4 text-center text-gray-800">Review Dein</h2>
+        
+        <form id="reviewForm" class="space-y-4">
+            <!-- Name -->
+            <div>
+                <label class="block text-sm font-bold text-gray-700">Aapka Naam</label>
+                <input type="text" id="username" required placeholder="Ali Khan"
+                    class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <!-- Star Rating -->
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Rating</label>
+                <div id="star-container" class="flex space-x-1">
+                    <span class="star" onclick="setRating(1)">★</span>
+                    <span class="star" onclick="setRating(2)">★</span>
+                    <span class="star" onclick="setRating(3)">★</span>
+                    <span class="star" onclick="setRating(4)">★</span>
+                    <span class="star" onclick="setRating(5)">★</span>
+                </div>
+                <input type="hidden" id="ratingValue" value="0">
+            </div>
+
+            <!-- Comment -->
+            <div>
+                <label class="block text-sm font-bold text-gray-700">Comment</label>
+                <textarea id="comment" rows="3" required placeholder="Bohot achi service thi..."
+                    class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="submitBtn"
+                class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 font-bold">
+                Submit Review
+            </button>
+        </form>
+    </div>
+
+    <!-- REVIEWS LIST -->
+    <div class="w-full max-w-md">
+        <h3 class="text-xl font-bold mb-4 text-gray-700">Logo ke Reviews</h3>
+        <div id="reviewsList" class="space-y-4">
+            <p class="text-center text-gray-500">Loading...</p>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // ⚠️ STEP 1: APNI SUPABASE DETAILS YAHAN DALEIN
+        const SUPABASE_URL = "https://aljcxnobmmtcfpvdacbo.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_xVWCkX7Gl2m0cFUKlSn3pg_liSvnzmg";
+        // Supabase initialize kar rahe hain
+        const { createClient } = supabase;
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // --- STAR RATING LOGIC ---
+        let currentRating = 0;
+        function setRating(n) {
+            currentRating = n;
+            document.getElementById('ratingValue').value = n;
+            const stars = document.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                if (index < n) star.classList.add('active');
+                else star.classList.remove('active');
+            });
+        }
+
+        // --- FETCH REVIEWS (Jese hi page khule) ---
+        async function fetchReviews() {
+            const listContainer = document.getElementById('reviewsList');
+            
+            const { data, error } = await _supabase
+                .from('reviews')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error(error);
+                listContainer.innerHTML = '<p class="text-red-500">Error loading reviews.</p>';
+                return;
+            }
+
+            if (data.length === 0) {
+                listContainer.innerHTML = '<p class="text-center text-gray-400">Abhi koi review nahi hai. Pehla review aap dein!</p>';
+                return;
+            }
+
+            // HTML banana har review ke liye
+            listContainer.innerHTML = data.map(review => `
+                <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-gray-800">${escapeHtml(review.username)}</span>
+                        <span class="text-yellow-400 text-lg">
+                            ${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}
+                        </span>
+                    </div>
+                    <p class="text-gray-600 text-sm">${escapeHtml(review.comment)}</p>
+                    <p class="text-xs text-gray-400 mt-2">${new Date(review.created_at).toLocaleDateString()}</p>
+                </div>
+            `).join('');
+        }
+
+        // --- SUBMIT REVIEW ---
+        document.getElementById('reviewForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const comment = document.getElementById('comment').value;
+            const btn = document.getElementById('submitBtn');
+
+            if (currentRating === 0) {
+                alert("Please star rating select karein!");
+                return;
+            }
+
+            btn.innerText = "Saving...";
+            btn.disabled = true;
+
+            const { error } = await _supabase.from('reviews').insert([
+                { username, rating: currentRating, comment }
+            ]);
+
+            btn.innerText = "Submit Review";
+            btn.disabled = false;
+
+            if (error) {
+                alert("Error: " + error.message);
+            } else {
+                alert("Review Save ho gaya!");
+                // Form Reset
+                document.getElementById('username').value = '';
+                document.getElementById('comment').value = '';
+                setRating(0);
+                fetchReviews(); // List refresh
+            }
+        });
+
+        // Security Helper (XSS se bachne ke liye)
+        function escapeHtml(text) {
+            return text ? text.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "";
+        }
+
+        // Page load hone par reviews layen
+        fetchReviews();
+
+    </script>
+</body>
+</html>
