@@ -186,6 +186,100 @@
             </p>
         </div>
     </section>
+    <!-- Signature Section Start -->
+<div class="signature-container-scroll">
+    
+    <!-- 1. فونٹس لوڈ کریں (یہ انٹرنیٹ سے چلیں گے) -->
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Mrs+Saint+Delafield&family=Sacramento&display=swap" rel="stylesheet">
+
+    <style>
+        /* 2. سٹائلنگ */
+        .signature-container-scroll {
+            width: 100%;
+            display: flex;
+            justify-content: space-around; /* تینوں میں برابر فاصلہ */
+            align-items: center;
+            padding: 30px 10px 40px 10px; /* اوپر نیچے جگہ */
+            background-color: #ffffff; /* سفید بیک گراؤنڈ */
+            margin-top: 20px; /* پچھلے مواد سے فاصلہ */
+            border-top: 1px dashed #cccccc; /* اوپر ہلکی لائن */
+            text-align: center;
+        }
+
+        .sig-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* عہدہ (Designation) */
+        .sig-role {
+            font-family: sans-serif;
+            font-size: 9px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+
+        /* 1. مالک کا سائن (Wasi OTP) */
+        .sig-owner {
+            font-family: 'Great Vibes', cursive;
+            font-size: 26px;
+            color: #000; /* کالا */
+            font-weight: 500;
+            transform: rotate(-3deg);
+        }
+
+        /* 2. لڑکی 1 (Brand Ambassador) */
+        .sig-girl1 {
+            font-family: 'Mrs Saint Delafield', cursive;
+            font-size: 30px;
+            color: #d81b60; /* گہرا گلابی */
+            transform: rotate(-5deg);
+        }
+
+        /* 3. لڑکی 2 (Verified By) */
+        .sig-girl2 {
+            font-family: 'Sacramento', cursive;
+            font-size: 28px;
+            color: #8e44ad; /* پرپل */
+            transform: rotate(-2deg);
+        }
+
+        /* موبائل پر سائز سیٹ رکھنے کے لیے */
+        @media (max-width: 400px) {
+            .sig-owner, .sig-girl1, .sig-girl2 {
+                font-size: 20px;
+            }
+            .sig-role {
+                font-size: 7px;
+            }
+        }
+    </style>
+
+    <!-- 3. نام اور عہدے -->
+    
+    <!-- پہلا سائن (CEO) -->
+    <div class="sig-box">
+        <span class="sig-role">CEO / Owner</span>
+        <span class="sig-owner">Wasi Shah</span>
+    </div>
+
+    <!-- دوسرا سائن (لڑکی) -->
+    <div class="sig-box">
+        <span class="sig-role">Brand Ambassador</span>
+        <span class="sig-girl1">Miss Aliza</span>
+    </div>
+
+    <!-- تیسرا سائن (لڑکی) -->
+    <div class="sig-box">
+        <span class="sig-role">Verified By</span>
+        <span class="sig-girl2">Hania Doll</span>
+    </div>
+
+</div>
+<!-- Signature Section End -->
 
     <!-- Footer -->
     <footer class="footer">
