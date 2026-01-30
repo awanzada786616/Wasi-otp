@@ -368,5 +368,112 @@
   // بٹن کو بائیں (Left) سائیڈ پر لانے کے لیے یہ لائن شامل ہے
   $crisp.push(["config", "position:reverse", [true]]);
     </script>
+    <!-- یہ کوڈ کاپی کریں اور اپنے HTML میں ڈالیں -->
+<div id="signature-footer-container">
+    
+    <!-- فونٹس لوڈ کرنے کے لیے لنک -->
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Great+Vibes&family=Mrs+Saint+Delafield&display=swap" rel="stylesheet">
+
+    <style>
+        /* سارا ڈیزائن یہاں ہے */
+        #signature-footer-container {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            background: #0f0f0f; /* کالا سیاہ رنگ */
+            border-top: 2px solid #daa520; /* گولڈن لائن */
+            padding: 10px 0;
+            z-index: 99999;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.8);
+            font-family: sans-serif;
+        }
+
+        .footer-flex {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .sign-card {
+            text-align: center;
+            padding: 5px 15px;
+        }
+
+        .sign-title {
+            color: #888;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+
+        /* سگنیچر 1: چوہدری برانڈ */
+        .sig-1 {
+            font-family: 'Great Vibes', cursive;
+            font-size: 28px;
+            color: #daa520; /* گولڈن */
+            transform: rotate(-3deg);
+        }
+
+        /* سگنیچر 2: سٹائلش باس */
+        .sig-2 {
+            font-family: 'Mrs Saint Delafield', cursive;
+            font-size: 32px;
+            color: #fff; /* سفید */
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+            transform: rotate(-5deg);
+        }
+
+        /* سگنیچر 3: مہر (Stamp) */
+        .stamp-box {
+            border: 2px solid #ff4444;
+            color: #ff4444;
+            font-family: 'Dancing Script', cursive;
+            font-size: 18px;
+            padding: 2px 10px;
+            border-radius: 4px;
+            transform: rotate(-8deg); /* مہر کی طرح ٹیڑھا */
+            font-weight: bold;
+            display: inline-block;
+            opacity: 0.8;
+        }
+
+        /* موبائل کے لیے */
+        @media (max-width: 600px) {
+            .footer-flex {
+                flex-direction: row;
+                gap: 10px;
+            }
+            .sig-1, .sig-2 { font-size: 20px; }
+            .stamp-box { font-size: 14px; }
+        }
+    </style>
+
+    <div class="footer-flex">
+        
+        <!-- پہلا سگنیچر -->
+        <div class="sign-card">
+            <div class="sign-title">Brand Ambassador</div>
+            <div class="sig-1">Chaudhry Empire</div>
+        </div>
+
+        <!-- دوسرا سگنیچر -->
+        <div class="sign-card">
+            <div class="sign-title">Approved By</div>
+            <div class="sig-2">Rana Sahab</div>
+        </div>
+
+        <!-- تیسرا (ٹھپہ/مہر) -->
+        <div class="sign-card">
+            <div class="stamp-box">
+                VERIFIED 100%<br>
+                <span style="font-size:10px; font-family:sans-serif;">ORIGINAL</span>
+            </div>
+        </div>
+
+    </div>
+</div>
 </body>
 </html>
