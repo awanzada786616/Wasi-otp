@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,37 +10,37 @@
     <style>
         html { display: none; }
         body { font-family: 'Public Sans', sans-serif; background-color: #fcfcfd; }
-        .custom-dropdown-content { display: none; position: absolute; width: 100%; max-height: 250px; overflow-y: auto; background: white; border: 1px solid #ddd; z-index: 100; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-top: 5px; }
+        .custom-dropdown-content { display: none; position: absolute; width: 100%; max-height: 250px; overflow-y: auto; background: white; border: 1px solid #ddd; z-index: 100; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-top: 5px; }
         .custom-dropdown-content.show { display: block; }
         .drop-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f8f9fa; font-size: 14px; color: #444; }
         .drop-item:hover { background: #f0f4ff; color: #0061ff; }
         .search-input { width: 100%; padding: 10px; border-bottom: 1px solid #ddd; outline: none; position: sticky; top: 0; background: white; font-size: 13px; }
         .navy-btn { background-color: #050a30; color: white; padding: 14px; border-radius: 8px; width: 100%; font-weight: 700; transition: 0.3s; }
-        #toast { visibility: hidden; min-width: 250px; background: #333; color: #fff; text-align: center; border-radius: 10px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); font-weight: 600; }
+        #toast { visibility: hidden; min-width: 250px; background: #333; color: #fff; text-align: center; border-radius: 10px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); }
         #toast.show { visibility: visible; }
     </style>
 </head>
 <body class="min-h-screen">
     <div id="toast"></div>
 
-    <nav class="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+    <nav class="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
         <span class="font-bold text-blue-600 italic text-xl">WASI OTP S4</span>
         <div class="flex items-center gap-3">
-            <div class="border rounded-full px-5 py-2 bg-gray-50 flex items-center gap-2 shadow-sm">
-                <span id="top-balance" class="font-bold text-md text-slate-800">0.00</span>
-                <span class="text-[10px] font-bold text-gray-400">PKR</span>
+            <div class="border rounded-full px-5 py-2 bg-gray-50 flex items-center gap-2">
+                <span id="top-balance" class="font-bold text-slate-800">0.00</span>
+                <span class="text-[10px] font-bold text-gray-400 uppercase">PKR</span>
             </div>
-            <button onclick="logout()" class="text-red-500 font-bold text-sm">LOGOUT</button>
+            <button onclick="logout()" class="text-red-500 font-bold text-xs uppercase">Logout</button>
         </div>
     </nav>
 
     <main class="max-w-[480px] mx-auto p-4 mt-6">
         <div class="bg-white border rounded-2xl p-7 shadow-sm">
-            <h2 class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6"><i class="fas fa-sim-card mr-2 text-blue-500"></i> Server 4 Activation</h2>
+            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">Server 4 Activation</h2>
             
             <div class="relative mb-4">
-                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">1. Select Country</label>
-                <div onclick="toggleDropdown('country-options')" id="country-selected" class="border p-3.5 rounded-xl flex justify-between cursor-pointer text-sm text-gray-600 bg-white hover:border-blue-300 transition-all">
+                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">1. Select Country</label>
+                <div onclick="toggleDropdown('country-options')" id="country-selected" class="border p-3.5 rounded-xl flex justify-between cursor-pointer text-sm text-gray-600 bg-white hover:border-blue-300">
                     <span>Loading countries...</span> <i class="fas fa-chevron-down mt-1 text-gray-300"></i>
                 </div>
                 <div id="country-options" class="custom-dropdown-content">
@@ -50,8 +50,8 @@
             </div>
 
             <div class="relative mb-8">
-                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">2. Select Service</label>
-                <div onclick="toggleDropdown('service-options')" id="service-selected" class="border p-3.5 rounded-xl flex justify-between cursor-pointer text-sm text-gray-600 bg-white hover:border-blue-300 transition-all">
+                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">2. Select Service</label>
+                <div onclick="toggleDropdown('service-options')" id="service-selected" class="border p-3.5 rounded-xl flex justify-between cursor-pointer text-sm text-gray-600 bg-white hover:border-blue-300">
                     <span>Select a service</span> <i class="fas fa-chevron-down mt-1 text-gray-300"></i>
                 </div>
                 <div id="service-options" class="custom-dropdown-content">
@@ -60,29 +60,30 @@
                 </div>
             </div>
 
-            <button onclick="buyNumber()" id="buy-btn" class="navy-btn active:scale-95 flex justify-center items-center gap-3 shadow-lg shadow-blue-900/10">
+            <button onclick="buyNumber()" id="buy-btn" class="navy-btn active:scale-95 flex justify-center items-center gap-3">
                 <span id="buy-loader" class="hidden w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
                 <span>GET NUMBER</span>
             </button>
         </div>
 
-        <div id="order-card" class="hidden mt-6 bg-white border rounded-2xl p-6 shadow-sm border-blue-100">
+        <!-- Order Card -->
+        <div id="order-card" class="hidden mt-6 bg-white border rounded-2xl p-6 shadow-sm border-blue-50">
             <div class="flex justify-between items-start mb-5">
                 <div>
-                    <h3 id="phone-number" class="text-2xl font-mono font-bold text-blue-600 tracking-tighter">+-----------</h3>
-                    <p id="service-info" class="text-[10px] text-gray-400 font-black uppercase mt-1">Service Name</p>
+                    <h3 id="phone-number" class="text-2xl font-mono font-bold text-blue-600">+-----------</h3>
+                    <p id="service-info" class="text-[10px] text-gray-400 font-bold uppercase mt-1">Service</p>
                 </div>
                 <div class="bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full text-xs font-bold font-mono" id="order-timer">20:00</div>
             </div>
             
-            <div id="otp-box" class="bg-slate-50 border rounded-xl p-5 text-center mb-5 border-dashed">
-                <p id="otp-status" class="text-xs text-gray-500 font-semibold uppercase tracking-widest">Waiting for OTP...</p>
-                <div id="otp-val" class="hidden text-4xl font-black text-blue-700 tracking-[10px] mt-3 animate-pulse">------</div>
+            <div class="bg-slate-50 border rounded-xl p-5 text-center mb-5">
+                <p id="otp-status" class="text-xs text-gray-500 font-semibold uppercase">Waiting for OTP...</p>
+                <div id="otp-val" class="hidden text-4xl font-black text-blue-700 tracking-[8px] mt-3">------</div>
             </div>
 
             <div class="flex gap-3">
-                <button onclick="location.reload()" class="flex-1 border-2 py-3 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50">BUY NEW</button>
-                <button id="cancel-btn" onclick="handleCancel()" class="flex-1 bg-red-50 text-red-500 py-3 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors">CANCEL</button>
+                <button onclick="location.reload()" class="flex-1 border py-3 rounded-xl text-xs font-bold text-gray-500">BUY NEW</button>
+                <button id="cancel-btn" onclick="handleCancel()" class="flex-1 bg-red-50 text-red-500 py-3 rounded-xl text-xs font-bold">CANCEL</button>
             </div>
         </div>
     </main>
@@ -143,7 +144,7 @@
         }
 
         async function loadServices(cid) {
-            document.getElementById('service-selected').querySelector('span').innerText = "Loading...";
+            document.getElementById('service-selected').querySelector('span').innerText = "Loading Services...";
             try {
                 const res = await fetch(`${API_PATH}?action=getServices&country=${cid}&type=4`);
                 const json = await res.json();
@@ -158,7 +159,7 @@
                     if (typeof raw === 'string' && raw.includes(' - ')) {
                         const parts = raw.split(' - '); 
                         sName = parts[0];
-                        let priceMatch = parts[1].match(/[\d\.]+/);
+                        let priceMatch = parts[1].match(/(\d+(\.\d+)?)/);
                         price = priceMatch ? parseFloat(priceMatch[0]) : 0;
                     }
                     const finalPrice = Math.ceil(price + (price * (PROFIT / 100)));
@@ -178,8 +179,8 @@
         }
 
         async function buyNumber() {
-            if (!selectedCountry || !selectedService) return showToast("⚠️ Please select options");
-            if (userBalance < selectedService.price) return showToast("❌ Low Balance!");
+            if (!selectedCountry || !selectedService) return showToast("⚠️ Select options first");
+            if (userBalance < selectedService.price) return showToast("❌ Low Balance");
 
             const btn = document.getElementById('buy-btn');
             btn.disabled = true; document.getElementById('buy-loader').classList.remove('hidden');
@@ -196,7 +197,6 @@
                     currentOrder = orderData;
                     showOrderUI(orderData);
                     fetchBalance();
-                    showToast("✅ Number Purchased!");
                 } else {
                     showToast("❌ " + (json.error || "No Numbers Available"));
                 }
@@ -232,7 +232,7 @@
 
                 if (resp.includes('STATUS_OK')) {
                     const otp = resp.split(':')[1];
-                    document.getElementById('otp-status').innerText = "OTP RECEIVED SUCCESSFULLY!";
+                    document.getElementById('otp-status').innerText = "OTP RECEIVED:";
                     document.getElementById('otp-val').innerText = otp;
                     document.getElementById('otp-val').classList.remove('hidden');
                     localStorage.removeItem('active_order_s4');
@@ -243,14 +243,14 @@
         }
 
         async function handleCancel() {
-            if (!confirm("Are you sure? Your balance will be refunded.")) return;
+            if (!confirm("Cancel and refund PKR " + currentOrder.price + "?")) return;
             try {
                 await fetch(`${API_PATH}?action=setStatus&id=${currentOrder.id}&status=8&user_id=${userId}`);
                 const { data } = await _supabase.from('profiles').select('balance').eq('id', userId).single();
                 await _supabase.from('profiles').update({ balance: data.balance + currentOrder.price }).eq('id', userId);
-                showToast("💰 Balance Refunded!");
+                showToast("💰 Refunded!");
                 resetUI();
-            } catch (e) { showToast("❌ Failed to cancel"); }
+            } catch (e) { showToast("❌ Cancel Failed"); }
         }
 
         function checkExistingOrder() {
