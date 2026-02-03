@@ -3,85 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buy Virtual Number S4 | WASI OTP</title>
+    <title>Server 4 - WASI OTP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         html { display: none; }
-        body { font-family: 'Public Sans', sans-serif; background-color: #fcfcfd; }
-        .custom-dropdown-content { display: none; position: absolute; width: 100%; max-height: 250px; overflow-y: auto; background: white; border: 1px solid #ddd; z-index: 100; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-top: 5px; }
-        .custom-dropdown-content.show { display: block; }
-        .drop-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f8f9fa; font-size: 14px; color: #444; }
-        .drop-item:hover { background: #f0f4ff; color: #0061ff; }
-        .search-input { width: 100%; padding: 10px; border-bottom: 1px solid #ddd; outline: none; position: sticky; top: 0; background: white; font-size: 13px; }
-        .navy-btn { background-color: #050a30; color: white; padding: 14px; border-radius: 8px; width: 100%; font-weight: 700; transition: 0.3s; }
-        #toast { visibility: hidden; min-width: 250px; background: #333; color: #fff; text-align: center; border-radius: 10px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); }
+        body { font-family: sans-serif; background-color: #f8fafc; }
+        .custom-dropdown { display: none; position: absolute; width: 100%; max-height: 250px; overflow-y: auto; background: white; border: 1px solid #e2e8f0; z-index: 100; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .custom-dropdown.show { display: block; }
+        .drop-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        .drop-item:hover { background: #eff6ff; color: #2563eb; }
+        #toast { visibility: hidden; min-width: 250px; background: #1e293b; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); }
         #toast.show { visibility: visible; }
     </style>
 </head>
 <body class="min-h-screen">
     <div id="toast"></div>
 
-    <nav class="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
-        <span class="font-bold text-blue-600 italic text-xl">WASI OTP S4</span>
+    <nav class="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+        <span class="font-bold text-blue-600 text-xl italic">WASI OTP S4</span>
         <div class="flex items-center gap-3">
-            <div class="border rounded-full px-5 py-2 bg-gray-50 flex items-center gap-2">
-                <span id="top-balance" class="font-bold text-slate-800">0.00</span>
-                <span class="text-[10px] font-bold text-gray-400 uppercase">PKR</span>
+            <div class="border rounded-full px-4 py-1.5 bg-gray-50 font-bold text-sm">
+                <span id="top-balance">0.00</span> <span class="text-gray-400 text-[10px]">PKR</span>
             </div>
-            <button onclick="logout()" class="text-red-500 font-bold text-xs uppercase">Logout</button>
+            <button onclick="logout()" class="text-red-500 font-bold text-xs">LOGOUT</button>
         </div>
     </nav>
 
     <main class="max-w-[480px] mx-auto p-4 mt-6">
-        <div class="bg-white border rounded-2xl p-7 shadow-sm">
-            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">Server 4 Activation</h2>
+        <div class="bg-white border rounded-2xl p-6 shadow-sm">
+            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">Buy Number (Server 4)</h2>
             
             <div class="relative mb-4">
-                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">1. Select Country</label>
-                <div onclick="toggleDropdown('country-options')" id="country-selected" class="border p-3.5 rounded-xl flex justify-between cursor-pointer text-sm text-gray-600 bg-white hover:border-blue-300">
-                    <span>Loading countries...</span> <i class="fas fa-chevron-down mt-1 text-gray-300"></i>
+                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">1. Select Country</label>
+                <div onclick="toggleDrop('country-opts')" id="country-sel" class="border p-3 rounded-xl flex justify-between cursor-pointer text-sm bg-white">
+                    <span>Select Country</span> <i class="fas fa-chevron-down mt-1 text-gray-300"></i>
                 </div>
-                <div id="country-options" class="custom-dropdown-content">
-                    <input type="text" class="search-input" placeholder="Search Country..." onkeyup="filterList(this, 'country-list')">
+                <div id="country-opts" class="custom-dropdown">
+                    <input type="text" class="w-full p-2 border-b sticky top-0 bg-white outline-none" placeholder="Search..." onkeyup="filter(this, 'country-list')">
                     <div id="country-list"></div>
                 </div>
             </div>
 
             <div class="relative mb-8">
-                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">2. Select Service</label>
-                <div onclick="toggleDropdown('service-options')" id="service-selected" class="border p-3.5 rounded-xl flex justify-between cursor-pointer text-sm text-gray-600 bg-white hover:border-blue-300">
-                    <span>Select a service</span> <i class="fas fa-chevron-down mt-1 text-gray-300"></i>
+                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">2. Select Service</label>
+                <div onclick="toggleDrop('service-opts')" id="service-sel" class="border p-3 rounded-xl flex justify-between cursor-pointer text-sm bg-white">
+                    <span>Select Service</span> <i class="fas fa-chevron-down mt-1 text-gray-300"></i>
                 </div>
-                <div id="service-options" class="custom-dropdown-content">
-                    <input type="text" class="search-input" placeholder="Search Service..." onkeyup="filterList(this, 'service-list')">
+                <div id="service-opts" class="custom-dropdown">
+                    <input type="text" class="w-full p-2 border-b sticky top-0 bg-white outline-none" placeholder="Search..." onkeyup="filter(this, 'service-list')">
                     <div id="service-list"></div>
                 </div>
             </div>
 
-            <button onclick="buyNumber()" id="buy-btn" class="navy-btn active:scale-95 flex justify-center items-center gap-3">
-                <span id="buy-loader" class="hidden w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+            <button onclick="buyNumber()" id="buy-btn" class="w-full bg-[#050a30] text-white py-4 rounded-xl font-bold active:scale-95 transition-all flex justify-center items-center gap-2">
+                <span id="loader" class="hidden w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
                 <span>GET NUMBER</span>
             </button>
         </div>
 
-        <!-- Order Card -->
-        <div id="order-card" class="hidden mt-6 bg-white border rounded-2xl p-6 shadow-sm border-blue-50">
-            <div class="flex justify-between items-start mb-5">
+        <div id="order-card" class="hidden mt-6 bg-white border border-blue-100 rounded-2xl p-6 shadow-sm">
+            <div class="flex justify-between items-start mb-4">
                 <div>
-                    <h3 id="phone-number" class="text-2xl font-mono font-bold text-blue-600">+-----------</h3>
-                    <p id="service-info" class="text-[10px] text-gray-400 font-bold uppercase mt-1">Service</p>
+                    <h3 id="disp-phone" class="text-2xl font-mono font-bold text-blue-600">+-----------</h3>
+                    <p id="disp-service" class="text-[10px] text-gray-400 font-bold uppercase mt-1">Service</p>
                 </div>
-                <div class="bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full text-xs font-bold font-mono" id="order-timer">20:00</div>
+                <div class="bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full text-xs font-bold" id="timer">20:00</div>
             </div>
-            
-            <div class="bg-slate-50 border rounded-xl p-5 text-center mb-5">
-                <p id="otp-status" class="text-xs text-gray-500 font-semibold uppercase">Waiting for OTP...</p>
-                <div id="otp-val" class="hidden text-4xl font-black text-blue-700 tracking-[8px] mt-3">------</div>
+            <div class="bg-slate-50 border border-dashed rounded-xl p-5 text-center mb-5">
+                <p id="otp-status" class="text-xs text-gray-400 font-bold uppercase">Waiting for SMS...</p>
+                <div id="otp-val" class="hidden text-4xl font-black text-blue-700 tracking-[8px] mt-2">------</div>
             </div>
-
-            <div class="flex gap-3">
+            <div class="flex gap-2">
                 <button onclick="location.reload()" class="flex-1 border py-3 rounded-xl text-xs font-bold text-gray-500">BUY NEW</button>
                 <button id="cancel-btn" onclick="handleCancel()" class="flex-1 bg-red-50 text-red-500 py-3 rounded-xl text-xs font-bold">CANCEL</button>
             </div>
@@ -94,20 +88,18 @@
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const API_PATH = '/api/otp';
-        const PROFIT = 40;
-        let userBalance = 0, userId = null, currentOrder = null, pollInterval, timerInterval;
-        let selectedCountry = null, selectedService = null;
+        const PROFIT_PERCENT = 40;
+        let userId, userBalance, currentOrder, pollInv, timerInv;
+        let selCountry, selService;
 
         async function init() {
             const { data: { session } } = await _supabase.auth.getSession();
-            if (!session) window.location.replace("auth");
-            else {
-                userId = session.user.id;
-                document.documentElement.style.display = "block";
-                fetchBalance();
-                loadCountries();
-                checkExistingOrder();
-            }
+            if (!session) return window.location.replace("auth");
+            userId = session.user.id;
+            document.documentElement.style.display = "block";
+            fetchBalance();
+            loadCountries();
+            checkOrder();
         }
 
         async function fetchBalance() {
@@ -120,157 +112,154 @@
 
         async function loadCountries() {
             try {
-                const res = await fetch(`${API_PATH}?action=getCountries&type=4`);
+                const res = await fetch(`${API_PATH}?action=getCountries`);
                 const json = await res.json();
-                let dataObj = typeof json.data === 'string' ? JSON.parse(json.data) : json.data;
-                let list = dataObj["4"] || dataObj["1"] || (Array.isArray(dataObj) ? dataObj : []);
+                let data = typeof json.data === 'string' ? JSON.parse(json.data) : json.data;
+                let list = data["4"] || [];
                 
                 const cont = document.getElementById('country-list');
                 cont.innerHTML = "";
-                list.forEach(item => {
+                list.forEach(c => {
                     const d = document.createElement('div');
                     d.className = 'drop-item';
-                    d.innerText = item.name || item;
+                    d.innerText = c.name;
                     d.onclick = () => {
-                        selectedCountry = item.id;
-                        document.getElementById('country-selected').querySelector('span').innerText = item.name;
-                        toggleDropdown('country-options');
-                        loadServices(item.id);
+                        selCountry = c.id;
+                        document.getElementById('country-sel').querySelector('span').innerText = c.name;
+                        toggleDrop('country-opts');
+                        loadServices(c.id);
                     };
                     cont.appendChild(d);
                 });
-                document.getElementById('country-selected').querySelector('span').innerText = "Select Country";
-            } catch (e) { showToast("❌ Error loading countries"); }
+            } catch (e) { console.error(e); }
         }
 
         async function loadServices(cid) {
-            document.getElementById('service-selected').querySelector('span').innerText = "Loading Services...";
+            document.getElementById('service-sel').querySelector('span').innerText = "Loading S4...";
             try {
-                const res = await fetch(`${API_PATH}?action=getServices&country=${cid}&type=4`);
+                const res = await fetch(`${API_PATH}?action=getServices&country=${cid}`);
                 const json = await res.json();
-                let dataObj = typeof json.data === 'string' ? JSON.parse(json.data) : json.data;
-                const services = dataObj["4"] || dataObj["3"] || dataObj["1"] || dataObj;
+                let data = typeof json.data === 'string' ? JSON.parse(json.data) : json.data;
+                const services = data["4"] || {};
                 
                 const cont = document.getElementById('service-list');
                 cont.innerHTML = "";
-                Object.keys(services).forEach(code => {
+
+                // A-Z Sorting (Airbnb will come first)
+                const sortedKeys = Object.keys(services).sort((a,b) => services[a].split(' - ')[0].localeCompare(services[b].split(' - ')[0]));
+
+                sortedKeys.forEach(code => {
                     const raw = services[code];
-                    let sName = code.toUpperCase(), price = 0;
-                    if (typeof raw === 'string' && raw.includes(' - ')) {
-                        const parts = raw.split(' - '); 
-                        sName = parts[0];
-                        let priceMatch = parts[1].match(/(\d+(\.\d+)?)/);
-                        price = priceMatch ? parseFloat(priceMatch[0]) : 0;
+                    if (raw.includes(' - ')) {
+                        const parts = raw.split(' - ');
+                        const name = parts[0];
+                        // Get price from the last part of string
+                        const priceStr = parts[parts.length - 1];
+                        const basePrice = parseFloat(priceStr.match(/[\d\.]+/)[0]);
+                        const finalPrice = Math.ceil(basePrice + (basePrice * (PROFIT_PERCENT / 100)));
+
+                        const d = document.createElement('div');
+                        d.className = 'drop-item';
+                        d.innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
+                        d.onclick = () => {
+                            selService = { code, name, price: finalPrice };
+                            document.getElementById('service-sel').querySelector('span').innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
+                            toggleDrop('service-opts');
+                        };
+                        cont.appendChild(d);
                     }
-                    const finalPrice = Math.ceil(price + (price * (PROFIT / 100)));
-                    
-                    const d = document.createElement('div');
-                    d.className = 'drop-item';
-                    d.innerText = `${sName} (Rs ${finalPrice})`;
-                    d.onclick = () => {
-                        selectedService = { code, name: sName, price: finalPrice };
-                        document.getElementById('service-selected').querySelector('span').innerText = `${sName} (Rs ${finalPrice})`;
-                        toggleDropdown('service-options');
-                    };
-                    cont.appendChild(d);
                 });
-                document.getElementById('service-selected').querySelector('span').innerText = "Select Service";
-            } catch (err) { showToast("❌ Error loading services"); }
+                document.getElementById('service-sel').querySelector('span').innerText = "Select Service";
+            } catch (e) { showToast("Error loading services"); }
         }
 
         async function buyNumber() {
-            if (!selectedCountry || !selectedService) return showToast("⚠️ Select options first");
-            if (userBalance < selectedService.price) return showToast("❌ Low Balance");
+            if (!selCountry || !selService) return showToast("Select Country & Service!");
+            if (userBalance < selService.price) return showToast("Low Balance!");
 
             const btn = document.getElementById('buy-btn');
-            btn.disabled = true; document.getElementById('buy-loader').classList.remove('hidden');
+            btn.disabled = true; document.getElementById('loader').classList.remove('hidden');
 
             try {
-                const url = `${API_PATH}?action=getNumber&country=${selectedCountry}&service=${selectedService.code}&type=4&user_id=${userId}&cost=${selectedService.price}`;
-                const res = await fetch(url);
+                const res = await fetch(`${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&user_id=${userId}&cost=${selService.price}`);
                 const json = await res.json();
 
                 if (json.success && json.data.includes('ACCESS_NUMBER')) {
-                    const parts = json.data.split(':');
-                    const orderData = { id: parts[1], phone: parts[2], price: selectedService.price, startTime: Date.now(), serviceName: selectedService.name };
-                    localStorage.setItem('active_order_s4', JSON.stringify(orderData));
-                    currentOrder = orderData;
-                    showOrderUI(orderData);
+                    const p = json.data.split(':');
+                    const order = { id: p[1], phone: p[2], price: selService.price, start: Date.now(), name: selService.name };
+                    localStorage.setItem('active_order_s4', JSON.stringify(order));
+                    currentOrder = order;
+                    showUI(order);
                     fetchBalance();
                 } else {
-                    showToast("❌ " + (json.error || "No Numbers Available"));
+                    showToast("Error: " + (json.error || "No Numbers"));
+                    if(json.error && json.error.includes("Price")) loadServices(selCountry);
                 }
-            } catch (e) { showToast("❌ API Error"); }
-            btn.disabled = false; document.getElementById('buy-loader').classList.add('hidden');
+            } catch (e) { showToast("API Error"); }
+            btn.disabled = false; document.getElementById('loader').classList.add('hidden');
         }
 
-        function showOrderUI(order) {
+        function showUI(o) {
             document.getElementById('order-card').classList.remove('hidden');
-            document.getElementById('phone-number').innerText = "+" + order.phone;
-            document.getElementById('service-info').innerText = order.serviceName;
+            document.getElementById('disp-phone').innerText = "+" + o.phone;
+            document.getElementById('disp-service').innerText = o.name;
             startTimer(1197);
-            startPolling();
+            startPoll();
         }
 
-        function startTimer(secs) {
-            clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                let m = Math.floor(secs / 60), s = secs % 60;
-                document.getElementById('order-timer').innerText = `${m}:${s.toString().padStart(2, '0')}`;
-                if (secs <= 0) { clearInterval(timerInterval); resetUI(); }
-                secs--;
+        function startTimer(s) {
+            clearInterval(timerInv);
+            timerInv = setInterval(() => {
+                let m = Math.floor(s/60), sec = s%60;
+                document.getElementById('timer').innerText = `${m}:${sec.toString().padStart(2,'0')}`;
+                if (s-- <= 0) { clearInterval(timerInv); reset(); }
             }, 1000);
         }
 
-        function startPolling() {
-            clearInterval(pollInterval);
-            pollInterval = setInterval(async () => {
-                if(!currentOrder) return;
+        function startPoll() {
+            clearInterval(pollInv);
+            pollInv = setInterval(async () => {
                 const res = await fetch(`${API_PATH}?action=getStatus&id=${currentOrder.id}`);
                 const json = await res.json();
                 const resp = json.data || "";
-
                 if (resp.includes('STATUS_OK')) {
                     const otp = resp.split(':')[1];
                     document.getElementById('otp-status').innerText = "OTP RECEIVED:";
                     document.getElementById('otp-val').innerText = otp;
                     document.getElementById('otp-val').classList.remove('hidden');
                     localStorage.removeItem('active_order_s4');
-                    clearInterval(pollInterval);
-                    _supabase.from('orders').insert([{ uid: userId, phone: currentOrder.phone, service: currentOrder.serviceName, otp: otp, price: currentOrder.price }]);
+                    clearInterval(pollInv);
+                    _supabase.from('orders').insert([{ uid: userId, phone: currentOrder.phone, service: currentOrder.name, otp: otp, price: currentOrder.price }]);
                 }
             }, 5000);
         }
 
         async function handleCancel() {
             if (!confirm("Cancel and refund PKR " + currentOrder.price + "?")) return;
-            try {
-                await fetch(`${API_PATH}?action=setStatus&id=${currentOrder.id}&status=8&user_id=${userId}`);
-                const { data } = await _supabase.from('profiles').select('balance').eq('id', userId).single();
-                await _supabase.from('profiles').update({ balance: data.balance + currentOrder.price }).eq('id', userId);
-                showToast("💰 Refunded!");
-                resetUI();
-            } catch (e) { showToast("❌ Cancel Failed"); }
+            await fetch(`${API_PATH}?action=setStatus&id=${currentOrder.id}&status=8&user_id=${userId}`);
+            const { data } = await _supabase.from('profiles').select('balance').eq('id', userId).single();
+            await _supabase.from('profiles').update({ balance: data.balance + currentOrder.price }).eq('id', userId);
+            reset();
         }
 
-        function checkExistingOrder() {
-            const saved = localStorage.getItem('active_order_s4');
-            if (saved) {
-                const order = JSON.parse(saved);
-                const elapsed = Math.floor((Date.now() - order.startTime) / 1000);
-                if (elapsed < 1197) { currentOrder = order; showOrderUI(order); startTimer(1197 - elapsed); }
+        function checkOrder() {
+            const s = localStorage.getItem('active_order_s4');
+            if (s) {
+                const o = JSON.parse(s);
+                const elap = Math.floor((Date.now() - o.start) / 1000);
+                if (elap < 1197) { currentOrder = o; showUI(o); startTimer(1197 - elap); }
                 else localStorage.removeItem('active_order_s4');
             }
         }
 
-        function toggleDropdown(id) { document.getElementById(id).classList.toggle('show'); }
-        function filterList(inp, listId) {
-            let q = inp.value.toLowerCase();
-            let items = document.getElementById(listId).children;
-            for (let i of items) i.style.display = i.innerText.toLowerCase().includes(q) ? "block" : "none";
+        function toggleDrop(id) { document.getElementById(id).classList.toggle('show'); }
+        function filter(inp, id) {
+            let v = inp.value.toLowerCase();
+            let items = document.getElementById(id).children;
+            for (let i of items) i.style.display = i.innerText.toLowerCase().includes(v) ? "block" : "none";
         }
         function showToast(m) { const x = document.getElementById("toast"); x.innerText = m; x.className = "show"; setTimeout(() => x.className = "", 3000); }
-        function resetUI() { localStorage.removeItem('active_order_s4'); location.reload(); }
+        function reset() { localStorage.removeItem('active_order_s4'); location.reload(); }
         function logout() { _supabase.auth.signOut().then(() => window.location.replace("auth")); }
 
         window.onload = init;
