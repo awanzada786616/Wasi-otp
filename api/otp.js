@@ -1,130 +1,113 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Environment Variables se Supabase connect karein
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// Environment variables check
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const otpApiKey = process.env.OTPGET_API_KEY;
 
-const OTP_API_KEY = process.env.OTPGET_API_KEY;
-const BASE_URL = "https://otpget.com/stubs/handler_api.php";
+// Agar keys missing hain to console mein batao
+if (!supabaseUrl || !supabaseKey || !otpApiKey) {
+    console.error("CRITICAL ERROR: Environment Variables Missing in Vercel Settings!");
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
-  // CORS allow karein taake frontend se request aa sake
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+    // CORS Headers
+    res.setHeader('Access-Control-Allow-Credentials', true);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  // Request se data lein
-  const { action, service, country, type, id, status, user_id, cost } = req.query;
-
-  // ---------------------------------------------------------
-  // ACTION 1: GET NUMBER (Sab se Important - Yahan Security hai)
-  // ---------------------------------------------------------
-  if (action === 'getNumber') {
-    if (!user_id) {
-      return res.status(401).json({ error: "Login Required. User ID missing." });
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
     }
 
-    // Number ki price (Frontend se bhejen ya yahan fix karein)
-    // Behtar hai ke aap apni DB se price fetch karein, lekin abhi ke liye:
-    const SERVICE_PRICE = cost ? parseFloat(cost) : 20; // Default 20 agar cost nahi aayi
-
     try {
-      // 1. Supabase se User ka Balance check karein
-      const { data: user, error: userError } = await supabase
-        .from('users') // Apne table ka naam check kar lena
-        .select('balance')
-        .eq('id', user_id)
-        .single();
+        const { action, service, country, type, id, status, user_id, cost } = req.query;
 
-      if (userError || !user) {
-        return res.status(404).json({ error: "User not found in database." });
-      }
+        // --- SECTION A: NUMBER BUY KARNA ---
+        if (action === 'getNumber') {
+            
+            // 1. Validation check
+            if (!user_id || user_id === 'null' || user_id === 'undefined') {
+                return res.status(401).json({ error: "User Not Logged In (ID Missing)" });
+            }
 
-      // 2. Balance Check
-      if (user.balance < SERVICE_PRICE) {
-        return res.status(402).json({ error: "Low Balance. Please recharge." });
-      }
+            const PRICE = cost ? parseFloat(cost) : 20; 
 
-      // 3. OTPGet API se number maangen
-      const apiUrl = `${BASE_URL}?api_key=${OTP_API_KEY}&action=getNumber&service=${service}&country=${country}&type=${type || 1}`;
-      const apiRes = await fetch(apiUrl);
-      const apiData = await apiRes.text(); // OTPGet text return karta hai
+            // 2. Database Balance Check (Table Name: 'profiles')
+            // Ghaur karein: Maine table ka naam 'users' se 'profiles' kar diya hai
+            const { data: user, error: dbError } = await supabase
+                .from('profiles') 
+                .select('balance, id')
+                .eq('id', user_id) 
+                .single();
 
-      // 4. Check karein ke number mila ya nahi?
-      // Success response format: ACCESS_NUMBER:$ID:$NUMBER
-      if (apiData.startsWith("ACCESS_NUMBER")) {
-        
-        // Number mil gaya! Ab Balance kaato
-        const newBalance = user.balance - SERVICE_PRICE;
-        
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({ balance: newBalance })
-          .eq('id', user_id);
+            // Agar DB error aye (Jaise table nahi mila)
+            if (dbError) {
+                console.error("Database Error:", dbError);
+                return res.status(500).json({ error: "Database Error: " + dbError.message });
+            }
 
-        if (updateError) {
-          console.error("CRITICAL: Balance deduct nahi hua but number mil gaya", updateError);
-          // Yahan log save kar sakte hain recovery ke liye
+            if (!user) {
+                return res.status(404).json({ error: "User ID database mein nahi mili." });
+            }
+
+            if (user.balance < PRICE) {
+                return res.status(402).json({ error: "Low Balance! Please recharge." });
+            }
+
+            // 3. Provider se Number mangwayen
+            const providerUrl = `https://otpget.com/stubs/handler_api.php?api_key=${otpApiKey}&action=getNumber&service=${service}&country=${country}&type=${type || 4}`;
+            
+            const apiRes = await fetch(providerUrl);
+            const apiData = await apiRes.text();
+
+            // 4. Result Check
+            if (apiData.includes("ACCESS_NUMBER")) {
+                // Balance Deduct karo
+                const newBalance = user.balance - PRICE;
+                
+                const { error: updateError } = await supabase
+                    .from('profiles') // Yahan bhi 'profiles'
+                    .update({ balance: newBalance })
+                    .eq('id', user_id);
+
+                if (updateError) console.error("Balance Update Failed:", updateError);
+
+                return res.status(200).json({ status: "success", data: apiData });
+            } else {
+                return res.status(400).json({ error: "Provider Error: " + apiData });
+            }
         }
 
-        return res.status(200).json({ status: "success", data: apiData });
+        // --- SECTION B: OTHER ACTIONS ---
+        let targetUrl = '';
+        if (action === 'getStatus') {
+            // Frontend se user_id aa rahi hai verification ke liye
+            targetUrl = `https://otpget.com/stubs/handler_api.php?api_key=${otpApiKey}&action=getStatus&id=${id}`;
+        } else if (action === 'setStatus') {
+            targetUrl = `https://otpget.com/stubs/handler_api.php?api_key=${otpApiKey}&action=setStatus&id=${id}&status=${status}`;
+        } else if (action === 'getCountries') {
+            targetUrl = `https://otpget.com/stubs/handler_api.php?api_key=${otpApiKey}&action=getCountries&type=${type || 4}`;
+        } else if (action === 'getServices') {
+            targetUrl = `https://otpget.com/stubs/handler_api.php?api_key=${otpApiKey}&action=getServices&country=${country || 10}&type=${type || 4}`;
+        } else {
+            return res.status(400).json({ error: "Invalid Action" });
+        }
 
-      } else {
-        // Provider ne error diya (e.g., NO_NUMBERS)
-        return res.status(400).json({ error: apiData });
-      }
+        const response = await fetch(targetUrl);
+        const data = await response.text();
+        
+        try {
+            return res.status(200).json(JSON.parse(data));
+        } catch (e) {
+            return res.status(200).send(data);
+        }
 
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: "Server Error" });
+        console.error("SERVER CRASH ERROR:", error);
+        return res.status(500).json({ error: "Server Error", details: error.message });
     }
-  }
-
-  // ---------------------------------------------------------
-  // BAKI ACTIONS (Direct Proxy kar den, lekin Key server pe rahegi)
-  // ---------------------------------------------------------
-  
-  let targetUrl = "";
-
-  if (action === 'getCountries') {
-    targetUrl = `${BASE_URL}?api_key=${OTP_API_KEY}&action=getCountries&type=${type || 1}`;
-  } 
-  else if (action === 'getServices') {
-    targetUrl = `${BASE_URL}?api_key=${OTP_API_KEY}&action=getServices&country=${country || 1}&type=${type || 1}`;
-  } 
-  else if (action === 'getStatus') {
-    targetUrl = `${BASE_URL}?api_key=${OTP_API_KEY}&action=getStatus&id=${id}`;
-  } 
-  else if (action === 'setStatus') {
-    targetUrl = `${BASE_URL}?api_key=${OTP_API_KEY}&action=setStatus&id=${id}&status=${status}`;
-  } 
-  else {
-    return res.status(400).json({ error: "Invalid Action" });
-  }
-
-  // API Call maaren aur result wapis user ko den
-  try {
-    const response = await fetch(targetUrl);
-    const data = await response.text(); // Zyadatar text hota hai, JSON nahi
-    // Agar JSON parse ho sake to JSON bhejen, warna text
-    try {
-        const jsonData = JSON.parse(data);
-        return res.status(200).json(jsonData);
-    } catch (e) {
-        return res.status(200).send(data);
-    }
-  } catch (error) {
-    return res.status(500).json({ error: "Provider fetch failed" });
-  }
-  }
+        }
