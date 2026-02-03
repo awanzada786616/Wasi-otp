@@ -1,57 +1,61 @@
 import axios from 'axios';
 import { createClient } from '@supabase/supabase-js';
 
-// Environment Variables
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const otpgetApiKey = process.env.OTPGET_API_KEY;
-
-// Supabase Connection
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-// Provider URL
-const PROVIDER_URL = "https://otpget.com/stubs/handler_api.php";
-
 export default async function handler(req, res) {
-  // Sirf GET requests
+  // Sirf GET allow karein
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
+
+  // --- ERROR HANDLING & SETUP ---
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const otpgetApiKey = process.env.OTPGET_API_KEY;
+  const PROVIDER_URL = "https://otpget.com/stubs/handler_api.php";
+
+  // Check karein ke variables load huay ya nahi
+  if (!supabaseUrl || !supabaseKey || !otpgetApiKey) {
+    console.error("Missing Env Vars:", { 
+      url: !!supabaseUrl, 
+      key: !!supabaseKey, 
+      otp: !!otpgetApiKey 
+    });
+    return res.status(500).json({ 
+      error: "Server Configuration Error. Environment variables missing. Check Vercel Logs." 
+    });
+  }
+
+  // Supabase ab yahan initialize hoga (Safe Mode)
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   const { action, api_key, country, service, type, id, status } = req.query;
 
   try {
     // ============================================================
-    // PART 1: PUBLIC ACTIONS (Bina API Key ke chalne chahiye)
+    // PART 1: PUBLIC ACTIONS (Countries/Services)
     // ============================================================
-    
-    // Agar user sirf Countries ya Services maang raha hai, to usay rokna nahi chahiye.
-    // Hum seedha Admin Key use karke list de denge.
     if (action === 'getCountries' || action === 'getServices') {
       const response = await axios.get(PROVIDER_URL, {
         params: {
-          api_key: otpgetApiKey, // Server ki hidden key
+          api_key: otpgetApiKey,
           action: action,
           country: country,
           type: type
         }
       });
-      // List wapis bhej dein
       return res.status(200).json(response.data);
     }
 
     // ============================================================
-    // PART 2: SECURITY CHECK (Baaki actions ke liye Key Zaroori hai)
+    // PART 2: SECURITY CHECK
     // ============================================================
-    
     if (!api_key) {
       return res.status(401).json({ error: "API Key is missing" });
     }
 
-    // Supabase User Check
-    // Note: Agar table name 'profiles' hai to 'users' ki jagah change karein
+    // Check User from Database
     const { data: user, error: dbError } = await supabase
-      .from('users') 
+      .from('users') // <-- Check table name (users vs profiles)
       .select('*')
       .eq('api_key', api_key)
       .single();
@@ -61,12 +65,12 @@ export default async function handler(req, res) {
     }
 
     // ============================================================
-    // PART 3: PAID ACTIONS (Number lena, Balance check karna)
+    // PART 3: PAID ACTIONS
     // ============================================================
 
-    // === Number Request ===
+    // --- Get Number ---
     if (action === 'getNumber') {
-      const sellingPrice = 20; // Price set karein
+      const sellingPrice = 20; // Price per number
 
       if (user.balance < sellingPrice) {
         return res.status(402).json({ error: "Insufficient Balance" });
@@ -86,10 +90,9 @@ export default async function handler(req, res) {
 
       if (typeof data === 'string' && data.includes('ACCESS_NUMBER')) {
         const parts = data.split(':');
-        const activationId = parts[1];
         const phoneNumber = parts[2];
 
-        // Deduct Balance
+        // Update Balance
         const newBalance = user.balance - sellingPrice;
         await supabase
           .from('users')
@@ -99,7 +102,7 @@ export default async function handler(req, res) {
         return res.status(200).json({
           status: 'success',
           phone: phoneNumber,
-          id: activationId,
+          id: parts[1],
           cost: sellingPrice,
           remaining_balance: newBalance
         });
@@ -108,33 +111,28 @@ export default async function handler(req, res) {
       }
     }
 
-    // === Status Check ===
+    // --- Other Actions ---
     else if (action === 'getStatus') {
       const response = await axios.get(PROVIDER_URL, {
         params: { api_key: otpgetApiKey, action: 'getStatus', id: id }
       });
       return res.status(200).send(response.data);
     }
-
-    // === Status Update ===
     else if (action === 'setStatus') {
       const response = await axios.get(PROVIDER_URL, {
         params: { api_key: otpgetApiKey, action: 'setStatus', id: id, status: status }
       });
       return res.status(200).send(response.data);
     }
-
-    // === Get User Balance ===
     else if (action === 'getBalance') {
       return res.status(200).json({ balance: user.balance, currency: 'PKR' });
     }
-
     else {
       return res.status(400).json({ error: "Unknown Action" });
     }
 
   } catch (err) {
-    console.error("API Error:", err.message);
-    return res.status(500).json({ error: "Server Error" });
+    console.error("CRITICAL SERVER ERROR:", err);
+    return res.status(500).json({ error: "Internal Server Error", details: err.message });
   }
-  }
+}
