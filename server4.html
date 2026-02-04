@@ -10,11 +10,12 @@
     <style>
         html { display: none; }
         body { font-family: sans-serif; background-color: #f8fafc; }
-        .custom-dropdown { display: none; position: absolute; width: 100%; max-height: 250px; overflow-y: auto; background: white; border: 1px solid #ddd; z-index: 100; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .custom-dropdown { display: none; position: absolute; width: 100%; max-height: 250px; overflow-y: auto; background: white; border: 1px solid #ddd; z-index: 100; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .custom-dropdown.show { display: block; }
-        .drop-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        .drop-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #333; }
         .drop-item:hover { background: #f0f7ff; color: #0061ff; }
-        #toast { visibility: hidden; min-width: 250px; background: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); }
+        .search-input { width: 100%; padding: 12px; border-bottom: 1px solid #ddd; outline: none; sticky; top: 0; background: white; font-size: 14px; }
+        #toast { visibility: hidden; min-width: 250px; background: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); font-weight: bold; }
         #toast.show { visibility: visible; }
     </style>
 </head>
@@ -22,68 +23,70 @@
     <div id="toast"></div>
 
     <nav class="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-50">
-        <span class="font-bold text-blue-600 text-lg">WASI OTP - S4</span>
+        <span class="font-bold text-blue-600 italic">WASI OTP S4</span>
         <div class="flex items-center gap-3">
-            <div class="border rounded-full px-4 py-1 bg-gray-50 font-bold text-sm">
-                <span id="top-balance">0.00</span> <span class="text-gray-400 text-xs">PKR</span>
+            <div class="border rounded-full px-4 py-1.5 bg-gray-50 flex items-center gap-2">
+                <span id="top-balance" class="font-bold">0.00</span>
+                <span class="text-[10px] text-gray-400 font-bold">PKR</span>
             </div>
             <button onclick="logout()" class="text-red-500 font-bold text-xs">LOGOUT</button>
         </div>
     </nav>
 
     <main class="max-w-[480px] mx-auto p-4 mt-6">
-        <div class="bg-white border rounded-xl p-6 shadow-sm">
-            <h2 class="text-xs font-bold text-gray-400 uppercase mb-6 tracking-widest text-center">Server 4 Activation</h2>
+        <div class="bg-white border rounded-2xl p-7 shadow-sm">
+            <h2 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6"><i class="fas fa-sim-card mr-2"></i> Activation Server 4</h2>
             
-            <!-- Country -->
+            <!-- Step 1: Country -->
             <div class="relative mb-4">
                 <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">1. Select Country</label>
-                <div onclick="toggleDrop('country-opts')" id="country-sel-box" class="border p-3 rounded-lg flex justify-between cursor-pointer text-sm bg-white">
+                <div onclick="toggleDrop('country-opts')" id="country-box" class="border p-3.5 rounded-xl flex justify-between cursor-pointer text-sm text-gray-600 bg-white">
                     <span>Select Country</span> <i class="fas fa-chevron-down mt-1 text-gray-300"></i>
                 </div>
                 <div id="country-opts" class="custom-dropdown">
-                    <input type="text" class="w-full p-2 border-b sticky top-0 bg-white outline-none" placeholder="Search..." onkeyup="filter(this, 'country-list')">
+                    <input type="text" class="search-input" placeholder="Search Country..." onkeyup="filter(this, 'country-list')">
                     <div id="country-list"></div>
                 </div>
             </div>
 
-            <!-- Service -->
+            <!-- Step 2: Service -->
             <div class="relative mb-8">
                 <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">2. Select Service</label>
-                <div onclick="toggleDrop('service-opts')" id="service-sel-box" class="border p-3 rounded-lg flex justify-between cursor-pointer text-sm bg-white">
+                <div onclick="toggleDrop('service-opts')" id="service-box" class="border p-3.5 rounded-xl flex justify-between cursor-pointer text-sm text-gray-600 bg-white">
                     <span>Select Service</span> <i class="fas fa-chevron-down mt-1 text-gray-300"></i>
                 </div>
                 <div id="service-opts" class="custom-dropdown">
-                    <input type="text" class="w-full p-2 border-b sticky top-0 bg-white outline-none" placeholder="Search..." onkeyup="filter(this, 'service-list')">
+                    <input type="text" class="search-input" placeholder="Search (Airbnb, WhatsApp...)" onkeyup="filter(this, 'service-list')">
                     <div id="service-list"></div>
                 </div>
             </div>
 
-            <button onclick="buyNumber()" id="buy-btn" class="w-full bg-[#050a30] text-white py-4 rounded-xl font-bold active:scale-95 transition-all flex justify-center items-center gap-2">
+            <button onclick="buyNumber()" id="buy-btn" class="w-full bg-[#050a30] text-white py-4 rounded-xl font-bold active:scale-95 flex justify-center items-center gap-3 transition-all">
                 <span id="loader" class="hidden w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
                 <span>GET NUMBER</span>
             </button>
         </div>
 
-        <!-- Order Result Card -->
-        <div id="order-card" class="hidden mt-6 bg-white border border-blue-100 rounded-xl p-5 shadow-sm text-center">
-            <h3 id="disp-phone" class="text-2xl font-mono font-bold text-blue-600 mb-1 tracking-tighter">+-----------</h3>
-            <p id="disp-service" class="text-[10px] text-gray-400 font-bold uppercase mb-4">Service Name</p>
-            
-            <div class="bg-gray-50 border-2 border-dashed rounded-lg p-4 mb-4">
-                <p id="otp-status" class="text-xs text-gray-400 font-bold uppercase">Waiting for OTP...</p>
-                <div id="otp-val" class="hidden text-4xl font-black text-blue-700 tracking-[8px] mt-2">------</div>
+        <!-- Active Order Card -->
+        <div id="order-card" class="hidden mt-6 bg-white border border-blue-100 rounded-2xl p-6 shadow-sm">
+            <div class="flex justify-between items-start mb-5 text-center">
+                <div class="w-full">
+                    <h3 id="disp-phone" class="text-2xl font-mono font-bold text-blue-600 tracking-tighter">+-----------</h3>
+                    <p id="disp-service" class="text-[10px] text-gray-400 font-bold uppercase mt-1">Service Name</p>
+                </div>
             </div>
-
+            <div class="bg-slate-50 border-2 border-dashed rounded-xl p-5 text-center mb-5">
+                <p id="otp-status" class="text-xs text-gray-400 font-bold uppercase">Waiting for SMS...</p>
+                <div id="otp-val" class="hidden text-4xl font-black text-blue-700 tracking-[8px] mt-3">------</div>
+            </div>
             <div class="flex gap-2">
-                <button onclick="location.reload()" class="flex-1 border py-2 rounded-lg text-xs font-bold text-gray-500">BUY NEW</button>
-                <button onclick="handleCancel()" class="flex-1 bg-red-50 text-red-500 py-2 rounded-lg text-xs font-bold">CANCEL</button>
+                <button onclick="location.reload()" class="flex-1 border py-3 rounded-xl text-xs font-bold text-gray-500">BUY NEW</button>
+                <button onclick="handleCancel()" class="flex-1 bg-red-50 text-red-500 py-3 rounded-xl text-xs font-bold">CANCEL</button>
             </div>
         </div>
     </main>
 
     <script>
-        // --- CONFIG ---
         const SUPABASE_URL = "https://aljcxnobmmtcfpvdacbo.supabase.co";
         const SUPABASE_KEY = "sb_publishable_xVWCkX7Gl2m0cFUKlSn3pg_liSvnzmg";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -110,58 +113,65 @@
             }
         }
 
-        // --- FETCH LOGIC ( Mimicking Server 1 Style ) ---
+        // --- FETCH COUNTRIES ---
         async function loadCountries() {
             try {
-                const res = await fetch(`${API_PATH}?action=getCountries&type=4`);
+                const res = await fetch(`${API_PATH}?action=getCountries`);
                 const json = await res.json();
                 
-                // Security box se data nikalna
-                let dataObj = typeof json.data === 'string' ? JSON.parse(json.data) : json.data;
-                let list = dataObj["4"] || [];
+                // Double JSON Parsing Fix
+                let rawData = json.data;
+                if (typeof rawData === 'string') rawData = JSON.parse(rawData);
                 
+                let list = rawData["4"] || rawData["1"] || [];
                 const cont = document.getElementById('country-list');
                 cont.innerHTML = "";
+                
                 list.forEach(c => {
                     const d = document.createElement('div');
                     d.className = 'drop-item';
                     d.innerText = c.name;
                     d.onclick = () => {
                         selCountry = c.id;
-                        document.getElementById('country-sel-box').querySelector('span').innerText = c.name;
+                        document.getElementById('country-box').querySelector('span').innerText = c.name;
                         toggleDrop('country-opts');
                         loadServices(c.id);
                     };
                     cont.appendChild(d);
                 });
-            } catch (e) { console.error("Countries error:", e); }
+            } catch (e) { console.error("Countries Load Error", e); }
         }
 
+        // --- FETCH SERVICES (A-Z Sort + Price Fix) ---
         async function loadServices(cid) {
-            const span = document.getElementById('service-sel-box').querySelector('span');
-            span.innerText = "Loading Services...";
+            const box = document.getElementById('service-box').querySelector('span');
+            box.innerText = "Syncing S4 Services...";
             try {
-                const res = await fetch(`${API_PATH}?action=getServices&country=${cid}&type=4`);
+                const res = await fetch(`${API_PATH}?action=getServices&country=${cid}`);
                 const json = await res.json();
                 
-                let dataObj = typeof json.data === 'string' ? JSON.parse(json.data) : json.data;
-                const services = dataObj["4"] || {};
+                let rawData = json.data;
+                if (typeof rawData === 'string') rawData = JSON.parse(rawData);
                 
+                const services = rawData["4"] || {};
                 const cont = document.getElementById('service-list');
                 cont.innerHTML = "";
 
-                // Sorting (A-Z)
-                const sortedKeys = Object.keys(services).sort((a,b) => services[a].split(' - ')[0].localeCompare(services[b].split(' - ')[0]));
+                // Alphabetical Sort (Airbnb First)
+                const sortedKeys = Object.keys(services).sort((a,b) => {
+                    let nameA = services[a].split(' - ')[0].toLowerCase();
+                    let nameB = services[b].split(' - ')[0].toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
 
                 sortedKeys.forEach(code => {
-                    const raw = services[code];
-                    if (raw.includes(' - ')) {
-                        const parts = raw.split(' - ');
-                        const name = parts[0];
-                        const pricePart = parts[parts.length - 1]; // Akhri part price hai
-                        const basePrice = parseFloat(pricePart.match(/[\d\.]+/)[0]);
-                        
-                        // Profit & Rounding (Ceil)
+                    const rawStr = services[code];
+                    if (rawStr.includes(' - ')) {
+                        const parts = rawStr.split(' - ');
+                        const name = parts[0].trim();
+                        // Get Price (Avoid Server ID "4")
+                        const priceMatch = parts[1].match(/[\d\.]+/);
+                        const basePrice = parseFloat(priceMatch[0]);
                         const finalPrice = Math.ceil(basePrice + (basePrice * (PROFIT / 100)));
 
                         const d = document.createElement('div');
@@ -169,25 +179,26 @@
                         d.innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
                         d.onclick = () => {
                             selService = { code, name, price: finalPrice };
-                            document.getElementById('service-sel-box').querySelector('span').innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
+                            document.getElementById('service-box').querySelector('span').innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
                             toggleDrop('service-opts');
                         };
                         cont.appendChild(d);
                     }
                 });
-                span.innerText = "Select Service";
-            } catch (e) { span.innerText = "Error Loading!"; }
+                box.innerText = "Select Service";
+            } catch (e) { box.innerText = "Error! Retry"; }
         }
 
+        // --- BUY NUMBER ---
         async function buyNumber() {
-            if (!selCountry || !selService) return showToast("⚠️ Select options!");
-            if (userBalance < selService.price) return showToast("❌ Low Balance!");
+            if (!selCountry || !selService) return showToast("⚠️ Select all options");
+            if (userBalance < selService.price) return showToast("❌ Low Balance");
 
             const btn = document.getElementById('buy-btn');
             btn.disabled = true; document.getElementById('loader').classList.remove('hidden');
 
             try {
-                const res = await fetch(`${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&type=4&user_id=${userId}&cost=${selService.price}`);
+                const res = await fetch(`${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&user_id=${userId}&cost=${selService.price}`);
                 const json = await res.json();
 
                 if (json.success && json.data.includes('ACCESS_NUMBER')) {
@@ -197,14 +208,12 @@
                     document.getElementById('order-card').classList.remove('hidden');
                     document.getElementById('disp-phone').innerText = "+" + p[2];
                     document.getElementById('disp-service').innerText = selService.name;
-                    
                     fetchBalance();
                     startPolling();
                 } else {
-                    showToast("❌ " + (json.error || "No Numbers"));
-                    if(json.error && json.error.includes("Price")) loadServices(selCountry);
+                    showToast("❌ " + (json.error || "No Numbers Available"));
                 }
-            } catch (e) { showToast("❌ Connection Error"); }
+            } catch (e) { showToast("❌ API Error"); }
             btn.disabled = false; document.getElementById('loader').classList.add('hidden');
         }
 
@@ -225,7 +234,7 @@
         }
 
         async function handleCancel() {
-            if (!confirm("Refund balance?")) return;
+            if (!confirm("Cancel and refund?")) return;
             await fetch(`${API_PATH}?action=setStatus&id=${currentOrder.id}&status=8&user_id=${userId}`);
             fetchBalance(); location.reload();
         }
