@@ -165,9 +165,10 @@
         // --- Services Fetching (Decimal Price Ko Save Karna) ---
 // --- Services Fetching (Decimal Price Capture) ---
 // --- Services Fetching (Screenshot Format Fix) ---
+// --- Services Fetching (String Price Capture) ---
 async function loadServices(cid) {
     const box = document.getElementById('service-sel-box').querySelector('span');
-    box.innerText = "Syncing Exact Prices...";
+    box.innerText = "Fetching Final Prices...";
     try {
         const res = await fetch(`${API_PATH}?action=getServices&country=${cid}&type=4`);
         const services = await res.json();
@@ -175,36 +176,33 @@ async function loadServices(cid) {
         const cont = document.getElementById('service-list');
         cont.innerHTML = "";
 
-        // Convert to array and Sort A-Z
         const sArray = Object.keys(services).map(id => ({ id: id, raw: services[id] }));
         sArray.sort((a,b) => a.raw.toLowerCase().localeCompare(b.raw.toLowerCase()));
 
         sArray.forEach(item => {
-            const raw = item.raw; // Example: "AirBnb - Rs 376.88 PKR"
+            const raw = item.raw;
             if (raw.includes(' - ')) {
                 const parts = raw.split(' - ');
                 const name = parts[0].trim();
                 
-                // Screenshot Logic: Hum 'Rs' aur 'PKR' ke beech se number nikalenge
-                // Regex decimals (.88) ko bhi pakre ga
-                const priceMatch = raw.match(/[\d\.]+/g); 
-                // priceMatch[priceMatch.length - 1] hamesha aakhri number (price) dega
-                const providerPrice = priceMatch ? priceMatch[priceMatch.length - 1] : "0";
-
-                // Markup Calculation (Aapka profit)
-                const basePriceNum = parseFloat(providerPrice);
+                // 1. PROVIDER KI EXACT DECIMAL PRICE (STRING KI SURAT MEIN)
+                // Hum Rs aur PKR ke beech ka hissa uthayenge
+                const pricePart = parts[1].split('PKR')[0].trim(); // "376.88" as a string
+                
+                // 2. Markup Price (Round Up) - Number ki surat mein
+                const basePriceNum = parseFloat(pricePart);
                 const finalPrice = Math.ceil(basePriceNum + (basePriceNum * (PROFIT / 100)));
 
                 const d = document.createElement('div');
                 d.className = 'drop-item';
                 d.innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
                 d.onclick = () => {
-                    // SAVE BOTH PRICES
+                    // SAVE BOTH: Final Price (Number) aur Provider Price (String)
                     selService = { 
                         code: item.id, 
                         name: name, 
-                        price: finalPrice,        // Aapke DB ke liye (Markup)
-                        p_price: providerPrice    // Provider ke liye (Exact Decimal)
+                        price: finalPrice,        // Database ke liye (Number)
+                        p_price: pricePart        // Provider ke liye (String: "376.88")
                     };
                     document.getElementById('service-sel-box').querySelector('span').innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
                     toggleDrop('service-opts');
@@ -214,33 +212,29 @@ async function loadServices(cid) {
         });
         box.innerText = "Select Service";
     } catch (e) { 
-        box.innerText = "Error Loading Services";
+        box.innerText = "Error! Retry"; 
     }
 }
 
-// --- Buy Number (Sending Both Prices) ---
+// --- Buy Number (Sending Exact Price String) ---
 async function buyNumber() {
-    if (!selCountry || !selService) return showToast("⚠️ Pehle select karein!");
+    if (!selCountry || !selService) return showToast("⚠️ Select options!");
     if (userBalance < selService.price) return showToast("❌ Low Balance!");
 
     const btn = document.getElementById('buy-btn');
     btn.disabled = true;
 
     try {
-        // Backend ko Markup price (cost) aur Provider decimal price (p_price) dono bhej rahe hain
+        // Provider ko uski EXACT price string (p_price) bhej rahe hain
         const url = `${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&type=4&user_id=${userId}&cost=${selService.price}&p_price=${selService.p_price}`;
         const res = await fetch(url);
         const text = await res.text();
 
         if (text.includes("ACCESS_NUMBER")) {
-            const p = text.split(':');
-            // Success Logic
-            alert("Success! Number: " + p[2]);
+            alert("✅ Success! Number: " + text.split(':')[2]);
             fetchBalance(); 
-            // Yahan apna order card dikhane wala logic add karein
         } else {
-            // Agar PRICE_CHANGED aaye to foran list refresh karein
-            alert("Error: " + text);
+            alert("❌ Error: " + text);
             if(text.includes("PRICE")) loadServices(selCountry);
         }
     } catch (e) { showToast("❌ API Connection Error"); }
