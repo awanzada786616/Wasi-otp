@@ -216,25 +216,48 @@
 }
 
 async function buyNumber() {
-    if (!selCountry || !selService) return showToast("⚠️ Pehle Select Karein");
-    if (userBalance < selService.price) return showToast("❌ Balance Kam Hai");
-
+    if (!selCountry || !selService) return showToast("⚠️ Pehle Country aur Service select karein");
+    
     const btn = document.getElementById('buy-btn');
+    const loader = document.getElementById('buy-loader');
+    
     btn.disabled = true;
+    loader.classList.remove('hidden');
 
-    // Backend call (Cost aur UserID ke sath)
-    const res = await fetch(`${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&type=4&user_id=${userId}&cost=${selService.price}`);
-    const text = await res.text();
+    try {
+        // Hum backend ko cost bhej rahe hain sirf balance check karne ke liye
+        const url = `${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&type=4&user_id=${userId}&cost=${selService.price}`;
+        
+        const res = await fetch(url);
+        const text = await res.text();
 
-    if (text.includes("ACCESS_NUMBER")) {
-        const p = text.split(':');
-        // Success Logic (Aapka Order Card dikhayen)
-        alert("Number Mil Gaya: " + p[2]);
-        fetchBalance(); 
-    } else {
-        showToast("❌ " + text);
+        if (text.includes("ACCESS_NUMBER")) {
+            const p = text.split(':');
+            const orderData = { 
+                id: p[1], 
+                phone: p[2], 
+                price: selService.price, 
+                startTime: Date.now(), 
+                serviceName: selService.name 
+            };
+            
+            // Local Storage mein save karein
+            localStorage.setItem('active_order_s4', JSON.stringify(orderData));
+            currentOrder = orderData;
+            
+            // UI Update (Order card dikhayen)
+            showOrderUI(orderData); 
+            fetchBalance(); // Balance refresh karein
+            showToast("✅ Number Purchased!");
+        } else {
+            // Ab yahan "Price Change" nahi ayega, balki agar koi aur masla hua to wo dikhayega
+            showToast("❌ " + text);
+        }
+    } catch (e) {
+        showToast("❌ API Error");
     }
     btn.disabled = false;
+    loader.classList.add('hidden');
 }
         // --- 6. TIMER & POLLING ---
         function showOrderUI(o) {
