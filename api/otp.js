@@ -15,30 +15,32 @@ export default async function handler(req, res) {
         if (action === 'getNumber') {
             if (!user_id || user_id === 'null') return res.status(401).send("ERR_LOGIN_REQUIRED");
             
-            // 1. Aapka Commission (Round Up Price) - Supabase ke liye
-            const myTotalCost = Math.ceil(parseFloat(cost));
-            // 2. Provider ki Asli Price (Decimal Price) - Provider ke liye
-            const providerExactPrice = p_price; 
+            // 1. Aapka Profit wala Rate (Jo Supabase se katega)
+            const deductionAmount = Math.ceil(parseFloat(cost));
+            
+            // 2. Provider ka EXACT Decimal Rate (Jo Provider ko confirm karna hai)
+            // p_price hamesha decimal string honi chahiye (e.g. 58.30)
+            const exactProviderPrice = p_price;
 
-            // Supabase Balance Check
+            // Balance Check
             const { data: profile } = await supabase.from('profiles').select('balance').eq('id', user_id).single();
-            if (!profile || profile.balance < myTotalCost) return res.status(402).send("ERR_LOW_BALANCE");
+            if (!profile || profile.balance < deductionAmount) return res.status(402).send("ERR_LOW_BALANCE");
 
-            // Provider Call: Hum 'price' parameter mein EXACT decimal price bhej rahe hain
-            const providerUrl = `https://otpget.com/stubs/handler_api.php?api_key=${OTP_API_KEY}&action=getNumber&service=${service}&country=${country}&type=${type || 4}&price=${providerExactPrice}`;
+            // Provider Call: Hum 'price' parameter mein EXACT decimal bhej rahe hain
+            const providerUrl = `https://otpget.com/stubs/handler_api.php?api_key=${OTP_API_KEY}&action=getNumber&service=${service}&country=${country}&type=4&price=${exactProviderPrice}`;
             
             const apiRes = await fetch(providerUrl);
             const apiText = await apiRes.text();
 
             if (apiText.includes("ACCESS_NUMBER")) {
-                // Success hone par Commission wali price kaato
-                await supabase.from('profiles').update({ balance: profile.balance - myTotalCost }).eq('id', user_id);
+                // Success: Profit wali price kaato
+                await supabase.from('profiles').update({ balance: profile.balance - deductionAmount }).eq('id', user_id);
             }
             return res.send(apiText);
         }
 
-        // Baki Proxy Actions
-        let target = `https://otpget.com/stubs/handler_api.php?api_key=${OTP_API_KEY}&action=${action}&id=${id || ''}&status=${status || ''}&country=${country || ''}&type=${type || 4}&service=${service || ''}`;
+        // Baki Actions Proxy
+        let target = `https://otpget.com/stubs/handler_api.php?api_key=${OTP_API_KEY}&action=${action}&id=${id || ''}&status=${status || ''}&country=${country || ''}&type=4&service=${service || ''}`;
         const proxyRes = await fetch(target);
         const proxyData = await proxyRes.text();
         return res.send(proxyData);
