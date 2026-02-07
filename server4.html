@@ -218,15 +218,16 @@ async function loadServices(cid) {
 
 // --- Buy Number (Sending Exact Price String) ---
 async function buyNumber() {
-    if (!selCountry || !selService) return showToast("⚠️ Select options!");
-    if (userBalance < selService.price) return showToast("❌ Low Balance!");
+    if (!selCountry || !selService) return alert("⚠️ Select Country & Service!");
+    if (userBalance < selService.price) return alert("❌ Low Balance!");
 
     const btn = document.getElementById('buy-btn');
     btn.disabled = true;
 
     try {
-        // Provider ko uski EXACT price string (p_price) bhej rahe hain
-        const url = `${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&type=4&user_id=${userId}&cost=${selService.price}&p_price=${selService.p_price}`;
+        // Simple URL: Sirf user_id aur cost bhej rahe hain
+        const url = `${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&type=4&user_id=${userId}&cost=${selService.price}`;
+        
         const res = await fetch(url);
         const text = await res.text();
 
@@ -234,10 +235,11 @@ async function buyNumber() {
             alert("✅ Success! Number: " + text.split(':')[2]);
             fetchBalance(); 
         } else {
+            // Price Change error ka matlab hai waqai price badal gayi hai
             alert("❌ Error: " + text);
-            if(text.includes("PRICE")) loadServices(selCountry);
+            if(text.includes("PRICE")) loadServices(selCountry); // Refresh list
         }
-    } catch (e) { showToast("❌ API Connection Error"); }
+    } catch (e) { alert("❌ Connection Error"); }
     btn.disabled = false;
 }
         // --- 6. TIMER & POLLING ---
