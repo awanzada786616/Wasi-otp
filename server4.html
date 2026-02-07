@@ -163,79 +163,79 @@
 
         // --- 4. FETCH SERVICES (A-Z Sort + Price Fix) ---
         async function loadServices(cid) {
-            const box = document.getElementById('service-sel-box').querySelector('span');
-            box.innerText = "Syncing S4 Services...";
-            try {
-                const res = await fetch(`${API_PATH}?action=getServices&country=${cid}&type=4`);
-                const data = await res.json();
-                const services = data["4"] || {};
+    const span = document.getElementById('service-sel-box').querySelector('span');
+    span.innerText = "Syncing S4 Services...";
+    try {
+        const res = await fetch(`${API_PATH}?action=getServices&country=${cid}&type=4`);
+        const services = await res.json(); // Direct object like your screenshot
+        
+        const cont = document.getElementById('service-list');
+        cont.innerHTML = "";
+
+        // 1. Object ko Array mein badalna taake Sort ho sake
+        const serviceArray = [];
+        Object.keys(services).forEach(id => {
+            serviceArray.push({ id: id, raw: services[id] });
+        });
+
+        // 2. A-Z Sorting (Airbnb will come first)
+        serviceArray.sort((a, b) => {
+            return a.raw.toLowerCase().localeCompare(b.raw.toLowerCase());
+        });
+
+        // 3. Rendering
+        serviceArray.forEach(item => {
+            const raw = item.raw; // Example: "airbnb - 58.5 PKR"
+            if (raw.includes(' - ')) {
+                const parts = raw.split(' - ');
+                const name = parts[0].trim();
                 
-                const cont = document.getElementById('service-list');
-                cont.innerHTML = "";
+                // Price extraction (Handling decimals like 58.5)
+                const priceMatch = parts[1].match(/[\d\.]+/);
+                const basePrice = priceMatch ? parseFloat(priceMatch[0]) : 0;
+                
+                // Add Profit and Round Up
+                const finalPrice = Math.ceil(basePrice + (basePrice * (PROFIT / 100)));
 
-                // A-Z Sort (Airbnb first)
-                const sorted = Object.keys(services).sort((a,b) => {
-                    return services[a].split(' - ')[0].toLowerCase().localeCompare(services[b].split(' - ')[0].toLowerCase());
-                });
+                const d = document.createElement('div');
+                d.className = 'drop-item';
+                d.innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
+                d.onclick = () => {
+                    selService = { code: item.id, name: name, price: finalPrice };
+                    document.getElementById('service-sel-box').querySelector('span').innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
+                    toggleDrop('service-opts'); // Dropdown close karein
+                };
+                cont.appendChild(d);
+            }
+        });
+        span.innerText = "Select Service";
+    } catch (e) { 
+        console.error(e);
+        span.innerText = "Error! Click to retry"; 
+    }
+}
 
-                sorted.forEach(code => {
-                    const raw = services[code];
-                    if (raw.includes(' - ')) {
-                        const parts = raw.split(' - ');
-                        const name = parts[0].trim();
-                        
-                        // Price Parsing: Last part regex match
-                        const priceStr = parts[parts.length - 1];
-                        const basePrice = parseFloat(priceStr.match(/[\d\.]+/)[0]);
-                        
-                        // Profit & Ceil
-                        const finalPrice = Math.ceil(basePrice + (basePrice * (PROFIT / 100)));
+async function buyNumber() {
+    if (!selCountry || !selService) return showToast("⚠️ Pehle Select Karein");
+    if (userBalance < selService.price) return showToast("❌ Balance Kam Hai");
 
-                        const d = document.createElement('div');
-                        d.className = 'drop-item';
-                        d.innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
-                        d.onclick = () => {
-                            selService = { code, name, price: finalPrice };
-                            document.getElementById('service-sel-box').querySelector('span').innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
-                            toggleDrop('service-opts');
-                        };
-                        cont.appendChild(d);
-                    }
-                });
-                box.innerText = "Select Service";
-            } catch (e) { box.innerText = "Error! Retry"; }
-        }
+    const btn = document.getElementById('buy-btn');
+    btn.disabled = true;
 
-        // --- 5. BUY NUMBER (Backend Security) ---
-        async function buyNumber() {
-            if (!selCountry || !selService) return showToast("⚠️ Options select karein!");
-            if (userBalance < selService.price) return showToast("❌ Balance Kam Hai!");
+    // Backend call (Cost aur UserID ke sath)
+    const res = await fetch(`${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&type=4&user_id=${userId}&cost=${selService.price}`);
+    const text = await res.text();
 
-            const btn = document.getElementById('buy-btn');
-            btn.disabled = true; document.getElementById('buy-loader').classList.remove('hidden');
-
-            try {
-                // Send userId and cost to Backend
-                const url = `${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&type=4&user_id=${userId}&cost=${selService.price}`;
-                const res = await fetch(url);
-                const text = await res.text();
-
-                if (text.includes("ACCESS_NUMBER")) {
-                    const p = text.split(':');
-                    const orderData = { id: p[1], phone: p[2], price: selService.price, startTime: Date.now(), serviceName: selService.name };
-                    
-                    localStorage.setItem('active_order_s4', JSON.stringify(orderData));
-                    currentOrder = orderData;
-                    showOrderUI(orderData);
-                    fetchBalance();
-                    showToast("✅ Successful!");
-                } else {
-                    showToast("❌ " + text);
-                }
-            } catch (e) { showToast("❌ API Error"); }
-            btn.disabled = false; document.getElementById('buy-loader').classList.add('hidden');
-        }
-
+    if (text.includes("ACCESS_NUMBER")) {
+        const p = text.split(':');
+        // Success Logic (Aapka Order Card dikhayen)
+        alert("Number Mil Gaya: " + p[2]);
+        fetchBalance(); 
+    } else {
+        showToast("❌ " + text);
+    }
+    btn.disabled = false;
+}
         // --- 6. TIMER & POLLING ---
         function showOrderUI(o) {
             document.getElementById('order-card').classList.remove('hidden');
