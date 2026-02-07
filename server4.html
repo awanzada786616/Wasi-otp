@@ -164,9 +164,10 @@
         // --- 4. FETCH SERVICES (A-Z Sort + Price Fix) ---
         // --- Services Fetching (Decimal Price Ko Save Karna) ---
 // --- Services Fetching (Decimal Price Capture) ---
+// --- Services Fetching (Screenshot Format Fix) ---
 async function loadServices(cid) {
     const box = document.getElementById('service-sel-box').querySelector('span');
-    box.innerText = "Fetching Exact Prices...";
+    box.innerText = "Syncing Exact Prices...";
     try {
         const res = await fetch(`${API_PATH}?action=getServices&country=${cid}&type=4`);
         const services = await res.json();
@@ -174,24 +175,25 @@ async function loadServices(cid) {
         const cont = document.getElementById('service-list');
         cont.innerHTML = "";
 
-        const serviceArray = Object.keys(services).map(id => ({ id: id, raw: services[id] }));
-        serviceArray.sort((a, b) => a.raw.toLowerCase().localeCompare(b.raw.toLowerCase()));
+        // Convert to array and Sort A-Z
+        const sArray = Object.keys(services).map(id => ({ id: id, raw: services[id] }));
+        sArray.sort((a,b) => a.raw.toLowerCase().localeCompare(b.raw.toLowerCase()));
 
-        serviceArray.forEach(item => {
-            const raw = item.raw; // Example: "airbnb - 58.30 PKR"
+        sArray.forEach(item => {
+            const raw = item.raw; // Example: "AirBnb - Rs 376.88 PKR"
             if (raw.includes(' - ')) {
                 const parts = raw.split(' - ');
                 const name = parts[0].trim();
                 
-                // 1. Provider ki EXACT decimal price nikalo (jese 58.30)
-                // Hum last part se pura decimal number uthayenge
-                const pricePart = parts[parts.length - 1];
-                const priceMatch = pricePart.match(/[\d\.]+/);
-                const rawProviderPrice = priceMatch ? priceMatch[0] : "0"; 
+                // Screenshot Logic: Hum 'Rs' aur 'PKR' ke beech se number nikalenge
+                // Regex decimals (.88) ko bhi pakre ga
+                const priceMatch = raw.match(/[\d\.]+/g); 
+                // priceMatch[priceMatch.length - 1] hamesha aakhri number (price) dega
+                const providerPrice = priceMatch ? priceMatch[priceMatch.length - 1] : "0";
 
-                // 2. Aapka Markup Price (Rs 82) - Round Up for DB
-                const basePrice = parseFloat(rawProviderPrice);
-                const finalPrice = Math.ceil(basePrice + (basePrice * (PROFIT / 100)));
+                // Markup Calculation (Aapka profit)
+                const basePriceNum = parseFloat(providerPrice);
+                const finalPrice = Math.ceil(basePriceNum + (basePriceNum * (PROFIT / 100)));
 
                 const d = document.createElement('div');
                 d.className = 'drop-item';
@@ -201,8 +203,8 @@ async function loadServices(cid) {
                     selService = { 
                         code: item.id, 
                         name: name, 
-                        price: finalPrice,        // Database deduction ke liye
-                        p_price: rawProviderPrice // Provider confirmation ke liye (58.30)
+                        price: finalPrice,        // Aapke DB ke liye (Markup)
+                        p_price: providerPrice    // Provider ke liye (Exact Decimal)
                     };
                     document.getElementById('service-sel-box').querySelector('span').innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
                     toggleDrop('service-opts');
@@ -212,32 +214,36 @@ async function loadServices(cid) {
         });
         box.innerText = "Select Service";
     } catch (e) { 
-        box.innerText = "Error! Click to Retry";
+        box.innerText = "Error Loading Services";
     }
 }
 
-// --- Buy Number (Sending Exact Decimal) ---
+// --- Buy Number (Sending Both Prices) ---
 async function buyNumber() {
-    if (!selCountry || !selService) return alert("⚠️ Select Country & Service!");
-    
+    if (!selCountry || !selService) return showToast("⚠️ Pehle select karein!");
+    if (userBalance < selService.price) return showToast("❌ Low Balance!");
+
     const btn = document.getElementById('buy-btn');
     btn.disabled = true;
 
-    // Send both: cost (markup) and p_price (exact decimal from provider)
-    const url = `${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&type=4&user_id=${userId}&cost=${selService.price}&p_price=${selService.p_price}`;
-    
-    const res = await fetch(url);
-    const text = await res.text();
+    try {
+        // Backend ko Markup price (cost) aur Provider decimal price (p_price) dono bhej rahe hain
+        const url = `${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&type=4&user_id=${userId}&cost=${selService.price}&p_price=${selService.p_price}`;
+        const res = await fetch(url);
+        const text = await res.text();
 
-    if (text.includes("ACCESS_NUMBER")) {
-        const p = text.split(':');
-        alert("✅ Success! Number: " + p[2]);
-        fetchBalance(); 
-    } else {
-        // Agar ab bhi PRICE_CHANGED aaye, to alert mein exact error dikhayega
-        alert("❌ Error: " + text);
-        if(text.includes("PRICE")) loadServices(selCountry); // Refresh list
-    }
+        if (text.includes("ACCESS_NUMBER")) {
+            const p = text.split(':');
+            // Success Logic
+            alert("Success! Number: " + p[2]);
+            fetchBalance(); 
+            // Yahan apna order card dikhane wala logic add karein
+        } else {
+            // Agar PRICE_CHANGED aaye to foran list refresh karein
+            alert("Error: " + text);
+            if(text.includes("PRICE")) loadServices(selCountry);
+        }
+    } catch (e) { showToast("❌ API Connection Error"); }
     btn.disabled = false;
 }
         // --- 6. TIMER & POLLING ---
