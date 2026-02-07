@@ -1,38 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase Connection (Service Role Key is required for balance update)
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 export default async function handler(req, res) {
-    // CORS Headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    if (req.method === 'OPTIONS') return res.status(200).end();
-
     const { action, service, country, type, id, status, user_id, cost, p_price } = req.query;
     const OTP_API_KEY = process.env.OTPGET_API_KEY;
 
     try {
-        // --- 1. GET NUMBER (FINAL FIX FOR PRICE) ---
         if (action === 'getNumber') {
             if (!user_id || user_id === 'null') return res.status(401).send("ERR_LOGIN_REQUIRED");
-            
-            // 1. Aapka Markup Rate (Number) - Jo Supabase se katega
+
+            // 1. Supabase se cut hone wali price (Markup price)
             const myMarkupPrice = Math.ceil(parseFloat(cost));
-            
-            // 2. Provider ka EXACT Decimal Rate (String) - Jo Provider ko bhejna hai
-            const providerOriginalPrice = p_price; 
+
+            // 2. Provider ko bhejni wali price (Uska rate + 1 PKR buffer)
+            const providerRate = parseFloat(p_price); 
+            // 1 PKR extra buffer de rahe hain taake woh Price Change error na de
+            const finalPriceToSend = (providerRate + 1.00).toFixed(2); 
 
             // Supabase Balance Check
             const { data: profile } = await supabase.from('profiles').select('balance').eq('id', user_id).single();
             if (!profile || profile.balance < myMarkupPrice) return res.status(402).send("ERR_LOW_BALANCE");
 
-            // PROVIDER CALL: Hum 'price' parameter mein EXACT decimal price string bhej rahe hain
-            const providerUrl = `https://otpget.com/stubs/handler_api.php?api_key=${OTP_API_KEY}&action=getNumber&service=${service}&country=${country}&type=${type || 4}&price=${providerOriginalPrice}`;
+            // PROVIDER CALL: Hum 'price' parameter ko simple rakh rahe hain lekin 1 PKR extra bhej rahe hain
+            const providerUrl = `https://otpget.com/stubs/handler_api.php?api_key=${OTP_API_KEY}&action=getNumber&service=${service}&country=${country}&type=${type || 4}&price=${finalPriceToSend}`;
             
             const apiRes = await fetch(providerUrl);
             const apiText = await apiRes.text();
@@ -44,12 +35,10 @@ export default async function handler(req, res) {
             return res.send(apiText);
         }
 
-        // --- 2. TRANSPARENT PROXY (Countries/Services/Status) ---
-        // Backend data ko bilkul change nahi karega
-        let target = `https://otpget.com/stubs/handler_api.php?api_key=${OTP_API_KEY}&action=${action}&id=${id || ''}&status=${status || ''}&country=${country || ''}&type=${type || 4}&service=${service || ''}`;
+        // Baki Actions (Countries/Services)
+        let target = `https://otpget.com/stubs/handler_api.php?api_key=${OTP_API_KEY}&action=${action}&country=${country || ''}&type=${type || 4}`;
         const proxyRes = await fetch(target);
         const proxyData = await proxyRes.text();
-        
         return res.send(proxyData);
 
     } catch (err) {
