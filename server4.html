@@ -4,90 +4,119 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Server 4 | WASI OTP</title>
+    
+    <!-- Scripts & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
-        html { display: none; }
-        body { font-family: sans-serif; background-color: #f8fafc; }
-        .custom-dropdown { display: none; position: absolute; width: 100%; max-height: 250px; overflow-y: auto; background: white; border: 1px solid #ddd; z-index: 100; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        html { display: none; } 
+        body { font-family: sans-serif; background-color: #f8fafc; color: #1e293b; }
+        
+        .custom-dropdown {
+            display: none; position: absolute; width: 100%; max-height: 250px;
+            overflow-y: auto; background: white; border: 1px solid #e2e8f0;
+            z-index: 100; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-top: 5px;
+        }
         .custom-dropdown.show { display: block; }
-        .drop-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #333; }
-        .drop-item:hover { background: #f0f7ff; color: #0061ff; }
-        #toast { visibility: hidden; min-width: 250px; background: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); font-weight: bold; }
+        .drop-item { padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #475569; }
+        .drop-item:hover { background-color: #f0f7ff; color: #2563eb; }
+        
+        .search-input { width: 100%; padding: 12px; border-bottom: 1px solid #e2e8f0; outline: none; position: sticky; top: 0; background: white; font-size: 14px; }
+        .navy-btn { background-color: #050a30; color: white; padding: 14px; border-radius: 10px; width: 100%; font-weight: 700; transition: 0.3s; }
+        .navy-btn:active { scale: 0.98; }
+
+        #toast { visibility: hidden; min-width: 250px; background: #1e293b; color: #fff; text-align: center; border-radius: 10px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); font-weight: bold; }
         #toast.show { visibility: visible; }
     </style>
 </head>
-<body class="min-h-screen">
+<body class="min-h-screen pb-10">
+
     <div id="toast"></div>
 
-    <nav class="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-50">
-        <span class="font-bold text-blue-600 italic">WASI OTP S4</span>
+    <!-- Header -->
+    <nav class="bg-white border-b px-6 py-4 sticky top-0 z-50 shadow-sm flex justify-between items-center">
+        <span class="text-xl font-bold text-blue-600 italic tracking-tighter">WASI OTP S4</span>
         <div class="flex items-center gap-3">
-            <div class="border rounded-full px-4 py-1.5 bg-gray-50 flex items-center gap-2">
-                <span id="top-balance" class="font-bold">0.00</span> <span class="text-gray-400 text-xs font-bold">PKR</span>
+            <div class="border rounded-full px-5 py-2 bg-gray-50 flex items-center gap-2">
+                <span id="top-balance" class="font-bold text-slate-800">0.00</span> 
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">PKR</span>
             </div>
             <button onclick="logout()" class="text-red-500 font-bold text-xs">LOGOUT</button>
         </div>
     </nav>
 
     <main class="max-w-[480px] mx-auto p-4 mt-6">
-        <div class="bg-white border rounded-2xl p-7 shadow-sm">
-            <h2 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">Buy Number (Server 4)</h2>
-            
+        
+        <!-- Selection Card -->
+        <div id="selection-card" class="bg-white border rounded-2xl p-7 shadow-sm mb-6">
+            <h2 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">Activation Server 4</h2>
+
+            <!-- Country Selection -->
             <div class="relative mb-4">
-                <p class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">1. Select Country</p>
-                <div onclick="toggleDrop('country-opts')" id="country-box" class="border p-3 rounded-xl flex justify-between cursor-pointer text-sm bg-white">
+                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">1. Select Country</label>
+                <div onclick="toggleDrop('country-opts')" id="country-sel-box" class="border p-3.5 rounded-xl flex justify-between cursor-pointer text-sm text-gray-600 bg-white hover:border-blue-300">
                     <span>Select Country</span> <i class="fas fa-chevron-down mt-1 text-gray-300"></i>
                 </div>
                 <div id="country-opts" class="custom-dropdown">
-                    <input type="text" class="w-full p-2 border-b sticky top-0 bg-white outline-none" placeholder="Search..." onkeyup="filter(this, 'country-list')">
+                    <input type="text" class="search-input" placeholder="Search Country..." onkeyup="filter(this, 'country-list')">
                     <div id="country-list"></div>
                 </div>
             </div>
 
+            <!-- Service Selection -->
             <div class="relative mb-8">
-                <p class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">2. Select Service</p>
-                <div onclick="toggleDrop('service-opts')" id="service-box" class="border p-3 rounded-xl flex justify-between cursor-pointer text-sm bg-white">
+                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">2. Select Service</label>
+                <div onclick="toggleDrop('service-opts')" id="service-sel-box" class="border p-3.5 rounded-xl flex justify-between cursor-pointer text-sm text-gray-600 bg-white hover:border-blue-300">
                     <span>Select Service</span> <i class="fas fa-chevron-down mt-1 text-gray-300"></i>
                 </div>
                 <div id="service-opts" class="custom-dropdown">
-                    <input type="text" class="w-full p-2 border-b sticky top-0 bg-white outline-none" placeholder="Search Airbnb, WhatsApp..." onkeyup="filter(this, 'service-list')">
+                    <input type="text" class="search-input" placeholder="Search Airbnb, WhatsApp..." onkeyup="filter(this, 'service-list')">
                     <div id="service-list"></div>
                 </div>
             </div>
 
-            <button onclick="buyNumber()" id="buy-btn" class="w-full bg-[#050a30] text-white py-4 rounded-xl font-bold active:scale-95 flex justify-center items-center gap-2">
-                <span id="loader" class="hidden w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+            <button onclick="buyNumber()" id="buy-btn" class="navy-btn flex justify-center items-center gap-3">
+                <span id="buy-loader" class="hidden w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
                 <span>GET NUMBER</span>
             </button>
         </div>
 
-        <!-- Result Order Card -->
-        <div id="order-card" class="hidden mt-6 bg-white border border-blue-100 rounded-2xl p-6 shadow-sm text-center">
-            <h3 id="disp-phone" class="text-2xl font-mono font-bold text-blue-600 mb-1 tracking-tighter">+-----------</h3>
-            <p id="disp-service" class="text-[10px] text-gray-400 font-bold uppercase mb-4">Service Name</p>
-            <div class="bg-slate-50 border-2 border-dashed rounded-xl p-5 mb-4">
-                <p id="otp-status" class="text-xs text-gray-400 font-bold uppercase">Waiting for OTP...</p>
-                <div id="otp-val" class="hidden text-4xl font-black text-blue-700 tracking-[8px] mt-2">------</div>
+        <!-- Active Order Card -->
+        <div id="order-card" class="hidden bg-white border border-blue-100 rounded-2xl p-6 shadow-sm text-center animate-in fade-in duration-300">
+            <div class="flex justify-between items-start mb-5">
+                <div class="w-full">
+                    <h3 id="disp-phone" class="text-3xl font-mono font-bold text-blue-600 tracking-tighter">+-----------</h3>
+                    <p id="disp-service" class="text-[10px] text-gray-400 font-black uppercase mt-1">Service Name</p>
+                </div>
             </div>
-            <div class="flex gap-2">
-                <button onclick="location.reload()" class="flex-1 border py-2 rounded-lg text-xs font-bold text-gray-500">BUY NEW</button>
-                <button onclick="handleCancel()" class="flex-1 bg-red-50 text-red-500 py-2 rounded-lg text-xs font-bold">CANCEL</button>
+            
+            <div class="bg-slate-50 border-2 border-dashed rounded-xl p-5 mb-5">
+                <p id="otp-status" class="text-xs text-gray-500 font-bold uppercase tracking-widest">Waiting for OTP Code...</p>
+                <div id="otp-val" class="hidden text-4xl font-black text-blue-700 tracking-[10px] mt-3 animate-pulse">------</div>
+            </div>
+
+            <div class="flex gap-3">
+                <div class="bg-gray-100 px-4 py-3 rounded-xl flex-1 text-xs font-bold font-mono" id="order-timer">20:00</div>
+                <button id="cancel-btn" onclick="handleCancel()" class="flex-[2] bg-red-50 text-red-500 py-3 rounded-xl text-xs font-bold hover:bg-red-100">CANCEL / REFUND</button>
             </div>
         </div>
+
     </main>
 
     <script>
+        // --- 1. CONFIG ---
         const SUPABASE_URL = "https://aljcxnobmmtcfpvdacbo.supabase.co";
         const SUPABASE_KEY = "sb_publishable_xVWCkX7Gl2m0cFUKlSn3pg_liSvnzmg";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const API_PATH = '/api/otp';
         const PROFIT = 40;
-        let userId, userBalance, currentOrder;
+        let userId, userBalance, currentOrder, pollInv, timerInv;
         let selCountry, selService;
 
+        // --- 2. INIT & AUTH ---
         async function init() {
             const { data: { session } } = await _supabase.auth.getSession();
             if (!session) return window.location.replace("auth");
@@ -95,6 +124,7 @@
             document.documentElement.style.display = "block";
             fetchBalance();
             loadCountries();
+            checkExistingOrder();
         }
 
         async function fetchBalance() {
@@ -105,118 +135,189 @@
             }
         }
 
+        // --- 3. FETCH COUNTRIES (Simple Method) ---
         async function loadCountries() {
-            const res = await fetch(`${API_PATH}?action=getCountries&type=4`);
-            const data = await res.json();
-            // DIRECT ACCESS (Waisa hi jesa OTPGet deta hai)
-            const list = data["4"] || [];
-            const cont = document.getElementById('country-list');
-            cont.innerHTML = "";
-            list.forEach(c => {
-                const d = document.createElement('div');
-                d.className = 'drop-item'; d.innerText = c.name;
-                d.onclick = () => {
-                    selCountry = c.id;
-                    document.getElementById('country-box').querySelector('span').innerText = c.name;
-                    toggleDrop('country-opts');
-                    loadServices(c.id);
-                };
-                cont.appendChild(d);
-            });
-        }
-
-        async function loadServices(cid) {
-            const box = document.getElementById('service-box').querySelector('span');
-            box.innerText = "Loading S4 Services...";
-            const res = await fetch(`${API_PATH}?action=getServices&country=${cid}&type=4`);
-            const data = await res.json();
-            const services = data["4"] || {};
-            
-            const cont = document.getElementById('service-list');
-            cont.innerHTML = "";
-
-            // A-Z Sort (Airbnb First)
-            const sorted = Object.keys(services).sort((a,b) => services[a].split(' - ')[0].localeCompare(services[b].split(' - ')[0]));
-
-            sorted.forEach(code => {
-                const raw = services[code];
-                if (raw.includes(' - ')) {
-                    const parts = raw.split(' - ');
-                    const name = parts[0];
-                    const priceStr = parts[parts.length - 1]; // Akhri part price hai
-                    const basePrice = parseFloat(priceStr.match(/[\d\.]+/)[0]);
-                    const finalPrice = Math.ceil(basePrice + (basePrice * (PROFIT / 100)));
-
+            try {
+                const res = await fetch(`${API_PATH}?action=getCountries&type=4`);
+                const data = await res.json();
+                
+                const list = data["4"] || [];
+                const cont = document.getElementById('country-list');
+                cont.innerHTML = "";
+                
+                list.forEach(c => {
                     const d = document.createElement('div');
                     d.className = 'drop-item';
-                    d.innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
+                    d.innerText = c.name;
                     d.onclick = () => {
-                        selService = { code, name, price: finalPrice };
-                        document.getElementById('service-box').querySelector('span').innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
-                        toggleDrop('service-opts');
+                        selCountry = c.id;
+                        document.getElementById('country-sel-box').querySelector('span').innerText = c.name;
+                        toggleDrop('country-opts');
+                        loadServices(c.id);
                     };
                     cont.appendChild(d);
-                }
-            });
-            box.innerText = "Select Service";
+                });
+                document.getElementById('country-sel-box').querySelector('span').innerText = "Select Country";
+            } catch (e) { showToast("❌ Countries load nahi huin"); }
         }
 
+        // --- 4. FETCH SERVICES (A-Z Sort + Price Fix) ---
+        async function loadServices(cid) {
+            const box = document.getElementById('service-sel-box').querySelector('span');
+            box.innerText = "Syncing S4 Services...";
+            try {
+                const res = await fetch(`${API_PATH}?action=getServices&country=${cid}&type=4`);
+                const data = await res.json();
+                const services = data["4"] || {};
+                
+                const cont = document.getElementById('service-list');
+                cont.innerHTML = "";
+
+                // A-Z Sort (Airbnb first)
+                const sorted = Object.keys(services).sort((a,b) => {
+                    return services[a].split(' - ')[0].toLowerCase().localeCompare(services[b].split(' - ')[0].toLowerCase());
+                });
+
+                sorted.forEach(code => {
+                    const raw = services[code];
+                    if (raw.includes(' - ')) {
+                        const parts = raw.split(' - ');
+                        const name = parts[0].trim();
+                        
+                        // Price Parsing: Last part regex match
+                        const priceStr = parts[parts.length - 1];
+                        const basePrice = parseFloat(priceStr.match(/[\d\.]+/)[0]);
+                        
+                        // Profit & Ceil
+                        const finalPrice = Math.ceil(basePrice + (basePrice * (PROFIT / 100)));
+
+                        const d = document.createElement('div');
+                        d.className = 'drop-item';
+                        d.innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
+                        d.onclick = () => {
+                            selService = { code, name, price: finalPrice };
+                            document.getElementById('service-sel-box').querySelector('span').innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
+                            toggleDrop('service-opts');
+                        };
+                        cont.appendChild(d);
+                    }
+                });
+                box.innerText = "Select Service";
+            } catch (e) { box.innerText = "Error! Retry"; }
+        }
+
+        // --- 5. BUY NUMBER (Backend Security) ---
         async function buyNumber() {
-            if (!selCountry || !selService) return showToast("⚠️ Select Options!");
-            if (userBalance < selService.price) return showToast("❌ Low Balance!");
+            if (!selCountry || !selService) return showToast("⚠️ Options select karein!");
+            if (userBalance < selService.price) return showToast("❌ Balance Kam Hai!");
 
             const btn = document.getElementById('buy-btn');
-            btn.disabled = true; document.getElementById('loader').classList.remove('hidden');
+            btn.disabled = true; document.getElementById('buy-loader').classList.remove('hidden');
 
-            // Send userId and cost to Backend
-            const res = await fetch(`${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&type=4&user_id=${userId}&cost=${selService.price}`);
-            const text = await res.text();
+            try {
+                // Send userId and cost to Backend
+                const url = `${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&type=4&user_id=${userId}&cost=${selService.price}`;
+                const res = await fetch(url);
+                const text = await res.text();
 
-            if (text.includes("ACCESS_NUMBER")) {
-                const p = text.split(':');
-                currentOrder = { id: p[1], phone: p[2], name: selService.name, price: selService.price };
-                document.getElementById('order-card').classList.remove('hidden');
-                document.getElementById('disp-phone').innerText = "+" + p[2];
-                document.getElementById('disp-service').innerText = selService.name;
-                fetchBalance();
-                startPolling();
-            } else {
-                showToast("❌ " + text);
-            }
-            btn.disabled = false; document.getElementById('loader').classList.add('hidden');
+                if (text.includes("ACCESS_NUMBER")) {
+                    const p = text.split(':');
+                    const orderData = { id: p[1], phone: p[2], price: selService.price, startTime: Date.now(), serviceName: selService.name };
+                    
+                    localStorage.setItem('active_order_s4', JSON.stringify(orderData));
+                    currentOrder = orderData;
+                    showOrderUI(orderData);
+                    fetchBalance();
+                    showToast("✅ Successful!");
+                } else {
+                    showToast("❌ " + text);
+                }
+            } catch (e) { showToast("❌ API Error"); }
+            btn.disabled = false; document.getElementById('buy-loader').classList.add('hidden');
         }
 
-        function startPolling() {
-            const inv = setInterval(async () => {
+        // --- 6. TIMER & POLLING ---
+        function showOrderUI(o) {
+            document.getElementById('order-card').classList.remove('hidden');
+            document.getElementById('selection-card').classList.add('hidden');
+            document.getElementById('disp-phone').innerText = "+" + o.phone;
+            document.getElementById('disp-service').innerText = o.serviceName;
+            
+            startTimer(1197);
+            startPoll();
+        }
+
+        function startTimer(s) {
+            clearInterval(timerInv);
+            timerInv = setInterval(() => {
+                let m = Math.floor(s/60), sec = s%60;
+                document.getElementById('order-timer').innerText = `${m}:${sec.toString().padStart(2,'0')}`;
+                if (s-- <= 0) { clearInterval(timerInv); resetUI(); }
+            }, 1000);
+        }
+
+        function startPoll() {
+            clearInterval(pollInv);
+            pollInv = setInterval(async () => {
+                if(!currentOrder) return;
                 const res = await fetch(`${API_PATH}?action=getStatus&id=${currentOrder.id}&type=4`);
                 const text = await res.text();
+                
                 if (text.includes('STATUS_OK')) {
                     const otp = text.split(':')[1];
-                    document.getElementById('otp-status').innerText = "OTP RECEIVED:";
+                    document.getElementById('otp-status').innerText = "OTP RECEIVED SUCCESSFULLY!";
                     document.getElementById('otp-val').innerText = otp;
                     document.getElementById('otp-val').classList.remove('hidden');
-                    clearInterval(inv);
-                    _supabase.from('orders').insert([{ uid: userId, phone: currentOrder.phone, service: currentOrder.name, otp: otp, price: currentOrder.price }]);
+                    
+                    localStorage.removeItem('active_order_s4');
+                    clearInterval(pollInv);
+                    
+                    // Log to DB
+                    _supabase.from('orders').insert([{ uid: userId, phone: currentOrder.phone, service: currentOrder.serviceName, otp: otp, price: currentOrder.price }]);
                 }
             }, 5000);
         }
 
+        // --- HELPERS ---
         async function handleCancel() {
-            if (!confirm("Cancel and refund?")) return;
-            await fetch(`${API_PATH}?action=setStatus&id=${currentOrder.id}&status=8&user_id=${userId}&type=4`);
-            fetchBalance(); location.reload();
+            if (!confirm("Are you sure? Balance will be refunded.")) return;
+            try {
+                await fetch(`${API_PATH}?action=setStatus&id=${currentOrder.id}&status=8&user_id=${userId}&type=4`);
+                showToast("💰 Balance Refunded!");
+                resetUI();
+            } catch (e) { showToast("❌ Failed to cancel"); }
         }
 
-        function toggleDrop(id) { document.getElementById(id).classList.toggle('show'); }
+        function checkExistingOrder() {
+            const saved = localStorage.getItem('active_order_s4');
+            if (saved) {
+                const o = JSON.parse(saved);
+                const elap = Math.floor((Date.now() - o.startTime) / 1000);
+                if (elap < 1197) { 
+                    currentOrder = o; 
+                    showOrderUI(o); 
+                    startTimer(1197 - elap); 
+                } else localStorage.removeItem('active_order_s4');
+            }
+        }
+
+        function toggleDrop(id) { 
+            const el = document.getElementById(id);
+            document.querySelectorAll('.custom-dropdown').forEach(d => { if(d.id !== id) d.classList.remove('show'); });
+            el.classList.toggle('show'); 
+        }
+        
         function filter(inp, id) {
             let v = inp.value.toLowerCase();
             let items = document.getElementById(id).children;
             for (let i of items) i.style.display = i.innerText.toLowerCase().includes(v) ? "block" : "none";
         }
+
         function showToast(m) { const x = document.getElementById("toast"); x.innerText = m; x.className = "show"; setTimeout(() => x.className = "", 3000); }
+        function resetUI() { localStorage.removeItem('active_order_s4'); location.reload(); }
         function logout() { _supabase.auth.signOut().then(() => window.location.replace("auth")); }
 
         window.onload = init;
     </script>
 </body>
-</html>
+    </html>
