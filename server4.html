@@ -162,95 +162,72 @@
         }
 
         // --- 4. FETCH SERVICES (A-Z Sort + Price Fix) ---
-        async function loadServices(cid) {
-    const span = document.getElementById('service-sel-box').querySelector('span');
-    span.innerText = "Syncing S4 Services...";
+        // --- Services Fetching (Decimal Price Ko Save Karna) ---
+async function loadServices(cid) {
     try {
         const res = await fetch(`${API_PATH}?action=getServices&country=${cid}&type=4`);
-        const services = await res.json(); // Direct object like your screenshot
+        const services = await res.json();
         
         const cont = document.getElementById('service-list');
         cont.innerHTML = "";
 
-        // 1. Object ko Array mein badalna taake Sort ho sake
-        const serviceArray = [];
-        Object.keys(services).forEach(id => {
-            serviceArray.push({ id: id, raw: services[id] });
-        });
+        const serviceArray = Object.keys(services).map(id => ({ id: id, raw: services[id] }));
+        serviceArray.sort((a, b) => a.raw.toLowerCase().localeCompare(b.raw.toLowerCase()));
 
-        // 2. A-Z Sorting (Airbnb will come first)
-        serviceArray.sort((a, b) => {
-            return a.raw.toLowerCase().localeCompare(b.raw.toLowerCase());
-        });
-
-        // 3. Rendering
         serviceArray.forEach(item => {
-            const raw = item.raw; // Example: "airbnb - 58.5 PKR"
+            const raw = item.raw;
             if (raw.includes(' - ')) {
                 const parts = raw.split(' - ');
                 const name = parts[0].trim();
                 
-                // Price extraction (Handling decimals like 58.5)
-                const priceMatch = parts[1].match(/[\d\.]+/);
-                const basePrice = priceMatch ? parseFloat(priceMatch[0]) : 0;
-                
-                // Add Profit and Round Up
-                const finalPrice = Math.ceil(basePrice + (basePrice * (PROFIT / 100)));
+                // 1. Provider ki EXACT decimal price nikalo (jese 58.5)
+                const priceMatch = parts[parts.length - 1].match(/[\d\.]+/);
+                const providerPrice = priceMatch ? priceMatch[0] : "0"; 
+
+                // 2. Aapka Markup Price (Rs 82)
+                const finalPrice = Math.ceil(parseFloat(providerPrice) + (parseFloat(providerPrice) * (PROFIT / 100)));
 
                 const d = document.createElement('div');
                 d.className = 'drop-item';
                 d.innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
                 d.onclick = () => {
-                    selService = { code: item.id, name: name, price: finalPrice };
+                    // Yahan hum dono prices save kar rahe hain
+                    selService = { 
+                        code: item.id, 
+                        name: name, 
+                        price: finalPrice, // Aapke Supabase ke liye
+                        p_price: providerPrice // Provider ko confirm karne ke liye
+                    };
                     document.getElementById('service-sel-box').querySelector('span').innerText = `${name.toUpperCase()} (Rs ${finalPrice})`;
-                    toggleDrop('service-opts'); // Dropdown close karein
+                    toggleDrop('service-opts');
                 };
                 cont.appendChild(d);
             }
         });
-        span.innerText = "Select Service";
-    } catch (e) { 
-        console.error(e);
-        span.innerText = "Error! Click to retry"; 
-    }
+    } catch (e) { console.error(e); }
 }
 
+// --- Buy Number (Dono Prices Bhejna) ---
 async function buyNumber() {
-    if (!selCountry || !selService) return showToast("⚠️ Pehle select karein!");
-    if (userBalance < selService.price) return showToast("❌ Balance Kam Hai!");
-
+    if (!selCountry || !selService) return alert("Select Options!");
+    
     const btn = document.getElementById('buy-btn');
     btn.disabled = true;
 
-    try {
-        // Hum backend ko 'cost' (commission ke sath) bhej rahe hain sirf balance check karne ke liye
-        const url = `${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&type=4&user_id=${userId}&cost=${selService.price}`;
-        
-        const res = await fetch(url);
-        const text = await res.text();
+    // URL mein cost (aapka rate) aur p_price (provider ka rate) dono ja rahe hain
+    const url = `${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&type=4&user_id=${userId}&cost=${selService.price}&p_price=${selService.p_price}`;
+    
+    const res = await fetch(url);
+    const text = await res.text();
 
-        if (text.includes("ACCESS_NUMBER")) {
-            const p = text.split(':');
-            const orderData = { 
-                id: p[1], 
-                phone: p[2], 
-                price: selService.price, 
-                startTime: Date.now(), 
-                serviceName: selService.name 
-            };
-            
-            localStorage.setItem('active_order_s4', JSON.stringify(orderData));
-            currentOrder = orderData;
-            
-            // Order details dikhayen (Aapka purana logic)
-            alert("Number Mil Gaya: " + p[2]);
-            fetchBalance(); 
-        } else {
-            // Ab yahan Price Change error nahi aayega
-            showToast("❌ " + text);
-        }
-    } catch (e) {
-        showToast("❌ Connection Error");
+    if (text.includes("ACCESS_NUMBER")) {
+        const p = text.split(':');
+        alert("Success! Number: " + p[2]);
+        fetchBalance(); 
+    } else {
+        // Agar ab bhi Price Change aaye, to iska matlab Provider ne waqai price badal di hai
+        alert("Error: " + text);
+        if(text.includes("PRICE")) loadServices(selCountry); // Auto Refresh
     }
     btn.disabled = false;
 }
