@@ -216,16 +216,14 @@
 }
 
 async function buyNumber() {
-    if (!selCountry || !selService) return showToast("⚠️ Pehle Country aur Service select karein");
-    
+    if (!selCountry || !selService) return showToast("⚠️ Pehle select karein!");
+    if (userBalance < selService.price) return showToast("❌ Balance Kam Hai!");
+
     const btn = document.getElementById('buy-btn');
-    const loader = document.getElementById('buy-loader');
-    
     btn.disabled = true;
-    loader.classList.remove('hidden');
 
     try {
-        // Hum backend ko cost bhej rahe hain sirf balance check karne ke liye
+        // Hum backend ko 'cost' (commission ke sath) bhej rahe hain sirf balance check karne ke liye
         const url = `${API_PATH}?action=getNumber&country=${selCountry}&service=${selService.code}&type=4&user_id=${userId}&cost=${selService.price}`;
         
         const res = await fetch(url);
@@ -241,23 +239,20 @@ async function buyNumber() {
                 serviceName: selService.name 
             };
             
-            // Local Storage mein save karein
             localStorage.setItem('active_order_s4', JSON.stringify(orderData));
             currentOrder = orderData;
             
-            // UI Update (Order card dikhayen)
-            showOrderUI(orderData); 
-            fetchBalance(); // Balance refresh karein
-            showToast("✅ Number Purchased!");
+            // Order details dikhayen (Aapka purana logic)
+            alert("Number Mil Gaya: " + p[2]);
+            fetchBalance(); 
         } else {
-            // Ab yahan "Price Change" nahi ayega, balki agar koi aur masla hua to wo dikhayega
+            // Ab yahan Price Change error nahi aayega
             showToast("❌ " + text);
         }
     } catch (e) {
-        showToast("❌ API Error");
+        showToast("❌ Connection Error");
     }
     btn.disabled = false;
-    loader.classList.add('hidden');
 }
         // --- 6. TIMER & POLLING ---
         function showOrderUI(o) {
