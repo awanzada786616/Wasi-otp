@@ -1,236 +1,311 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recharge | WASI OTP</title>
-    
-    <!-- Scripts & Fonts -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Supabase Library -->
+    <title>Add Funds | Wasi OTP</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+    <!-- Google Fonts for Premium Look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        /* Head Level Auth Guard */
-        html { display: none; } 
-        body { font-family: 'Public Sans', sans-serif; background-color: #f8f9fa; color: #212529; }
+        :root {
+            --primary: #000000;
+            --secondary: #ffffff;
+            --gray: #f4f4f7;
+            --text-muted: #666;
+            --accent: #1a1a1a;
+        }
 
-        /* Main Card Styling */
-        .recharge-card {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--gray);
+            color: var(--primary);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .payment-card {
+            background: var(--secondary);
             width: 100%;
-            max-width: 480px;
-            padding: 30px;
+            max-width: 450px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Top Bar Decor */
+        .payment-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 6px;
+            background: var(--primary);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-weight: 800;
+            font-size: 24px;
+            margin: 0;
+            letter-spacing: -1px;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .qr-container {
+            background: #f9f9f9;
+            border: 2px dashed #ddd;
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: 0.3s;
+        }
+
+        .qr-container:hover {
+            border-color: var(--primary);
+        }
+
+        .qr-container img {
+            width: 180px;
+            height: 180px;
+            border-radius: 10px;
+            filter: grayscale(100%);
+            transition: 0.3s;
+        }
+
+        .qr-container img:hover {
+            filter: grayscale(0%);
+        }
+
+        .input-group {
             margin-bottom: 20px;
         }
 
-        /* Input Match */
-        .form-input {
-            width: 100%;
-            height: 45px;
-            padding: 0 15px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            outline: none;
-            font-size: 14px;
-            transition: 0.2s;
-            background-color: #fff;
-        }
-        .form-input:focus { border-color: #050a30; }
-
-        /* Navy Button */
-        .navy-btn {
-            background-color: #050a30;
-            color: white;
-            padding: 12px;
-            border-radius: 6px;
-            width: 100%;
+        .input-group label {
+            display: block;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1.5px solid #eee;
+            border-radius: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
             transition: 0.3s;
+            background: #fafafa;
         }
-        .navy-btn:hover { background-color: #000; transform: translateY(-1px); }
 
-        /* Top Right Notification */
-        #notif-box {
-            position: fixed; top: 20px; right: -400px; z-index: 1000;
-            min-width: 280px; padding: 16px; border-radius: 8px; color: white;
-            font-weight: 600; font-size: 13px; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(0,0,0,0.03);
         }
-        #notif-box.show { right: 20px; }
-        .bg-err { background-color: #050a30; border-right: 5px solid #ef4444; }
-        .bg-suc { background-color: #050a30; border-right: 5px solid #22c55e; }
 
-        /* Bottom Marquee */
-        .marquee-container {
-            background-color: #0000ff; color: white; height: 28px;
-            width: 100%; overflow: hidden; position: fixed; bottom: 0; left: 0;
-            display: flex; align-items: center; z-index: 50;
+        .pay-btn {
+            width: 100%;
+            background: var(--primary);
+            color: #fff;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
         }
+
+        .pay-btn:hover {
+            background: #333;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .pay-btn:active {
+            transform: translateY(0);
+        }
+
+        .instructions {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .instruction-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        .instruction-item i {
+            margin-right: 10px;
+            color: var(--primary);
+            font-style: normal;
+            font-weight: bold;
+        }
+
+        .support-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 700;
+            border-bottom: 1px solid var(--primary);
+        }
+
+        #status-msg {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Loading Animation */
+        .loader {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #000;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="flex flex-col items-center pt-8 px-4 pb-20">
+<body>
 
-    <!-- Notification Bar -->
-    <div id="notif-box">
-        <i id="notif-icon" class="fas"></i>
-        <span id="notif-text"></span>
+<div class="payment-card">
+    <div class="header">
+        <h1>WASI OTP</h1>
+        <p>Secure Manual Deposit</p>
     </div>
 
-    <!-- Top Info Bar (Screenshot Match) -->
-    <div class="w-full max-w-[480px] bg-white border border-slate-200 rounded-lg p-3 flex justify-between items-center mb-6 shadow-sm">
-        <div class="flex items-center gap-2">
-            <div class="bg-slate-900 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-md"><i class="fas fa-bell"></i></div>
-            <p class="text-[11px] font-bold text-slate-600 tracking-tight">If You Are Facing Any Problem Please Contact Us</p>
-        </div>
-        <a href="howtouse" class="bg-[#050a30] text-white text-[10px] font-black px-3 py-1.5 rounded uppercase tracking-widest">Contact Us</a>
+    <div class="qr-container">
+        <img src="qr.png" alt="Scan to Pay">
+        <p style="font-size: 12px; color: #888; margin-top: 10px;">Scan QR Code to pay instantly</p>
     </div>
 
-    <!-- Main Card -->
-    <div class="recharge-card shadow-sm">
-        <!-- Title Section -->
-        <div class="flex items-center gap-3 mb-8">
-            <div class="text-slate-400 text-xl"><i class="fas fa-arrow-left cursor-pointer" onclick="history.back()"></i></div>
-            <div>
-                <h2 class="text-[15px] font-bold text-slate-800 leading-none mb-1">Easypaisa to Easypaisa Auto</h2>
-                <p class="text-[11px] text-gray-400 font-medium">You Can Pay Using Easypaisa to Easypaisa</p>
-            </div>
-        </div>
-
-        <!-- Easypaisa Logo -->
-        <div class="text-center mb-10">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQY5o995NZOd7RBuf_3LEVFjN4-pG8dsx2DVg&s" alt="Easypaisa" class="mx-auto w-44 pointer-events-none">
-        </div>
-
-        <!-- Instructions (Exact Screenshot Text) -->
-        <div class="text-center mb-10">
-            <h3 class="text-[28px] font-bold text-slate-800 mb-5">Instructions</h3>
-            <div class="space-y-1.5 text-[14px] font-medium text-slate-600 mb-6">
-                <p>Minimum payment: 100 Rs</p>
-                <p>Maximum payment: As much as you want</p>
-                <p>Only Easypaisa To Easypaisa Auto</p>
-                <p class="text-[12px] text-slate-500 italic px-6 leading-snug">
-                    • If You Will Send from other wallets or not will send in Easypaisa you will waste your payment by yourself
-                </p>
-            </div>
-            <div class="space-y-1 pt-2">
-                <p class="text-[15px] font-bold text-slate-800 uppercase tracking-tighter">Account Number:- 03175768178</p>
-                <p class="text-[15px] font-bold text-slate-800 uppercase tracking-tighter">Account Title :- Munir Akhtar</p>
-            </div>
-        </div>
-
-        <!-- Inputs -->
-        <div class="space-y-6">
-            <div>
-                <label class="text-[14px] font-bold text-slate-700 block mb-2 tracking-tight">Enter Amount (PKR)</label>
-                <input type="number" id="amt-input" class="form-input" placeholder="">
-            </div>
-            <div>
-                <label class="text-[14px] font-bold text-slate-700 block mb-2 tracking-tight">Transaction ID</label>
-                <input type="text" id="trx-input" class="form-input" placeholder="e.g., 12345678901">
-            </div>
-            <button onclick="verifyDeposit()" id="verify-btn" class="navy-btn shadow-lg active:scale-95">
-                Add Fund
-            </button>
-        </div>
+    <div class="input-group">
+        <label>Amount to Add</label>
+        <input type="number" id="amount" placeholder="Min 100" min="100">
     </div>
-        <!-- BOTTOM FIXED MARQUEE -->
-<div class="fixed bottom-0 left-0 w-full bg-white z-50 border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-    <marquee behavior="scroll" direction="left" scrollamount="6" class="w-full py-2 font-bold text-red-600">
-        MINIMUM PAYMENT IS RS 100 DON'T SEND LESS OTHER WISE YOU WILL LOSS THE PAYMENT IF PAYMENT NOT  ADDED TRY AFTER 5 MINUTE IF STILL NOT ADDED CONTACT CUSTOMER SUPPORT [ REGARDS : TEAM WASIOTP] 
-    </marquee>
-</div>
+
+    <div class="input-group">
+        <label>Transaction ID / Hash</label>
+        <input type="text" id="trx_id" placeholder="Paste Trx ID here">
+    </div>
+
+    <button class="pay-btn" id="submit-btn" onclick="submitPayment()">Submit Request</button>
     
+    <div id="status-msg"></div>
+    <div class="loader" id="loader"></div>
 
-    <script>
-        // --- CONFIG ---
-        const SUPABASE_URL = "https://aljcxnobmmtcfpvdacbo.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_xVWCkX7Gl2m0cFUKlSn3pg_liSvnzmg";
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <div class="instructions">
+        <div class="instruction-item"><i>•</i> Minimum payment is 100.</div>
+        <div class="instruction-item"><i>•</i> Scan the QR code and send money.</div>
+        <div class="instruction-item"><i>•</i> Without scanning payment sending is possible through account number.</div>
+        <div class="instruction-item">
+            <i>•</i> After sending Payment send a message to our support: 
+            <a href="https://wa.me/994401879953" class="support-link">+994401879953</a>
+        </div>
+        <div class="instruction-item"><i>•</i> We will check and add your payment instantly.</div>
+    </div>
+</div>
 
-        let currentUserId = "";
-        let currentUserName = "";
+<script>
+    // Supabase Setup
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        async function init() {
-            const { data: { session } } = await _supabase.auth.getSession();
-            if (!session) {
-                window.location.replace("auth");
-            } else {
-                currentUserId = session.user.id;
-                document.documentElement.style.display = "block";
-                
-                // Fetch Profile
-                const { data: profile } = await _supabase.from('profiles').select('username').eq('id', currentUserId).single();
-                currentUserName = profile ? profile.username : "User";
+    async function submitPayment() {
+        const amount = document.getElementById('amount').value;
+        const trx_id = document.getElementById('trx_id').value;
+        const msg = document.getElementById('status-msg');
+        const btn = document.getElementById('submit-btn');
+        const loader = document.getElementById('loader');
+
+        if(amount < 100) {
+            showMsg("❌ Minimum amount is 100", "red");
+            return;
+        }
+        if(!trx_id) {
+            showMsg("❌ Please enter Transaction ID", "red");
+            return;
+        }
+
+        // UI Changes
+        btn.style.display = "none";
+        loader.style.display = "block";
+
+        try {
+            const { data: { user } } = await _supabase.auth.getUser();
+            
+            if(!user) {
+                showMsg("❌ Please login first!", "red");
+                resetUI();
+                return;
             }
-        }
 
-        function showNotif(msg, type) {
-            const box = document.getElementById('notif-box');
-            const icon = document.getElementById('notif-icon');
-            const text = document.getElementById('notif-text');
-
-            text.innerText = msg;
-            box.className = type === 'success' ? 'bg-suc show' : 'bg-err show';
-            icon.className = type === 'success' ? 'fas fa-check-circle' : 'fas fa-triangle-exclamation';
-
-            setTimeout(() => { box.classList.remove('show'); }, 4000);
-        }
-
-        async function verifyDeposit() {
-            const trx = document.getElementById('trx-input').value.trim();
-            const amt = document.getElementById('amt-input').value;
-            const btn = document.getElementById('verify-btn');
-
-            if(!trx || !amt) return showNotif("Please fill all fields!", "error");
-            if(parseFloat(amt) < 50) return showNotif("Minimum payment is 50 Rs", "error");
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner animate-spin"></i> Checking...';
-
-            try {
-                const response = await fetch('/api/auto-deposit', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        action: "verify_user_trx",
-                        trx_id: trx,
-                        amount: amt,
-                        uid: currentUserId,
-                        username: currentUserName,
-                        secret: "WASI_SECRET_786"
-                    })
-                });
-
-                const res = await response.json();
-
-                if (res.status === "SUCCESS") {
-                    showNotif("✅ Payment Verified! Balance Added.", "success");
-                    setTimeout(() => window.location.href = "user", 2000);
-                } else if (res.status === "USED") {
-                    showNotif("❌ Transaction ID already used!", "error");
-                } else if (res.status === "NOT_FOUND") {
-                    showNotif("❌ Payment not verified yet! Wait 1 min.", "error");
-                } else if (res.status === "MISMATCH") {
-                    showNotif("❌ Amount mismatch! Sahi raqam likhen.", "error");
-                } else {
-                    showNotif("❌ Verification Failed!", "error");
+            const { error } = await _supabase.from('payment_requests').insert([
+                { 
+                    user_id: user.id, 
+                    amount: amount, 
+                    transaction_id: trx_id,
+                    status: 'pending' 
                 }
-            } catch (e) {
-                showNotif("❌ Connection error!", "error");
-            }
-            btn.disabled = false;
-            btn.innerText = "Add Fund";
-        }
+            ]);
 
-        window.onload = init;
-    </script>
+            if (error) throw error;
+
+            showMsg("✅ Request sent successfully!", "green");
+            document.getElementById('amount').value = '';
+            document.getElementById('trx_id').value = '';
+            
+        } catch (err) {
+            showMsg("❌ Error: " + err.message, "red");
+        } finally {
+            resetUI();
+        }
+    }
+
+    function showMsg(text, color) {
+        const msg = document.getElementById('status-msg');
+        msg.innerText = text;
+        msg.style.color = color;
+    }
+
+    function resetUI() {
+        document.getElementById('submit-btn').style.display = "block";
+        document.getElementById('loader').style.display = "none";
+    }
+</script>
+
 </body>
 </html>
