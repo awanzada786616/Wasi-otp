@@ -5,20 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Funds | Wasi OTP</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Google Fonts for Premium Look -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #000000;
             --secondary: #ffffff;
-            --gray: #f4f4f7;
-            --text-muted: #666;
-            --accent: #1a1a1a;
+            --bg-light: #f8f9fa;
+            --border-color: #e0e0e0;
         }
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--gray);
+            background-color: var(--bg-light);
             color: var(--primary);
             margin: 0;
             display: flex;
@@ -31,96 +29,89 @@
         .payment-card {
             background: var(--secondary);
             width: 100%;
-            max-width: 450px;
-            border-radius: 24px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
-            padding: 40px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Top Bar Decor */
-        .payment-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 6px;
-            background: var(--primary);
+            max-width: 480px; /* Thora bara card */
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            padding: 35px;
+            border: 1px solid var(--border-color);
         }
 
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
 
         .header h1 {
             font-weight: 800;
-            font-size: 24px;
+            font-size: 26px;
             margin: 0;
-            letter-spacing: -1px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .header p {
-            color: var(--text-muted);
+            color: #666;
             font-size: 14px;
             margin-top: 5px;
         }
 
-        .qr-container {
-            background: #f9f9f9;
-            border: 2px dashed #ddd;
-            border-radius: 20px;
-            padding: 20px;
+        /* QR Section Fixed */
+        .qr-section {
+            background: #fff;
+            border: 2px solid #000;
+            border-radius: 15px;
+            padding: 15px;
             text-align: center;
-            margin-bottom: 30px;
-            transition: 0.3s;
+            margin-bottom: 25px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        .qr-container:hover {
-            border-color: var(--primary);
+        .qr-section img {
+            width: 280px; /* Size Bara Kar Diya */
+            height: 280px; /* Square Shape */
+            object-fit: contain;
+            border-radius: 8px;
+            /* No grayscale filter here, original colors will show */
         }
 
-        .qr-container img {
-            width: 180px;
-            height: 180px;
-            border-radius: 10px;
-            filter: grayscale(100%);
-            transition: 0.3s;
-        }
-
-        .qr-container img:hover {
-            filter: grayscale(0%);
+        .qr-label {
+            font-size: 12px;
+            font-weight: 700;
+            background: #000;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-top: 10px;
+            text-transform: uppercase;
         }
 
         .input-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
         .input-group label {
             display: block;
             font-weight: 600;
-            font-size: 13px;
+            font-size: 14px;
             margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
         .input-group input {
             width: 100%;
-            padding: 14px 16px;
-            border: 1.5px solid #eee;
-            border-radius: 12px;
+            padding: 14px;
+            border: 2px solid #eee;
+            border-radius: 10px;
             font-size: 16px;
             box-sizing: border-box;
-            transition: 0.3s;
-            background: #fafafa;
+            transition: 0.3s ease;
         }
 
         .input-group input:focus {
             outline: none;
             border-color: var(--primary);
             background: #fff;
-            box-shadow: 0 0 0 4px rgba(0,0,0,0.03);
         }
 
         .pay-btn {
@@ -129,73 +120,52 @@
             color: #fff;
             padding: 16px;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             font-size: 16px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             transition: 0.3s;
-            margin-top: 10px;
         }
 
         .pay-btn:hover {
-            background: #333;
+            background: #222;
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        }
-
-        .pay-btn:active {
-            transform: translateY(0);
         }
 
         .instructions {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
+            margin-top: 25px;
+            background: #fdfdfd;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #000;
         }
 
         .instruction-item {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 12px;
             font-size: 13px;
-            color: #555;
-            line-height: 1.5;
-        }
-
-        .instruction-item i {
-            margin-right: 10px;
-            color: var(--primary);
-            font-style: normal;
-            font-weight: bold;
+            color: #444;
+            margin-bottom: 8px;
+            line-height: 1.4;
         }
 
         .support-link {
-            color: var(--primary);
-            text-decoration: none;
+            color: #000;
             font-weight: 700;
-            border-bottom: 1px solid var(--primary);
+            text-decoration: underline;
         }
 
         #status-msg {
             text-align: center;
             margin-top: 15px;
-            font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
         }
 
-        /* Loading Animation */
-        .loader {
-            display: none;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #000;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
+        /* Responsive */
+        @media (max-width: 400px) {
+            .qr-section img {
+                width: 220px;
+                height: 220px;
+            }
         }
-
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -203,43 +173,39 @@
 <div class="payment-card">
     <div class="header">
         <h1>WASI OTP</h1>
-        <p>Secure Manual Deposit</p>
+        <p>Deposit via QR Code / Account</p>
     </div>
 
-    <div class="qr-container">
-        <img src="qr.png" alt="Scan to Pay">
-        <p style="font-size: 12px; color: #888; margin-top: 10px;">Scan QR Code to pay instantly</p>
+    <div class="qr-section">
+        <img src="qr.png" alt="Payment QR Code">
+        <div class="qr-label">Scan to Pay</div>
     </div>
 
     <div class="input-group">
-        <label>Amount to Add</label>
-        <input type="number" id="amount" placeholder="Min 100" min="100">
+        <label>Enter Amount</label>
+        <input type="number" id="amount" placeholder="Minimum 100" min="100">
     </div>
 
     <div class="input-group">
         <label>Transaction ID / Hash</label>
-        <input type="text" id="trx_id" placeholder="Paste Trx ID here">
+        <input type="text" id="trx_id" placeholder="Enter TRX ID after payment">
     </div>
 
-    <button class="pay-btn" id="submit-btn" onclick="submitPayment()">Submit Request</button>
+    <button class="pay-btn" onclick="submitPayment()">Submit Payment Request</button>
     
     <div id="status-msg"></div>
-    <div class="loader" id="loader"></div>
 
     <div class="instructions">
-        <div class="instruction-item"><i>•</i> Minimum payment is 100.</div>
-        <div class="instruction-item"><i>•</i> Scan the QR code and send money.</div>
-        <div class="instruction-item"><i>•</i> Without scanning payment sending is possible through account number.</div>
-        <div class="instruction-item">
-            <i>•</i> After sending Payment send a message to our support: 
-            <a href="https://wa.me/994401879953" class="support-link">+994401879953</a>
-        </div>
-        <div class="instruction-item"><i>•</i> We will check and add your payment instantly.</div>
+        <div class="instruction-item"><b>1.</b> Minimum payment is 100.</div>
+        <div class="instruction-item"><b>2.</b> Scan the QR code and send money.</div>
+        <div class="instruction-item"><b>3.</b> Without scanning payment sending is possible through account number.</div>
+        <div class="instruction-item"><b>4.</b> After payment, WhatsApp us: <a href="https://wa.me/994401879953" class="support-link">+994401879953</a></div>
+        <div class="instruction-item"><b>5.</b> We will verify and add funds instantly.</div>
     </div>
 </div>
 
 <script>
-    // Supabase Setup
+    // Supabase Configuration
     const SUPABASE_URL = 'YOUR_SUPABASE_URL';
     const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -248,62 +214,40 @@
         const amount = document.getElementById('amount').value;
         const trx_id = document.getElementById('trx_id').value;
         const msg = document.getElementById('status-msg');
-        const btn = document.getElementById('submit-btn');
-        const loader = document.getElementById('loader');
 
         if(amount < 100) {
-            showMsg("❌ Minimum amount is 100", "red");
+            msg.innerText = "❌ Minimum amount is 100";
+            msg.style.color = "red";
             return;
         }
         if(!trx_id) {
-            showMsg("❌ Please enter Transaction ID", "red");
+            msg.innerText = "❌ Please enter Transaction ID";
+            msg.style.color = "red";
             return;
         }
 
-        // UI Changes
-        btn.style.display = "none";
-        loader.style.display = "block";
-
         try {
             const { data: { user } } = await _supabase.auth.getUser();
-            
             if(!user) {
-                showMsg("❌ Please login first!", "red");
-                resetUI();
+                msg.innerText = "❌ Please login first!";
                 return;
             }
 
             const { error } = await _supabase.from('payment_requests').insert([
-                { 
-                    user_id: user.id, 
-                    amount: amount, 
-                    transaction_id: trx_id,
-                    status: 'pending' 
-                }
+                { user_id: user.id, amount: amount, transaction_id: trx_id, status: 'pending' }
             ]);
 
             if (error) throw error;
 
-            showMsg("✅ Request sent successfully!", "green");
+            msg.style.color = "green";
+            msg.innerText = "✅ Request submitted! Contact support now.";
             document.getElementById('amount').value = '';
             document.getElementById('trx_id').value = '';
-            
+
         } catch (err) {
-            showMsg("❌ Error: " + err.message, "red");
-        } finally {
-            resetUI();
+            msg.style.color = "red";
+            msg.innerText = "❌ Error: " + err.message;
         }
-    }
-
-    function showMsg(text, color) {
-        const msg = document.getElementById('status-msg');
-        msg.innerText = text;
-        msg.style.color = color;
-    }
-
-    function resetUI() {
-        document.getElementById('submit-btn').style.display = "block";
-        document.getElementById('loader').style.display = "none";
     }
 </script>
 
