@@ -3,15 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wasi Email Dashboard</title>
+    <title>Wasi OTP | Email Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        
+        /* Toast Animations */
         .toast-active { transform: translateY(0); opacity: 1; }
         .toast-hidden { transform: translateY(-20px); opacity: 0; pointer-events: none; }
+        
+        /* Dropdown Clean White Style */
+        .white-dropdown {
+            background-color: white !important;
+            border: 1px solid #e2e8f0 !important; /* border-slate-200 */
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .white-dropdown:focus {
+            border-color: #4f46e5 !important;
+            ring: 2px;
+            ring-color: #4f46e5;
+        }
     </style>
 </head>
 <body class="bg-[#f8fafc] min-h-screen">
@@ -20,7 +34,7 @@
     <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 toast-hidden">
         <div class="bg-emerald-500 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3">
             <i data-lucide="check-circle" class="w-5 h-5"></i>
-            <span id="toast-msg" class="text-sm font-bold">Email purchased! Waiting for OTP...</span>
+            <span id="toast-msg" class="text-sm font-bold tracking-tight">Email purchased! Waiting for OTP...</span>
         </div>
     </div>
 
@@ -28,33 +42,50 @@
     <nav class="bg-white border-b sticky top-0 z-50 px-6 py-4">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="bg-indigo-600 p-2 rounded-xl"><i data-lucide="mail" class="text-white w-5 h-5"></i></div>
-                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight italic">WASI<span class="text-indigo-600">EMAIL</span></h1>
+                <div class="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-100">
+                    <i data-lucide="mail" class="text-white w-5 h-5"></i>
+                </div>
+                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight italic">WASI<span class="text-indigo-600">OTP</span></h1>
             </div>
-            <div id="user-balance" class="bg-indigo-50 px-4 py-2 rounded-2xl text-indigo-700 font-black text-sm border border-indigo-100 italic">Rs 0.00</div>
+            <div id="user-balance" class="bg-indigo-50 px-4 py-2 rounded-2xl text-indigo-700 font-black text-sm border border-indigo-100 italic">
+                Rs 0.00 PKR
+            </div>
         </div>
     </nav>
 
     <main class="max-w-4xl mx-auto px-4 py-8 space-y-6">
         
         <!-- Buy Section -->
-        <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
-            <h2 class="text-lg font-bold text-slate-800 mb-6 tracking-tight">Buy Email [ OtpGet ]</h2>
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-xl font-extrabold text-slate-800 tracking-tight italic">Buy Email [ Wasi OTP ]</h2>
+                <div class="bg-slate-100 p-2 rounded-full cursor-pointer hover:bg-slate-200 transition-colors">
+                    <i data-lucide="history" class="w-4 h-4 text-slate-500"></i>
+                </div>
+            </div>
             
-            <div class="space-y-4">
-                <select id="domain-select" onchange="loadServices()" class="w-full p-4 bg-slate-50 border rounded-2xl text-sm font-bold text-slate-600 outline-none">
-                    <option value="gmail.com">Gmail (gmail.com)</option>
-                    <option value="outlook.com">Outlook (outlook.com)</option>
-                </select>
-
-                <div class="relative">
-                    <select id="service-dropdown" class="w-full p-4 bg-slate-50 border rounded-2xl text-sm font-bold text-slate-600 outline-none appearance-none cursor-pointer">
-                        <option value="">— Select Service —</option>
+            <div class="space-y-5">
+                <!-- Dropdown 1: Domain -->
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1 block">Choose Provider</label>
+                    <select id="domain-select" onchange="loadServices()" class="white-dropdown w-full p-4 rounded-2xl text-sm font-bold text-slate-600 outline-none transition-all">
+                        <option value="gmail.com">Gmail (gmail.com)</option>
+                        <option value="outlook.com">Outlook (outlook.com)</option>
                     </select>
-                    <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none"></i>
                 </div>
 
-                <button onclick="handleBuy()" id="buy-btn" class="w-full bg-[#0a0a23] text-white py-4 rounded-2xl font-black flex items-center justify-center gap-2 hover:opacity-90 transition-all">
+                <!-- Dropdown 2: Service -->
+                <div class="relative">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1 block">Select Service</label>
+                    <div class="relative">
+                        <select id="service-dropdown" class="white-dropdown w-full p-4 rounded-2xl text-sm font-bold text-slate-600 outline-none appearance-none cursor-pointer transition-all">
+                            <option value="">— Select Service —</option>
+                        </select>
+                        <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none"></i>
+                    </div>
+                </div>
+
+                <button onclick="handleBuy()" id="buy-btn" class="w-full bg-[#0a0a23] text-white py-4 mt-2 rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95">
                     <i data-lucide="shopping-cart" class="w-5 h-5"></i> Buy Email
                 </button>
             </div>
@@ -62,7 +93,7 @@
 
         <!-- Active Orders Section -->
         <div id="active-list" class="space-y-4">
-            <!-- Persistent Orders -->
+            <!-- Persistent Orders from LocalStorage will appear here -->
         </div>
 
     </main>
@@ -144,33 +175,38 @@
         function renderActiveOrders() {
             const list = document.getElementById('active-list');
             const orders = JSON.parse(localStorage.getItem('wasi_active_emails') || '[]');
+            
+            if (orders.length === 0) { list.innerHTML = ''; return; }
+
             list.innerHTML = orders.map(o => `
-                <div class="bg-white p-6 rounded-[2rem] border shadow-sm flex flex-col gap-4">
+                <div class="bg-white p-6 rounded-[2.5rem] border shadow-sm flex flex-col gap-5 border-slate-100">
                     <div class="flex items-center gap-4">
-                        <div class="bg-indigo-600 p-3 rounded-full text-white"><i data-lucide="mail" class="w-6 h-6"></i></div>
+                        <div class="bg-indigo-600 p-3 rounded-full text-white shadow-lg shadow-indigo-100"><i data-lucide="mail" class="w-6 h-6"></i></div>
                         <div class="flex-1">
-                            <p class="text-indigo-600 font-bold text-sm mb-1 select-all flex items-center gap-2">
-                                ${o.email} <i data-lucide="copy" class="w-3 h-3 cursor-pointer" onclick="navigator.clipboard.writeText('${o.email}')"></i>
+                            <p class="text-indigo-600 font-black text-sm mb-1 select-all flex items-center gap-2">
+                                ${o.email} <i data-lucide="copy" class="w-3 h-3 cursor-pointer text-slate-300 hover:text-indigo-600" onclick="navigator.clipboard.writeText('${o.email}')"></i>
                             </p>
-                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-4">
-                                <span><i data-lucide="tag" class="w-3 h-3 inline"></i> ${o.service}</span>
-                                <span><i data-lucide="globe" class="w-3 h-3 inline"></i> @${o.email.split('@')[1]}</span>
-                                <span><i data-lucide="banknote" class="w-3 h-3 inline"></i> Rs ${o.cost} PKR</span>
+                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex flex-wrap gap-4">
+                                <span class="flex items-center gap-1"><i data-lucide="tag" class="w-3 h-3 text-slate-300"></i> ${o.service}</span>
+                                <span class="flex items-center gap-1"><i data-lucide="globe" class="w-3 h-3 text-slate-300"></i> @${o.email.split('@')[1]}</span>
+                                <span class="flex items-center gap-1 font-black text-slate-600"><i data-lucide="banknote" class="w-3 h-3 text-indigo-400"></i> Rs ${o.cost} PKR</span>
                             </p>
                         </div>
                     </div>
                     <div class="bg-slate-50 rounded-2xl p-6 border border-dashed border-slate-200">
-                        <div id="otp-area-${o.id}" class="text-sm text-slate-400 font-medium">
-                            ${o.code ? `<span class="text-2xl font-black text-slate-800 tracking-[5px]">${o.code}</span>` : 'Searching for otp...'}
+                        <div id="otp-area-${o.id}" class="text-center font-bold">
+                            ${o.code ? `<p class="text-xs text-slate-400 uppercase mb-2 tracking-widest">Received Code</p><span class="text-3xl font-black text-indigo-700 tracking-[8px]">${o.code}</span>` : '<span class="text-slate-400 text-sm animate-pulse italic">Searching for otp...</span>'}
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="checkOTP('${o.id}')" class="flex-1 bg-amber-50 text-amber-600 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2">
-                            <i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Waiting for code...
+                        <button onclick="checkOTP('${o.id}')" class="flex-1 bg-amber-50 text-amber-600 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-amber-100 transition-all">
+                            <i data-lucide="loader" class="w-4 h-4 animate-spin"></i> ${o.code ? 'Check Again' : 'Refresh OTP'}
                         </button>
-                        ${!o.code ? `<button onclick="cancelEmail('${o.id}', ${o.cost})" class="flex-1 bg-red-50 text-red-500 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2">
+                        ${!o.code ? `<button onclick="cancelEmail('${o.id}', ${o.cost})" class="flex-1 bg-red-50 text-red-500 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-red-100 transition-all">
                             <i data-lucide="trash-2" class="w-4 h-4"></i> Cancel
-                        </button>` : ''}
+                        </button>` : `<button onclick="removeOrder('${o.id}')" class="flex-1 bg-slate-900 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2">
+                            Done
+                        </button>`}
                     </div>
                 </div>
             `).join('');
@@ -197,14 +233,18 @@
             const res = await fetch(`/api/email?action=cancelEmail&email_id=${id}&cost=${cost}&user_id=${USER_ID}`);
             const json = await res.json();
             if(json.status == "success") {
-                let orders = JSON.parse(localStorage.getItem('wasi_active_emails'));
-                localStorage.setItem('wasi_active_emails', JSON.stringify(orders.filter(x => x.id != id)));
+                removeOrder(id);
                 showToast("Order Cancelled & Refunded!", "bg-slate-800");
                 fetchBalance();
-                renderActiveOrders();
             } else {
                 showToast("Cannot cancel. OTP might be delivered.", "bg-red-500");
             }
+        }
+
+        function removeOrder(id) {
+            let orders = JSON.parse(localStorage.getItem('wasi_active_emails'));
+            localStorage.setItem('wasi_active_emails', JSON.stringify(orders.filter(x => x.id != id)));
+            renderActiveOrders();
         }
 
         function saveOrder(obj) {
