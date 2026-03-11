@@ -3,98 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wasi OTP | Email Dashboard</title>
+    <title>Wasi OTP | Email System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
         
-        /* Toast Animations */
-        .toast-active { transform: translateY(0); opacity: 1; }
-        .toast-hidden { transform: translateY(-20px); opacity: 0; pointer-events: none; }
+        /* Custom Scrollbar for Dropdown */
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f8fafc; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+
+        /* Dropdown & Toast Animations */
+        .toast-active { transform: translate(-50%, 0); opacity: 1; }
+        .toast-hidden { transform: translate(-50%, -20px); opacity: 0; pointer-events: none; }
+        .dropdown-content { display: none; }
+        .dropdown-content.show { display: block; }
         
-        /* Dropdown Clean White Style */
-        .white-dropdown {
-            background-color: white !important;
-            border: 1px solid #e2e8f0 !important; /* border-slate-200 */
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        .white-dropdown:focus {
-            border-color: #4f46e5 !important;
-            ring: 2px;
-            ring-color: #4f46e5;
-        }
+        /* Force White background for inputs/selects */
+        select, input { background-color: white !important; color: #1e293b !important; }
     </style>
 </head>
-<body class="bg-[#f8fafc] min-h-screen">
+<body class="bg-[#f8fafc] min-h-screen text-slate-800">
 
-    <!-- Stylish Toast Notification -->
-    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 toast-hidden">
-        <div class="bg-emerald-500 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3">
+    <!-- Stylish Toast -->
+    <div id="toast" class="fixed top-5 left-1/2 z-[100] transition-all duration-300 toast-hidden w-[90%] max-w-md">
+        <div id="toast-bg" class="bg-emerald-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
             <i data-lucide="check-circle" class="w-5 h-5"></i>
-            <span id="toast-msg" class="text-sm font-bold tracking-tight">Email purchased! Waiting for OTP...</span>
+            <span id="toast-msg" class="text-sm font-bold tracking-tight">Action Successful!</span>
         </div>
     </div>
 
     <!-- Navbar -->
     <nav class="bg-white border-b sticky top-0 z-50 px-6 py-4">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
+        <div class="max-w-3xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-100">
-                    <i data-lucide="mail" class="text-white w-5 h-5"></i>
-                </div>
-                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight italic">WASI<span class="text-indigo-600">OTP</span></h1>
+                <div class="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-100"><i data-lucide="mail" class="text-white w-5 h-5"></i></div>
+                <h1 class="text-xl font-extrabold tracking-tighter italic">WASI<span class="text-indigo-600 tracking-tighter">OTP</span></h1>
             </div>
-            <div id="user-balance" class="bg-indigo-50 px-4 py-2 rounded-2xl text-indigo-700 font-black text-sm border border-indigo-100 italic">
-                Rs 0.00 PKR
-            </div>
+            <div id="user-balance" class="bg-indigo-50 px-4 py-2 rounded-2xl text-indigo-700 font-black text-sm border border-indigo-100 italic">Rs 0.00 PKR</div>
         </div>
     </nav>
 
-    <main class="max-w-4xl mx-auto px-4 py-8 space-y-6">
+    <main class="max-w-3xl mx-auto px-4 py-8 space-y-6">
         
         <!-- Buy Section -->
-        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-            <div class="flex justify-between items-center mb-8">
-                <h2 class="text-xl font-extrabold text-slate-800 tracking-tight italic">Buy Email [ Wasi OTP ]</h2>
-                <div class="bg-slate-100 p-2 rounded-full cursor-pointer hover:bg-slate-200 transition-colors">
-                    <i data-lucide="history" class="w-4 h-4 text-slate-500"></i>
-                </div>
-            </div>
+        <div class="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-100">
+            <h2 class="text-xl font-extrabold text-slate-800 mb-8 tracking-tight italic">Buy Email [ Wasi OTP ]</h2>
             
-            <div class="space-y-5">
-                <!-- Dropdown 1: Domain -->
-                <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1 block">Choose Provider</label>
-                    <select id="domain-select" onchange="loadServices()" class="white-dropdown w-full p-4 rounded-2xl text-sm font-bold text-slate-600 outline-none transition-all">
+            <div class="space-y-6">
+                <!-- Select Domain -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Choose Domain</label>
+                    <select id="domain-select" onchange="loadServices()" class="w-full p-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 ring-indigo-500 appearance-none">
                         <option value="gmail.com">Gmail (gmail.com)</option>
                         <option value="outlook.com">Outlook (outlook.com)</option>
                     </select>
                 </div>
 
-                <!-- Dropdown 2: Service -->
-                <div class="relative">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1 block">Select Service</label>
-                    <div class="relative">
-                        <select id="service-dropdown" class="white-dropdown w-full p-4 rounded-2xl text-sm font-bold text-slate-600 outline-none appearance-none cursor-pointer transition-all">
-                            <option value="">— Select Service —</option>
-                        </select>
-                        <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none"></i>
+                <!-- Custom Searchable Dropdown -->
+                <div class="space-y-2 relative">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Select Service</label>
+                    
+                    <!-- Trigger -->
+                    <div id="dropdown-trigger" onclick="toggleDropdown()" class="w-full p-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-400 flex justify-between items-center cursor-pointer">
+                        <span id="selected-service-name">— Select Service —</span>
+                        <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                    </div>
+
+                    <!-- Dropdown Content -->
+                    <div id="dropdown-menu" class="dropdown-content absolute top-full left-0 w-full mt-2 bg-white border border-slate-200 rounded-3xl shadow-2xl z-[60] overflow-hidden">
+                        <div class="p-3 border-b border-slate-50 bg-slate-50/50">
+                            <input type="text" id="service-search" placeholder="Search service..." onkeyup="filterServices()"
+                                   class="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:ring-2 ring-indigo-500">
+                        </div>
+                        <div id="service-options" class="max-h-60 overflow-y-auto custom-scroll p-2 space-y-1">
+                            <!-- Options load here -->
+                            <p class="text-center py-4 text-xs text-slate-400">Loading services...</p>
+                        </div>
                     </div>
                 </div>
 
-                <button onclick="handleBuy()" id="buy-btn" class="w-full bg-[#0a0a23] text-white py-4 mt-2 rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95">
+                <button onclick="handleBuy()" id="buy-btn" class="w-full bg-[#0a0a23] text-white py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-xl active:scale-95">
                     <i data-lucide="shopping-cart" class="w-5 h-5"></i> Buy Email
                 </button>
             </div>
         </div>
 
-        <!-- Active Orders Section -->
-        <div id="active-list" class="space-y-4">
-            <!-- Persistent Orders from LocalStorage will appear here -->
-        </div>
+        <!-- Orders Section -->
+        <div id="active-list" class="space-y-4"></div>
 
     </main>
 
@@ -103,15 +102,14 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsamN4bm9ibW10Y2ZwdmRhY2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNDk4NzcsImV4cCI6MjA4NDYyNTg3N30.NHDGMPhxxnUcjZxBLvUxFzoe6Yvp7N86ZJyiUK8LgRo";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let USER_ID = null;
-        let ALL_SERVICES = [];
+        let USER_ID = null, ALL_SERVICES = [], SELECTED_SERVICE = null;
 
         async function init() {
             lucide.createIcons();
             const { data: { user } } = await _supabase.auth.getUser();
             if (user) { USER_ID = user.id; fetchBalance(); }
             loadServices();
-            renderActiveOrders();
+            renderOrders();
         }
 
         async function fetchBalance() {
@@ -125,91 +123,96 @@
             const json = await res.json();
             if (json.status == "200") {
                 ALL_SERVICES = json.services;
-                const dropdown = document.getElementById('service-dropdown');
-                dropdown.innerHTML = '<option value="">— Select Service —</option>' + 
-                    ALL_SERVICES.map(s => {
-                        const price = Math.ceil(s.price * 1.4);
-                        return `<option value="${s.service_code}" data-price="${price}" data-name="${s.service_name}">${s.service_name} — Rs ${price} PKR (${s.count} available)</option>`;
-                    }).join('');
+                renderOptions(ALL_SERVICES);
             }
+        }
+
+        function renderOptions(data) {
+            const container = document.getElementById('service-options');
+            container.innerHTML = data.map(s => {
+                const price = Math.ceil(s.price * 1.4);
+                return `
+                <div onclick="selectService('${s.service_code}', '${s.service_name}', ${price})" 
+                     class="p-3 hover:bg-indigo-50 rounded-xl cursor-pointer flex justify-between items-center transition-colors group">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-bold text-slate-700">${s.service_name}</span>
+                        <span class="text-[10px] text-slate-400 font-bold uppercase">${s.count} Available</span>
+                    </div>
+                    <span class="text-xs font-black text-indigo-600 bg-white px-2 py-1 rounded-lg border group-hover:border-indigo-200">Rs ${price}</span>
+                </div>`;
+            }).join('');
+        }
+
+        function filterServices() {
+            const term = document.getElementById('service-search').value.toLowerCase();
+            const filtered = ALL_SERVICES.filter(s => s.service_name.toLowerCase().includes(term));
+            renderOptions(filtered);
+        }
+
+        function toggleDropdown() { document.getElementById('dropdown-menu').classList.toggle('show'); }
+
+        function selectService(code, name, price) {
+            SELECTED_SERVICE = { code, name, price };
+            document.getElementById('selected-service-name').innerText = `${name} — Rs ${price} PKR`;
+            document.getElementById('selected-service-name').classList.replace('text-slate-400', 'text-slate-800');
+            toggleDropdown();
         }
 
         function showToast(msg, color = 'bg-emerald-500') {
             const toast = document.getElementById('toast');
-            const toastBg = toast.querySelector('div');
             document.getElementById('toast-msg').innerText = msg;
-            toastBg.className = `${color} text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3`;
+            document.getElementById('toast-bg').className = `${color} text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3`;
             toast.classList.replace('toast-hidden', 'toast-active');
-            setTimeout(() => toast.classList.replace('toast-active', 'toast-hidden'), 4000);
+            setTimeout(() => toast.classList.replace('toast-active', 'toast-hidden'), 3500);
         }
 
         async function handleBuy() {
-            const drop = document.getElementById('service-dropdown');
-            const selected = drop.options[drop.selectedIndex];
-            if (!selected.value) return showToast("Please select a service", "bg-red-500");
+            if (!SELECTED_SERVICE) return showToast("Please select a service", "bg-red-500");
+            const btn = document.getElementById('buy-btn');
+            btn.disabled = true; btn.innerText = "Processing...";
 
-            const cost = selected.dataset.price;
-            const name = selected.dataset.name;
             const domain = document.getElementById('domain-select').value;
-
-            document.getElementById('buy-btn').disabled = true;
-            document.getElementById('buy-btn').innerHTML = "Processing...";
-
-            const res = await fetch(`/api/email?action=buyEmail&service_id=${selected.value}&domain=${domain}&user_id=${USER_ID}&cost=${cost}`);
+            const res = await fetch(`/api/email?action=buyEmail&service_id=${SELECTED_SERVICE.code}&domain=${domain}&user_id=${USER_ID}&cost=${SELECTED_SERVICE.price}`);
             const json = await res.json();
 
             if (json.status == "200" || json.status == "success") {
-                const session = { id: json.email_id || json.data.email_id, email: json.email || json.data.email, service: name, cost: cost, code: null };
-                saveOrder(session);
+                const d = json.data || json;
+                saveOrder({ id: d.email_id, email: d.email, service: SELECTED_SERVICE.name, cost: SELECTED_SERVICE.price, code: null });
                 showToast("Email purchased! Waiting for OTP...");
-                fetchBalance();
-                renderActiveOrders();
-            } else {
-                showToast(json.msg || "Transaction Failed", "bg-red-500");
-            }
-            document.getElementById('buy-btn').disabled = false;
-            document.getElementById('buy-btn').innerHTML = '<i data-lucide="shopping-cart" class="w-5 h-5"></i> Buy Email';
+                fetchBalance(); renderOrders();
+            } else { showToast(json.msg || "Transaction Failed", "bg-red-500"); }
+            btn.disabled = false; btn.innerHTML = '<i data-lucide="shopping-cart" class="w-5 h-5"></i> Buy Email';
             lucide.createIcons();
         }
 
-        function renderActiveOrders() {
+        function renderOrders() {
             const list = document.getElementById('active-list');
             const orders = JSON.parse(localStorage.getItem('wasi_active_emails') || '[]');
-            
-            if (orders.length === 0) { list.innerHTML = ''; return; }
-
             list.innerHTML = orders.map(o => `
-                <div class="bg-white p-6 rounded-[2.5rem] border shadow-sm flex flex-col gap-5 border-slate-100">
+                <div class="bg-white p-6 rounded-[2.5rem] border shadow-sm flex flex-col gap-4 border-slate-100">
                     <div class="flex items-center gap-4">
-                        <div class="bg-indigo-600 p-3 rounded-full text-white shadow-lg shadow-indigo-100"><i data-lucide="mail" class="w-6 h-6"></i></div>
+                        <div class="bg-indigo-600 p-3 rounded-full text-white"><i data-lucide="mail" class="w-6 h-6"></i></div>
                         <div class="flex-1">
-                            <p class="text-indigo-600 font-black text-sm mb-1 select-all flex items-center gap-2">
-                                ${o.email} <i data-lucide="copy" class="w-3 h-3 cursor-pointer text-slate-300 hover:text-indigo-600" onclick="navigator.clipboard.writeText('${o.email}')"></i>
-                            </p>
-                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex flex-wrap gap-4">
-                                <span class="flex items-center gap-1"><i data-lucide="tag" class="w-3 h-3 text-slate-300"></i> ${o.service}</span>
-                                <span class="flex items-center gap-1"><i data-lucide="globe" class="w-3 h-3 text-slate-300"></i> @${o.email.split('@')[1]}</span>
-                                <span class="flex items-center gap-1 font-black text-slate-600"><i data-lucide="banknote" class="w-3 h-3 text-indigo-400"></i> Rs ${o.cost} PKR</span>
+                            <p class="text-indigo-600 font-black text-sm mb-1">${o.email}</p>
+                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex flex-wrap gap-3">
+                                <span>${o.service}</span> <span>Rs ${o.cost} PKR</span>
                             </p>
                         </div>
                     </div>
-                    <div class="bg-slate-50 rounded-2xl p-6 border border-dashed border-slate-200">
-                        <div id="otp-area-${o.id}" class="text-center font-bold">
-                            ${o.code ? `<p class="text-xs text-slate-400 uppercase mb-2 tracking-widest">Received Code</p><span class="text-3xl font-black text-indigo-700 tracking-[8px]">${o.code}</span>` : '<span class="text-slate-400 text-sm animate-pulse italic">Searching for otp...</span>'}
+                    <div class="bg-slate-50 rounded-2xl p-6 border-dashed border-2 border-slate-200 text-center">
+                        <div id="otp-${o.id}" class="font-bold">
+                            ${o.code ? `<p class="text-[10px] uppercase text-slate-400 mb-1">OTP Received</p><span class="text-3xl font-black text-indigo-700 tracking-[8px]">${o.code}</span>` : '<span class="text-slate-400 italic text-sm animate-pulse">Searching for otp...</span>'}
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="checkOTP('${o.id}')" class="flex-1 bg-amber-50 text-amber-600 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-amber-100 transition-all">
-                            <i data-lucide="loader" class="w-4 h-4 animate-spin"></i> ${o.code ? 'Check Again' : 'Refresh OTP'}
+                        <button onclick="checkOTP('${o.id}')" class="flex-1 bg-amber-50 text-amber-600 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2">
+                            <i data-lucide="refresh-cw" class="w-3 h-3 ${o.code ? '' : 'animate-spin'}"></i> ${o.code ? 'Check Again' : 'Refresh'}
                         </button>
-                        ${!o.code ? `<button onclick="cancelEmail('${o.id}', ${o.cost})" class="flex-1 bg-red-50 text-red-500 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-red-100 transition-all">
+                        ${!o.code ? `<button onclick="cancelEmail('${o.id}', ${o.cost})" class="flex-1 bg-red-50 text-red-500 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2">
                             <i data-lucide="trash-2" class="w-4 h-4"></i> Cancel
-                        </button>` : `<button onclick="removeOrder('${o.id}')" class="flex-1 bg-slate-900 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2">
-                            Done
-                        </button>`}
+                        </button>` : `<button onclick="removeOrder('${o.id}')" class="flex-1 bg-slate-900 text-white py-3 rounded-xl text-xs font-bold">Done</button>`}
                     </div>
-                </div>
-            `).join('');
+                </div>`).join('');
             lucide.createIcons();
         }
 
@@ -221,38 +224,31 @@
                 const i = orders.findIndex(x => x.id == id);
                 orders[i].code = json.data.code;
                 localStorage.setItem('wasi_active_emails', JSON.stringify(orders));
-                showToast("OTP Received Successfully!");
-                renderActiveOrders();
-            } else {
-                showToast("Still waiting for code...", "bg-amber-500");
-            }
+                showToast("OTP Received!"); renderOrders();
+            } else { showToast("No OTP yet.", "bg-amber-500"); }
         }
 
         async function cancelEmail(id, cost) {
             if(!confirm("Cancel and refund?")) return;
             const res = await fetch(`/api/email?action=cancelEmail&email_id=${id}&cost=${cost}&user_id=${USER_ID}`);
             const json = await res.json();
-            if(json.status == "success") {
-                removeOrder(id);
-                showToast("Order Cancelled & Refunded!", "bg-slate-800");
-                fetchBalance();
-            } else {
-                showToast("Cannot cancel. OTP might be delivered.", "bg-red-500");
-            }
+            if(json.status == "success") { removeOrder(id); fetchBalance(); showToast("Refunded!", "bg-slate-800"); }
+            else { showToast("Cannot cancel.", "bg-red-500"); }
+        }
+
+        function saveOrder(o) {
+            let orders = JSON.parse(localStorage.getItem('wasi_active_emails') || '[]');
+            orders.unshift(o); localStorage.setItem('wasi_active_emails', JSON.stringify(orders));
         }
 
         function removeOrder(id) {
             let orders = JSON.parse(localStorage.getItem('wasi_active_emails'));
             localStorage.setItem('wasi_active_emails', JSON.stringify(orders.filter(x => x.id != id)));
-            renderActiveOrders();
+            renderOrders();
         }
 
-        function saveOrder(obj) {
-            let orders = JSON.parse(localStorage.getItem('wasi_active_emails') || '[]');
-            orders.unshift(obj);
-            localStorage.setItem('wasi_active_emails', JSON.stringify(orders));
-        }
-
+        // Close dropdown when clicking outside
+        window.onclick = function(e) { if (!e.target.closest('.relative')) document.getElementById('dropdown-menu').classList.remove('show'); }
         window.onload = init;
     </script>
 </body>
