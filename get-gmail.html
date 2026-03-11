@@ -3,66 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wasi Email Dashboard</title>
+    <title>Wasi Email Dashboard | PKR</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .service-card { transition: all 0.3s ease; border: 1px solid #f1f5f9; }
-        .service-card:hover { transform: translateY(-4px); border-color: #4f46e5; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.1); }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen">
+<body class="bg-[#f8fafc] min-h-screen">
 
-    <nav class="bg-white/80 backdrop-blur-md border-b sticky top-0 z-50 px-6 py-4">
+    <!-- Navbar -->
+    <nav class="bg-white border-b sticky top-0 z-50 px-6 py-4">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="bg-indigo-600 p-2 rounded-2xl">
+                <div class="bg-indigo-600 p-2 rounded-xl">
                     <i data-lucide="mail" class="text-white w-5 h-5"></i>
                 </div>
                 <h1 class="text-xl font-extrabold text-slate-900 tracking-tight italic">WASI<span class="text-indigo-600">EMAIL</span></h1>
             </div>
-            <div class="text-right">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Wallet</p>
-                <p id="user-balance" class="text-lg font-black text-indigo-700 leading-none mt-1">$0.00</p>
+            <div class="flex items-center gap-4">
+                <div class="text-right">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Balance</p>
+                    <p id="user-balance" class="text-lg font-black text-indigo-700 leading-none mt-1">Rs 0.00</p>
+                </div>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto px-6 py-10">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            <div class="lg:col-span-8 space-y-6">
-                <div class="bg-white p-6 rounded-[2rem] shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-                    <h2 class="font-bold text-slate-800 uppercase text-xs tracking-widest">Available Services</h2>
-                    <select id="domain-select" onchange="loadServices()" class="w-full md:w-44 p-2.5 bg-slate-50 border-none rounded-xl text-xs font-bold text-slate-600 outline-none ring-1 ring-slate-100 focus:ring-2 ring-indigo-500">
-                        <option value="gmail.com">Gmail.com</option>
-                        <option value="outlook.com">Outlook.com</option>
+    <main class="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Store Section -->
+        <div class="lg:col-span-7 space-y-6">
+            <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+                <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <i data-lucide="shopping-cart" class="w-4 h-4 text-indigo-600"></i> Buy Email Service
+                </h2>
+
+                <!-- Domain Select -->
+                <div class="mb-4">
+                    <select id="domain-select" onchange="loadServices()" class="w-full p-3 bg-slate-50 border rounded-2xl text-sm font-bold text-slate-600 outline-none focus:ring-2 ring-indigo-500 appearance-none">
+                        <option value="gmail.com">Gmail (gmail.com)</option>
+                        <option value="outlook.com">Outlook (outlook.com)</option>
                     </select>
                 </div>
 
-                <!-- Services Grid -->
-                <div id="services-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                    <!-- Shimmer Loaders -->
-                    <div class="animate-pulse bg-white h-32 rounded-3xl"></div>
-                    <div class="animate-pulse bg-white h-32 rounded-3xl"></div>
+                <!-- Search Input -->
+                <div class="relative mb-6">
+                    <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                    <input type="text" id="search-service" placeholder="Search service (e.g. Amazon, Instagram)..." 
+                           class="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 ring-indigo-500"
+                           onkeyup="filterServices()">
+                </div>
+
+                <!-- Services List (Scrollable) -->
+                <div id="services-grid" class="grid grid-cols-1 gap-3 max-h-[500px] overflow-y-auto custom-scroll pr-2">
+                    <!-- Dynamic Data -->
                 </div>
             </div>
-
-            <div class="lg:col-span-4">
-                <div class="bg-white p-6 rounded-[2rem] shadow-sm border-t-4 border-indigo-600 sticky top-28">
-                    <h2 class="font-bold text-slate-800 uppercase text-[10px] tracking-widest mb-6 flex items-center gap-2">
-                        <i data-lucide="zap" class="w-4 h-4 text-indigo-500"></i> Active Session
-                    </h2>
-                    <div id="active-list" class="space-y-4">
-                        <p class="text-center text-slate-300 text-xs py-10 font-medium italic">Inbox is empty.</p>
-                    </div>
-                </div>
-            </div>
-
         </div>
+
+        <!-- Right: Active Session (Persistent) -->
+        <div class="lg:col-span-5 space-y-6">
+            <div class="bg-white p-6 rounded-[2rem] shadow-sm border-t-4 border-indigo-600 sticky top-28">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="font-bold text-slate-800 uppercase text-[10px] tracking-widest flex items-center gap-2">
+                        <i data-lucide="zap" class="w-4 h-4 text-indigo-500"></i> Active Sessions
+                    </h2>
+                    <button onclick="clearCompleted()" class="text-[10px] font-bold text-slate-400 hover:text-red-500 uppercase">Clear All</button>
+                </div>
+                <div id="active-list" class="space-y-4">
+                    <!-- Persistent data from LocalStorage will show here -->
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <script>
@@ -71,6 +90,7 @@
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let USER_ID = null;
+        let ALL_SERVICES = [];
 
         async function init() {
             lucide.createIcons();
@@ -78,102 +98,152 @@
             if (user) {
                 USER_ID = user.id;
                 fetchBalance();
-            } else {
-                document.getElementById('user-balance').innerText = "Login Req.";
             }
             loadServices();
+            renderLocalStorage(); // Refresh pe data wapis layein
         }
 
         async function fetchBalance() {
             const { data } = await _supabase.from('profiles').select('balance').eq('id', USER_ID).single();
-            if (data) document.getElementById('user-balance').innerText = `$${parseFloat(data.balance).toFixed(2)}`;
+            if (data) document.getElementById('user-balance').innerText = `Rs ${parseFloat(data.balance).toFixed(2)}`;
         }
 
         async function loadServices() {
             const domain = document.getElementById('domain-select').value;
             const grid = document.getElementById('services-grid');
+            grid.innerHTML = '<p class="text-center py-10 text-slate-400">Loading services...</p>';
             
             try {
                 const res = await fetch(`/api/email?action=getEmailServices&domain=${domain}`);
                 const json = await res.json();
                 
-                // FIXED: Checking for "200" and using "services" array
                 if (json.status == "200" && json.services) {
-                    grid.innerHTML = json.services.map(s => {
-                        // Profit calculation (40%)
-                        const userPrice = Math.ceil(parseFloat(s.price) * 1.4);
-                        
-                        return `
-                        <div class="service-card bg-white p-5 rounded-3xl shadow-sm flex flex-col justify-between">
-                            <div class="flex justify-between items-start mb-4">
-                                <span class="bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter">${s.service_name}</span>
-                                <span class="text-lg font-black text-slate-900">$${userPrice}</span>
-                            </div>
-                            <button onclick="buyEmail('${s.service_code}', ${userPrice})" class="w-full bg-slate-900 text-white py-3 rounded-2xl text-[10px] font-bold hover:bg-indigo-600 transition-all shadow-md active:scale-95">
-                                BUY NOW
-                            </button>
-                        </div>
-                        `;
-                    }).join('');
-                    lucide.createIcons();
-                } else {
-                    grid.innerHTML = `<div class="col-span-full text-center py-10 text-red-400 font-bold">API Error: ${json.status}</div>`;
+                    ALL_SERVICES = json.services;
+                    renderServices(ALL_SERVICES);
                 }
-            } catch (e) {
-                grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400 italic">Failed to load services. Check backend.</div>`;
-            }
+            } catch (e) { grid.innerHTML = 'Error loading services.'; }
         }
 
-        async function buyEmail(code, cost) {
-            if (!USER_ID) return alert("Please Login!");
-            if (!confirm(`Buy for $${cost}?`)) return;
+        function renderServices(data) {
+            const grid = document.getElementById('services-grid');
+            grid.innerHTML = data.map(s => {
+                const userPrice = Math.ceil(parseFloat(s.price) * 1.4); // 40% Profit
+                return `
+                <div class="flex justify-between items-center p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:shadow-md transition-all">
+                    <div>
+                        <p class="font-bold text-slate-800 text-sm">${s.service_name}</p>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Available: ${s.count}</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <p class="text-sm font-black text-indigo-600">Rs ${userPrice}</p>
+                        <button onclick="buyEmail('${s.service_code}', ${userPrice}, '${s.service_name}')" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-[10px] font-bold hover:bg-slate-900 transition-all">
+                            BUY
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function filterServices() {
+            const term = document.getElementById('search-service').value.toLowerCase();
+            const filtered = ALL_SERVICES.filter(s => s.service_name.toLowerCase().includes(term));
+            renderServices(filtered);
+        }
+
+        async function buyEmail(code, cost, name) {
+            if (!USER_ID) return alert("Login required!");
+            if (!confirm(`Confirm purchase for Rs ${cost}?`)) return;
 
             const domain = document.getElementById('domain-select').value;
             const res = await fetch(`/api/email?action=buyEmail&service_id=${code}&domain=${domain}&user_id=${USER_ID}&cost=${cost}`);
             const json = await res.json();
 
+            // OTPGet buy status can be "200" or "success"
             if (json.status == "200" || json.status == "success") {
+                const buyData = json.data || json;
+                const newSession = {
+                    id: buyData.email_id,
+                    email: buyData.email,
+                    service: name,
+                    code: null,
+                    time: new Date().getTime()
+                };
+                
+                // Local Storage mein save karein
+                saveToLocal(newSession);
                 fetchBalance();
-                addActiveEmail(json.data || json);
+                renderLocalStorage();
             } else {
                 alert(json.msg || "Transaction Failed");
             }
         }
 
-        function addActiveEmail(data) {
-            const list = document.getElementById('active-list');
-            if (list.innerText.includes('empty')) list.innerHTML = '';
-            
-            // Note: Adjusting for potential difference in buy API response keys
-            const email = data.email || data.data?.email;
-            const id = data.email_id || data.data?.email_id;
+        // --- LOCAL STORAGE LOGIC ---
+        function saveToLocal(session) {
+            let sessions = JSON.parse(localStorage.getItem('wasi_emails') || '[]');
+            sessions.unshift(session);
+            localStorage.setItem('wasi_emails', JSON.stringify(sessions));
+        }
 
-            const div = document.createElement('div');
-            div.className = "bg-indigo-50 border border-indigo-100 p-4 rounded-3xl mb-4";
-            div.innerHTML = `
-                <p class="text-xs font-black text-slate-800 break-all mb-4">${email}</p>
-                <div id="otp-${id}" class="bg-white p-3 rounded-2xl text-center text-xs font-bold text-indigo-600 animate-pulse border border-indigo-100">
-                    WAITING FOR OTP...
+        function renderLocalStorage() {
+            const list = document.getElementById('active-list');
+            const sessions = JSON.parse(localStorage.getItem('wasi_emails') || '[]');
+            
+            if (sessions.length === 0) {
+                list.innerHTML = '<p class="text-center text-slate-300 text-xs py-10 font-medium italic">Inbox is empty.</p>';
+                return;
+            }
+
+            list.innerHTML = sessions.map(s => `
+                <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-3xl relative">
+                    <p class="text-[9px] font-bold text-indigo-400 uppercase mb-1">${s.service}</p>
+                    <p class="text-xs font-black text-slate-800 mb-4 select-all">${s.email}</p>
+                    <div id="otp-${s.id}" class="bg-white p-3 rounded-2xl text-center text-xs font-bold ${s.code ? 'text-green-600 border-green-200' : 'text-indigo-600 border-indigo-100 animate-pulse'} border">
+                        ${s.code ? 'CODE: ' + s.code : 'WAITING FOR CODE...'}
+                    </div>
+                    <div class="flex gap-2 mt-3">
+                        <button onclick="checkOTP('${s.id}')" class="flex-1 bg-white border border-indigo-200 text-indigo-600 py-2 rounded-xl text-[10px] font-bold hover:bg-indigo-100">
+                            REFRESH
+                        </button>
+                        <button onclick="removeItem('${s.id}')" class="p-2 text-slate-300 hover:text-red-500">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
                 </div>
-                <button onclick="checkOTP('${id}')" class="w-full mt-3 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-bold flex items-center justify-center gap-2 hover:bg-indigo-700">
-                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> REFRESH OTP
-                </button>
-            `;
-            list.prepend(div);
+            `).join('');
             lucide.createIcons();
         }
 
         async function checkOTP(id) {
-            const box = document.getElementById(`otp-${id}`);
-            box.innerText = "CHECKING...";
             const res = await fetch(`/api/email?action=getEmailCode&email_id=${id}`);
             const json = await res.json();
 
-            if (json.status == "200" && json.data?.code) {
-                box.innerHTML = `<span class="text-slate-400 mr-2 uppercase">Code:</span> ${json.data.code}`;
-                box.className = "bg-green-50 border border-green-200 p-3 rounded-2xl text-center text-sm font-black text-green-700 shadow-sm";
+            if (json.status == "200" && json.data && json.data.code) {
+                // Update Local Storage
+                let sessions = JSON.parse(localStorage.getItem('wasi_emails') || '[]');
+                const index = sessions.findIndex(s => s.id == id);
+                if (index !== -1) {
+                    sessions[index].code = json.data.code;
+                    localStorage.setItem('wasi_emails', JSON.stringify(sessions));
+                    renderLocalStorage();
+                }
             } else {
-                box.innerText = "NO CODE FOUND YET.";
+                alert("No code found yet.");
+            }
+        }
+
+        function removeItem(id) {
+            if(!confirm("Remove from list?")) return;
+            let sessions = JSON.parse(localStorage.getItem('wasi_emails') || '[]');
+            sessions = sessions.filter(s => s.id != id);
+            localStorage.setItem('wasi_emails', JSON.stringify(sessions));
+            renderLocalStorage();
+        }
+
+        function clearCompleted() {
+            if(confirm("Clear all sessions?")) {
+                localStorage.removeItem('wasi_emails');
+                renderLocalStorage();
             }
         }
 
