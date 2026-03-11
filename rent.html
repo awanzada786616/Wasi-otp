@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Rental Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .glass-effect { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="bg-[#f8fafc] min-h-screen">
+
+    <!-- Top Navigation -->
+    <header class="glass-effect border-b sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg">
+                    <i data-lucide="phone-incoming" class="text-white w-5 h-5"></i>
+                </div>
+                <h1 class="text-xl font-extrabold text-gray-900 tracking-tight">Wasi<span class="text-blue-600">OTP</span></h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Available Balance</p>
+                    <p id="user-balance" class="text-lg font-black text-gray-900">$0.00</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Store Section (Left) -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Country Selection -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                    <label class="flex items-center gap-2 text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">
+                        <i data-lucide="globe" class="text-blue-500 w-4"></i> Step 1: Select Country
+                    </label>
+                    <select id="country-select" class="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 ring-blue-500 font-semibold text-gray-700 transition-all appearance-none cursor-pointer">
+                        <option value="">Fetching Countries...</option>
+                    </select>
+                </div>
+
+                <!-- Services Grid -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                    <h2 class="flex items-center gap-2 text-sm font-bold text-gray-700 mb-6 uppercase tracking-wider">
+                        <i data-lucide="zap" class="text-yellow-500 w-4"></i> Step 2: Choose Service
+                    </h2>
+                    <div id="services-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <p class="text-gray-400 text-sm italic py-10 text-center col-span-full">Select a country to load rental services...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Numbers (Right) -->
+            <div class="space-y-6">
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 ring-1 ring-blue-50">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="font-bold text-gray-800 flex items-center gap-2 uppercase text-sm tracking-wider">
+                            <i data-lucide="layers" class="text-blue-600 w-4"></i> My Rentals
+                        </h2>
+                        <button onclick="fetchMyRentals()" class="p-2 hover:bg-blue-50 rounded-full transition-colors text-blue-600">
+                            <i data-lucide="refresh-cw" class="w-4"></i>
+                        </button>
+                    </div>
+
+                    <div id="my-rentals-list" class="space-y-4">
+                        <!-- Items injected here -->
+                        <div class="text-center py-12">
+                            <i data-lucide="inbox" class="w-12 h-12 text-gray-200 mx-auto mb-2"></i>
+                            <p class="text-xs text-gray-400 font-medium">No active numbers found.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- YOUR SUPABASE CONFIGURATION ---
+        const SUPABASE_URL = "https://aljcxnobmmtcfpvdacbo.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_xVWCkX7Gl2m0cFUKlSn3pg_liSvnzmg";
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        let currentUser = null;
+
+        async function init() {
+            lucide.createIcons();
+            
+            // Check Session
+            const { data: { user } } = await _supabase.auth.getUser();
+            if (!user) {
+                alert("Auth Error: Please login to your account.");
+                // window.location.href = "/login"; // Redirect agar aapka login page hai
+                return;
+            }
+            currentUser = user;
+
+            updateUI();
+            loadCountries();
+            fetchMyRentals();
+        }
+
+        async function updateUI() {
+            // Fetch Balance from profiles table
+            const { data } = await _supabase.from('profiles').select('balance').eq('id', currentUser.id).single();
+            if (data) {
+                document.getElementById('user-balance').innerText = `$${parseFloat(data.balance).toFixed(2)}`;
+            }
+        }
+
+        async function loadCountries() {
+            const res = await fetch(`/api/rent?action=getRentalCountries`);
+            const json = await res.json();
+            const select = document.getElementById('country-select');
+            
+            if (json.data) {
+                select.innerHTML = json.data.map(c => `<option value="${c.code}">${c.name}</option>`).join('');
+                loadPricing(select.value); // Load initial
+            }
+            
+            select.onchange = (e) => loadPricing(e.target.value);
+        }
+
+        async function loadPricing(code) {
+            const grid = document.getElementById('services-grid');
+            grid.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400">Loading pricing...</div>';
+
+            const res = await fetch(`/api/rent?action=getRentalPricing&country_code=${code}`);
+            const json = await res.json();
+
+            if (json.status === 'success') {
+                grid.innerHTML = json.data.map(s => `
+                    <div class="group bg-white border border-gray-100 p-5 rounded-2xl hover:border-blue-500 hover:shadow-xl hover:shadow-blue-500/10 transition-all cursor-default">
+                        <div class="flex justify-between items-start mb-4">
+                            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-tighter">${s.service}</span>
+                            <span class="text-xl font-black text-gray-900">$${s.user_price}</span>
+                        </div>
+                        <div class="flex items-center gap-1 text-[10px] text-gray-400 mb-4 font-semibold uppercase">
+                            <i data-lucide="clock" class="w-3"></i> ${s.duration} Hours Term
+                        </div>
+                        <button onclick="rentNumber('${s.id}', ${s.user_price})" class="w-full bg-gray-900 text-white py-3 rounded-xl text-xs font-bold hover:bg-blue-600 transition-colors">
+                            RENT NOW
+                        </button>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            }
+        }
+
+        async function rentNumber(pricingId, cost) {
+            const balance = parseFloat(document.getElementById('user-balance').innerText.replace('$', ''));
+            if (balance < cost) return alert("Low Balance! Please recharge.");
+
+            if (!confirm(`Rent number for ${cost}$?`)) return;
+
+            const res = await fetch(`/api/rent?action=rentNumber&pricing_id=${pricingId}&user_id=${currentUser.id}&cost=${cost}`);
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                alert(`SUCCESS! Your number: +${data.data.number}`);
+                updateUI();
+                fetchMyRentals();
+            } else {
+                alert(data.msg || "Error processing request");
+            }
+        }
+
+        async function fetchMyRentals() {
+            const list = document.getElementById('my-rentals-list');
+            const res = await fetch(`/api/rent?action=getMyRentals`);
+            const json = await res.json();
+
+            if (json.status === 'success' && json.data.length > 0) {
+                list.innerHTML = json.data.map(rent => `
+                    <div class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-[10px] font-extrabold text-blue-600 uppercase tracking-widest">${rent.service}</span>
+                            <button onclick="checkSMS('${rent.order_id}')" class="text-gray-400 hover:text-blue-600 transition-colors">
+                                <i data-lucide="message-square" class="w-4"></i>
+                            </button>
+                        </div>
+                        <p class="text-xl font-mono font-bold text-gray-900 mb-3 tracking-tighter">+${rent.number}</p>
+                        <div id="sms-${rent.order_id}" class="bg-blue-50 rounded-xl p-3 text-[11px] text-gray-500 min-h-[50px] border border-blue-100/50 italic mb-2">
+                            No messages received...
+                        </div>
+                        <p class="text-[9px] font-bold text-gray-400 flex items-center gap-1">
+                            <i data-lucide="timer" class="w-3"></i> EXPIRATION: ${new Date(rent.expiry).toLocaleTimeString()}
+                        </p>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            }
+        }
+
+        async function checkSMS(orderId) {
+            const smsBox = document.getElementById(`sms-${orderId}`);
+            smsBox.innerHTML = "<span class='animate-pulse'>Checking inbox...</span>";
+            
+            const res = await fetch(`/api/rent?action=getRentalSMS&order_id=${orderId}`);
+            const json = await res.json();
+
+            if (json.status === 'success' && json.data.length > 0) {
+                smsBox.innerHTML = json.data.map(m => `
+                    <div class="bg-white p-2 rounded-lg border border-blue-100 mb-1 shadow-sm">
+                        <p class="text-blue-700 font-black text-xs mb-0.5">${m.code}</p>
+                        <p class="text-gray-600 leading-tight">${m.text}</p>
+                    </div>
+                `).join('');
+                smsBox.classList.remove('italic');
+            } else {
+                smsBox.innerHTML = "No codes found yet. Try again.";
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+                      </html>
