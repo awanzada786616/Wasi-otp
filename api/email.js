@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Ye variables Vercel ke Env se uthaye jayenge
+// Vercel Env se keys uthayi ja rahi hain
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 export default async function handler(req, res) {
@@ -8,27 +8,34 @@ export default async function handler(req, res) {
     const OTP_API_KEY = process.env.OTPGET_API_KEY;
 
     try {
-        // --- NAYA ACTION: GET USER BALANCE ---
+        // --- 1. CONFIG ACTION (Frontend ko keys dene ke liye) ---
+        if (action === 'getConfig') {
+            return res.status(200).json({
+                url: process.env.SUPABASE_URL,
+                anon: process.env.SUPABASE_ANON_KEY // Ensure karein ke Vercel mein ye name ho
+            });
+        }
+
+        // --- 2. GET BALANCE ---
         if (action === 'getBalance') {
-            if (!user_id) return res.json({ balance: 0 });
             const { data } = await supabase.from('profiles').select('balance').eq('id', user_id).single();
             return res.json({ balance: data ? data.balance : 0 });
         }
 
-        // --- GET EMAIL SERVICES ---
+        // --- 3. GET EMAIL SERVICES ---
         if (action === 'getEmailServices') {
             const apiRes = await fetch(`https://otpget.com/stubs/email_handler.php?api_key=${OTP_API_KEY}&action=getEmailServices&domain=${domain}`);
             const data = await apiRes.json();
             if (data.status === 'success') {
                 data.data = data.data.map(item => ({
                     ...item,
-                    user_price: Math.ceil(parseFloat(item.price) * 1.4) // 40% Profit
+                    user_price: Math.ceil(parseFloat(item.price) * 1.4)
                 }));
             }
             return res.json(data);
         }
 
-        // --- BUY EMAIL ---
+        // --- 4. BUY EMAIL ---
         if (action === 'buyEmail') {
             const { data: profile } = await supabase.from('profiles').select('balance').eq('id', user_id).single();
             if (!profile || profile.balance < cost) return res.json({ status: 'error', msg: 'LOW_BALANCE' });
@@ -37,13 +44,13 @@ export default async function handler(req, res) {
             const buyData = await buyRes.json();
 
             if (buyData.status === 'success') {
-                const newBalance = profile.balance - parseFloat(cost);
+                const newBalance = parseFloat(profile.balance) - parseFloat(cost);
                 await supabase.from('profiles').update({ balance: newBalance }).eq('id', user_id);
             }
             return res.json(buyData);
         }
 
-        // Generic Proxy for other actions (getEmailCode, cancelEmail)
+        // --- 5. GENERIC PROXY (OTP & Cancel) ---
         const targetUrl = `https://otpget.com/stubs/email_handler.php?api_key=${OTP_API_KEY}&action=${action}&email_id=${email_id || ''}`;
         const finalRes = await fetch(targetUrl);
         const finalData = await finalRes.json();
@@ -52,4 +59,4 @@ export default async function handler(req, res) {
     } catch (err) {
         return res.status(500).json({ status: 'error', msg: err.message });
     }
-                }
+    }
