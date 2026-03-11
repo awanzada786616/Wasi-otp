@@ -4,36 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wasi Email Dashboard</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase JS CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .service-card { transition: all 0.3s ease; }
-        .service-card:hover { transform: translateY(-5px); border-color: #4f46e5; }
+        .service-card:hover { transform: translateY(-5px); border-color: #4f46e5; transition: all 0.3s ease; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
 
     <!-- Navbar -->
-    <nav class="bg-white/80 backdrop-blur-md border-b sticky top-0 z-50 px-6 py-4">
+    <nav class="bg-white/90 backdrop-blur-md border-b sticky top-0 z-50 px-6 py-4">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="bg-indigo-600 p-2 rounded-2xl shadow-lg shadow-indigo-100">
                     <i data-lucide="mail" class="text-white w-5 h-5"></i>
                 </div>
-                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">Wasi<span class="text-indigo-600">Email</span></h1>
+                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">Wasi<span class="text-indigo-600 italic">Email</span></h1>
             </div>
             
-            <div class="flex items-center gap-6">
-                <div class="text-right">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Your Balance</p>
-                    <p id="user-balance" class="text-lg font-black text-indigo-700">$0.00</p>
-                </div>
+            <div class="text-right">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">My Balance</p>
+                <p id="user-balance" class="text-lg font-black text-indigo-700">$0.00</p>
             </div>
         </div>
     </nav>
@@ -41,39 +35,29 @@
     <main class="max-w-6xl mx-auto px-6 py-10">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
-            <!-- Store Section -->
+            <!-- Left: Store -->
             <div class="lg:col-span-8 space-y-6">
                 <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <h2 class="font-bold text-slate-800 uppercase text-xs tracking-widest">Available Services</h2>
-                    <div class="flex gap-2 w-full md:w-auto">
-                        <select id="domain-select" onchange="loadServices()" class="w-full md:w-40 p-2.5 bg-slate-50 border-none rounded-xl text-xs font-bold text-slate-600 outline-none ring-1 ring-slate-100 focus:ring-2 ring-indigo-500">
-                            <option value="gmail.com">Gmail.com</option>
-                            <option value="outlook.com">Outlook.com</option>
-                        </select>
-                    </div>
+                    <h2 class="font-bold text-slate-800 uppercase text-xs tracking-widest">Email Services</h2>
+                    <select id="domain-select" onchange="loadServices()" class="w-full md:w-40 p-2.5 bg-slate-50 border-none rounded-xl text-xs font-bold text-slate-600 outline-none ring-1 ring-slate-100 focus:ring-2 ring-indigo-500">
+                        <option value="gmail.com">Gmail.com</option>
+                        <option value="outlook.com">Outlook.com</option>
+                    </select>
                 </div>
 
                 <div id="services-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <!-- Loading State -->
-                    <div class="animate-pulse bg-white h-32 rounded-3xl border border-slate-100"></div>
                     <div class="animate-pulse bg-white h-32 rounded-3xl border border-slate-100"></div>
                 </div>
             </div>
 
-            <!-- Active Sessions Section -->
-            <div class="lg:col-span-4 space-y-6">
+            <!-- Right: Active List -->
+            <div class="lg:col-span-4">
                 <div class="bg-white p-6 rounded-[2rem] shadow-sm border-t-4 border-indigo-600 sticky top-28">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="font-bold text-slate-800 uppercase text-[10px] tracking-widest flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-green-500"></span> Active Inbox
-                        </h2>
-                        <button onclick="window.location.reload()" class="text-slate-400 hover:text-indigo-600">
-                            <i data-lucide="rotate-cw" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-
+                    <h2 class="font-bold text-slate-800 uppercase text-[10px] tracking-widest mb-6 flex items-center gap-2">
+                        <i data-lucide="refresh-ccw" class="w-4 h-4 text-indigo-500"></i> My Active Inbox
+                    </h2>
                     <div id="active-list" class="space-y-4">
-                        <p class="text-center text-slate-300 text-xs py-10 italic font-medium">No active emails yet.</p>
+                        <p class="text-center text-slate-300 text-xs py-10 italic">Your active emails will appear here.</p>
                     </div>
                 </div>
             </div>
@@ -82,45 +66,43 @@
     </main>
 
     <script>
-        // --- PROPER CREDENTIALS INTEGRATED ---
+        // --- REAL CREDENTIALS INTEGRATED ---
         const SUPABASE_URL = "https://aljcxnobmmtcfpvdacbo.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_xVWCkX7Gl2m0cFUKlSn3pg_liSvnzmg";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsamN4bm9ibW10Y2ZwdmRhY2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNDk4NzcsImV4cCI6MjA4NDYyNTg3N30.NHDGMPhxxnUcjZxBLvUxFzoe6Yvp7N86ZJyiUK8LgRo";
+        
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
         let USER_ID = null;
 
         async function init() {
             lucide.createIcons();
             
             // Check Session
-            const { data: { user } } = await _supabase.auth.getUser();
-            if (!user) {
-                alert("Login Required! Please login to your account.");
+            const { data: { user }, error: authError } = await _supabase.auth.getUser();
+            
+            if (authError || !user) {
+                alert("Login Required! Redirecting to login...");
                 // window.location.href = "/login.html"; 
                 return;
             }
-            USER_ID = user.id;
 
+            USER_ID = user.id;
             fetchBalance();
             loadServices();
         }
 
-        // Fetch user balance direct from Supabase
         async function fetchBalance() {
-            try {
-                const { data, error } = await _supabase.from('profiles').select('balance').eq('id', USER_ID).single();
-                if (data) {
-                    document.getElementById('user-balance').innerText = `$${parseFloat(data.balance).toFixed(2)}`;
-                }
-            } catch (e) { console.error("Balance Error:", e); }
+            const { data, error } = await _supabase.from('profiles').select('balance').eq('id', USER_ID).single();
+            if (data) {
+                document.getElementById('user-balance').innerText = `$${parseFloat(data.balance).toFixed(2)}`;
+            }
         }
 
-        // Load Services via Vercel Backend Proxy
         async function loadServices() {
             const domain = document.getElementById('domain-select').value;
             const grid = document.getElementById('services-grid');
             
             try {
+                // Ensure the path to your Vercel backend is correct
                 const res = await fetch(`/api/email?action=getEmailServices&domain=${domain}`);
                 const json = await res.json();
                 
@@ -128,7 +110,7 @@
                     grid.innerHTML = json.data.map(s => `
                         <div class="service-card bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between">
                             <div class="flex justify-between items-start mb-4">
-                                <span class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-tighter">${s.name}</span>
+                                <span class="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-tighter">${s.name}</span>
                                 <span class="text-lg font-black text-slate-900">$${s.user_price}</span>
                             </div>
                             <button onclick="buyEmail('${s.id}', ${s.user_price})" class="w-full bg-slate-900 text-white py-3 rounded-2xl text-[10px] font-bold hover:bg-indigo-600 transition-all">
@@ -137,34 +119,25 @@
                         </div>
                     `).join('');
                     lucide.createIcons();
-                } else {
-                    grid.innerHTML = `<p class="col-span-full text-center text-red-500 text-xs">${json.msg}</p>`;
                 }
-            } catch (e) { grid.innerHTML = `<p class="col-span-full text-center text-slate-400 text-xs">API Error. Check Backend Logs.</p>`; }
+            } catch (e) { console.error("API Error:", e); }
         }
 
-        // Purchase Email
         async function buyEmail(serviceId, cost) {
             const domain = document.getElementById('domain-select').value;
-            const bal = parseFloat(document.getElementById('user-balance').innerText.replace('$', ''));
-            
-            if (bal < cost) return alert("Low balance! Please top up your wallet.");
-            if (!confirm(`Confirm purchase for $${cost}?`)) return;
+            if (!confirm(`Buy for $${cost}?`)) return;
 
-            try {
-                const res = await fetch(`/api/email?action=buyEmail&service_id=${serviceId}&domain=${domain}&user_id=${USER_ID}&cost=${cost}`);
-                const json = await res.json();
+            const res = await fetch(`/api/email?action=buyEmail&service_id=${serviceId}&domain=${domain}&user_id=${USER_ID}&cost=${cost}`);
+            const json = await res.json();
 
-                if (json.status === 'success') {
-                    fetchBalance();
-                    addActiveEmail(json.data);
-                } else {
-                    alert(json.msg || "Transaction Failed");
-                }
-            } catch (e) { alert("Server connection error"); }
+            if (json.status === 'success') {
+                fetchBalance();
+                addActiveEmail(json.data);
+            } else {
+                alert(json.msg || "Error purchasing email");
+            }
         }
 
-        // Add Active Session UI
         function addActiveEmail(data) {
             const list = document.getElementById('active-list');
             if (list.innerText.includes('No active')) list.innerHTML = '';
@@ -172,23 +145,19 @@
             const div = document.createElement('div');
             div.className = "bg-indigo-50 border border-indigo-100 p-4 rounded-3xl mb-4";
             div.innerHTML = `
-                <div class="flex justify-between items-center mb-3">
-                    <p class="text-[10px] font-bold text-indigo-400 uppercase">Inbox</p>
-                    <button onclick="cancelEmail('${data.email_id}')" class="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
-                </div>
-                <p class="text-xs font-black text-slate-800 break-all mb-4 select-all">${data.email}</p>
+                <p class="text-[10px] font-bold text-indigo-400 uppercase mb-1">Your Temp Email</p>
+                <p class="text-xs font-black text-slate-800 break-all mb-4 select-all cursor-pointer">${data.email}</p>
                 <div id="otp-${data.email_id}" class="bg-white border border-indigo-100 p-3 rounded-2xl text-center text-xs font-bold text-indigo-600 animate-pulse">
-                    WAITING FOR OTP...
+                    WAITING FOR CODE...
                 </div>
-                <button onclick="checkOTP('${data.email_id}')" class="w-full mt-3 py-2.5 bg-white border border-indigo-200 text-indigo-600 rounded-xl text-[10px] font-extrabold flex items-center justify-center gap-2 hover:bg-indigo-100">
-                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> REFRESH INBOX
+                <button onclick="checkOTP('${data.email_id}')" class="w-full mt-3 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-bold flex items-center justify-center gap-2">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> REFRESH CODE
                 </button>
             `;
             list.prepend(div);
             lucide.createIcons();
         }
 
-        // Check for OTP
         async function checkOTP(emailId) {
             const box = document.getElementById(`otp-${emailId}`);
             box.innerText = "CHECKING...";
@@ -197,20 +166,12 @@
             const json = await res.json();
 
             if (json.status === 'success' && json.data.code) {
-                box.innerHTML = `<span class="text-slate-400 mr-2 uppercase">Code:</span> ${json.data.code}`;
+                box.innerHTML = `<span class="text-slate-400 mr-1 uppercase">CODE:</span> ${json.data.code}`;
                 box.classList.remove('animate-pulse');
-                box.className = "bg-green-50 border border-green-200 p-3 rounded-2xl text-center text-sm font-black text-green-700 shadow-sm";
+                box.className = "bg-green-50 border border-green-200 p-3 rounded-2xl text-center text-sm font-black text-green-700";
             } else {
-                box.innerText = "NO CODE YET. TRY AGAIN.";
-                setTimeout(() => { if(!box.innerText.includes('CODE')) box.classList.add('animate-pulse'); }, 2000);
+                box.innerText = "NO CODE YET.";
             }
-        }
-
-        async function cancelEmail(id) {
-            if(!confirm("Cancel this email?")) return;
-            const res = await fetch(`/api/email?action=cancelEmail&email_id=${id}`);
-            const json = await res.json();
-            if(json.status === 'success') window.location.reload();
         }
 
         window.onload = init;
