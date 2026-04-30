@@ -4,156 +4,220 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     
-    <!-- Google Site Verification - DO NOT REMOVE -->
+    <!-- Google Site Verification -->
     <meta name="google-site-verification" content="DXRnFkkHq_B5WgCqrNtDfYNJwCxYqwE3jy3A8DPqMRg" />
 
-    <!-- Site Identity & Favicon (Vercel logo hatane ke liye) -->
-    <title>WASI OTP | #1 Virtual Number & SMS Service in Pakistan - Awais Haider</title>
+    <!-- SITE IDENTITY (Change Favicon here) -->
+    <title>WASI OTP | #1 Virtual Number & SMS Service in Pakistan</title>
+    <!-- Apna logo link niche "href" mein dalein -->
     <link rel="icon" href="https://otpget.com/img/users.png" type="image/png">
     <link rel="apple-touch-icon" href="https://otpget.com/img/users.png">
 
-    <!-- SEO Meta Tags -->
+    <!-- SEO Meta Tags (Keep Unchanged as requested) -->
     <meta name="description" content="WASI OTP by Awais Haider. Get cheapest virtual numbers for WhatsApp, Telegram & 500+ apps. Best OTP service in Chakwal, Punjab, Pakistan. Fast & Secure verification.">
     <meta name="keywords" content="WASI OTP, wasiotp, Awais Haider, Wasi OTP Chakwal, Virtual Number Pakistan, Receive SMS Online, Cheap WhatsApp OTP, SMS verification Pakistan">
     <meta name="author" content="Awais Haider - WASI OTP">
 
-    <!-- Open Graph (Search Results mein Picture aur Name ke liye) -->
+    <!-- Google Site Name Search Result Fix -->
     <meta property="og:site_name" content="WASI OTP">
     <meta property="og:title" content="WASI OTP - Premium Virtual Numbers by Awais Haider">
     <meta property="og:description" content="Reliable SMS verification service for all apps. Based in Chakwal, Punjab, Pakistan.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://wasi-otp.vercel.app/">
     <meta property="og:image" content="https://otpget.com/img/users.png">
-    <meta name="thumbnail" content="https://otpget.com/img/users.png">
 
-    <!-- Google Site Name Schema (Vercel ka naam hata kar WASI OTP likhne ke liye) -->
+    <!-- JSON-LD for Google Site Name (VERY IMPORTANT) -->
     <script type="application/ld+json">
     {
       "@context" : "https://schema.org",
       "@type" : "WebSite",
       "name" : "WASI OTP",
-      "alternateName": "WasiOTP",
-      "url" : "https://wasi-otp.vercel.app/"
+      "alternateName": ["WasiOTP", "Wasi OTP Service"],
+      "url" : "https://wasi-otp.vercel.app/",
+      "publisher": {
+        "@type": "Person",
+        "name": "Awais Haider"
+      }
     }
     </script>
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <!-- Bootstrap 5 -->
+    <!-- Google Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     
     <style>
         :root { 
-            --primary-dark: #0f172a; 
-            --accent-blue: #3b82f6; 
-            --success-green: #10b981;
-            --gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            --primary: #2563eb; 
+            --secondary: #0f172a; 
+            --accent: #10b981;
+            --light-bg: #f8fafc;
         }
-        body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; color: #334155; }
-        .navbar { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-bottom: 2px solid var(--accent-blue); }
-        .navbar-brand { font-weight: 800; color: var(--primary-dark) !important; letter-spacing: 1px; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--light-bg); color: #334155; overflow-x: hidden; }
+        
+        /* Glass Navbar */
+        .navbar { 
+            background: rgba(255, 255, 255, 0.8) !important; 
+            backdrop-filter: blur(15px); 
+            border-bottom: 1px solid rgba(0,0,0,0.05); 
+        }
+        .navbar-brand { font-weight: 800; font-size: 1.5rem; letter-spacing: -0.5px; }
+
+        /* Modern Hero Section */
         .hero { 
-            background: var(--gradient); 
-            color: white; padding: 120px 0 80px; text-align: center;
-            border-bottom-left-radius: 50px; border-bottom-right-radius: 50px;
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            color: white; 
+            padding: 160px 0 100px; 
+            position: relative;
+            clip-path: ellipse(150% 100% at 50% 0%);
         }
-        .main-title { font-size: 3.8rem; font-weight: 800; margin-bottom: 15px; color: #fff; }
-        .hero-sub { color: var(--accent-blue); font-weight: 600; font-size: 1.2rem; text-transform: uppercase; }
-        .stat-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); transition: 0.3s; margin-top: -50px; border-bottom: 4px solid var(--accent-blue); }
-        .stat-card:hover { transform: translateY(-10px); }
-        .btn-custom { padding: 12px 35px; border-radius: 50px; font-weight: 600; text-decoration: none; display: inline-block; transition: 0.3s; margin: 10px; }
-        .btn-primary-custom { background: var(--accent-blue); color: white; border: none; }
-        .btn-outline-custom { border: 2px solid white; color: white; }
-        .btn-primary-custom:hover { background: #2563eb; transform: scale(1.05); color: white;}
-        .flag-container { background: #fff; padding: 40px 20px; border-radius: 20px; }
-        .flag-box { width: 90px; margin: 10px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: 0.3s; }
-        .flag-box:hover { transform: scale(1.2) rotate(3deg); }
-        .review-card { background: #f1f5f9; border-left: 5px solid var(--accent-blue); padding: 20px; border-radius: 10px; height: 100%; }
-        .stars { color: #f59e0b; margin-bottom: 10px; }
-        .footer { background: var(--primary-dark); color: #cbd5e1; padding: 60px 0 20px; }
-        .whatsapp-float { position: fixed; bottom: 20px; right: 20px; background: #25d366; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-        .call-float { position: fixed; bottom: 90px; right: 20px; background: var(--accent-blue); color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 25px; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .hero::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('https://www.transparenttextures.com/patterns/carbon-fibre.png'); opacity: 0.1;
+        }
+        .main-title { font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 800; line-height: 1.1; margin-bottom: 20px; }
+        .hero-sub { color: var(--accent); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; display: block; margin-bottom: 10px; }
+
+        /* Fancy Cards */
+        .stat-card { 
+            background: white; border-radius: 24px; padding: 30px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05); 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            margin-top: -60px; border: 1px solid rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        .stat-card:hover { transform: translateY(-15px); box-shadow: 0 30px 60px rgba(37, 99, 235, 0.15); }
+        .stat-icon { font-size: 2.5rem; color: var(--primary); margin-bottom: 15px; display: block; }
+
+        /* Buttons */
+        .btn-custom { padding: 14px 40px; border-radius: 16px; font-weight: 700; transition: 0.3s; margin: 8px; border: none; }
+        .btn-main { background: var(--primary); color: white; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3); }
+        .btn-main:hover { background: #1d4ed8; color: white; transform: scale(1.05); }
+        .btn-outline-white { border: 2px solid rgba(255,255,255,0.3); color: white; background: transparent; }
+        .btn-outline-white:hover { background: white; color: var(--secondary); }
+
+        /* Flag Section */
+        .flag-box { width: 80px; height: 50px; margin: 12px; border-radius: 12px; object-fit: cover; box-shadow: 0 8px 15px rgba(0,0,0,0.1); transition: 0.4s; cursor: pointer; }
+        .flag-box:hover { transform: scale(1.3) rotate(5deg); z-index: 10; }
+
+        /* Floating Buttons */
+        .float-btn { position: fixed; right: 25px; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; z-index: 9999; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transition: 0.3s; color: white !important; }
+        .float-btn:hover { transform: scale(1.1); }
+        .wa-float { bottom: 30px; background: #25d366; }
+        .call-float { bottom: 105px; background: var(--primary); }
+
+        .footer { background: #020617; color: #94a3b8; padding: 80px 0 30px; }
     </style>
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg fixed-top shadow-sm">
+    <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="#">WASI <span style="color: var(--accent-blue);">OTP</span></a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
+            <a class="navbar-brand text-dark" href="#">WASI<span class="text-primary">OTP</span></a>
+            <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><i class="bi bi-list fs-1"></i></button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto text-center">
-                    <li class="nav-item"><a class="nav-link fw-bold" href="/auth">Login</a></li>
-                    <li class="nav-item"><a class="nav-link fw-bold" href="/About">About Us</a></li>
-                    <li class="nav-item"><a class="nav-link fw-bold" href="/Feedback">Reviews</a></li>
-                    <li class="nav-item"><a class="nav-link btn btn-primary ms-lg-3 text-white px-4" href="/auth">Register Now</a></li>
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item"><a class="nav-link px-3 fw-semibold" href="/About">About</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 fw-semibold" href="/Feedback">Reviews</a></li>
+                    <li class="nav-item"><a class="btn btn-outline-primary rounded-pill px-4 ms-lg-3" href="/auth">Login</a></li>
+                    <li class="nav-item"><a class="btn btn-primary rounded-pill px-4 ms-lg-2" href="/auth">Get Started</a></li>
                 </ul>
             </div>
         </div>
     </nav>
 
     <header class="hero">
-        <div class="container">
-            <span class="hero-sub">Trust of Thousands - Owned by Awais Haider</span>
-            <h1 class="main-title">WASI OTP Service</h1>
-            <p class="lead mb-5 px-md-5">WASI OTP is the #1 platform in Pakistan for premium quality virtual numbers. Get instant SMS verification for WhatsApp, Telegram, TikTok, and 500+ apps at the cheapest prices.</p>
+        <div class="container text-center">
+            <span class="hero-sub" data-aos="fade-up">Trusted by 10,000+ Users</span>
+            <h1 class="main-title">Premium Virtual Numbers <br><span class="text-primary">For Every App</span></h1>
+            <p class="lead mb-5 opacity-75 mx-auto" style="max-width: 700px;">Get instant SMS verification for WhatsApp, Telegram, TikTok, and 500+ global apps. Automated, secure, and the most affordable service in Pakistan.</p>
             <div class="d-flex flex-wrap justify-content-center">
-                <a href="/auth" class="btn-custom btn-primary-custom">Get Your Number</a>
-                <a href="https://wa.me/923342002756" class="btn-custom btn-outline-custom">Contact Admin</a>
+                <a href="/auth" class="btn-custom btn-main"><i class="bi bi-lightning-charge-fill me-2"></i>Buy OTP Now</a>
+                <a href="https://wa.me/923342002756" class="btn-custom btn-outline-white">Contact Admin</a>
             </div>
         </div>
     </header>
 
     <div class="container mb-5">
-        <div class="row text-center">
-            <div class="col-md-4 mb-3"><div class="stat-card"><h3 class="fw-bold">50k+</h3><p class="text-muted mb-0">Successful OTPs Delivered</p></div></div>
-            <div class="col-md-4 mb-3"><div class="stat-card"><h3 class="fw-bold">150+</h3><p class="text-muted mb-0">Countries Supported</p></div></div>
-            <div class="col-md-4 mb-3"><div class="stat-card"><h3 class="fw-bold">24/7</h3><p class="text-muted mb-0">Automated Instant System</p></div></div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <i class="bi bi-shield-check stat-icon"></i>
+                    <h3 class="fw-bold">50,000+</h3>
+                    <p class="text-muted mb-0">Successful Verifications</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <i class="bi bi-globe stat-icon"></i>
+                    <h3 class="fw-bold">150+</h3>
+                    <p class="text-muted mb-0">Countries Available</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <i class="bi bi-cpu stat-icon"></i>
+                    <h3 class="fw-bold">Instant</h3>
+                    <p class="text-muted mb-0">Fully Automated System</p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <section class="py-5">
-        <div class="container flag-container text-center shadow-sm">
-            <h2 class="fw-bold mb-2">Global Virtual Numbers</h2>
-            <div class="d-flex flex-wrap justify-content-center">
-                <div class="flag-box"><img src="https://flagcdn.com/w160/pk.png" class="img-fluid" alt="WASI OTP Pakistan"></div>
-                <div class="flag-box"><img src="https://flagcdn.com/w160/us.png" class="img-fluid" alt="USA"></div>
-                <div class="flag-box"><img src="https://flagcdn.com/w160/gb.png" class="img-fluid" alt="UK"></div>
-                <div class="flag-box"><img src="https://flagcdn.com/w160/ae.png" class="img-fluid" alt="UAE"></div>
-                <div class="flag-box"><img src="https://flagcdn.com/w160/in.png" class="img-fluid" alt="India"></div>
-                <div class="flag-box"><img src="https://flagcdn.com/w160/ru.png" class="img-fluid" alt="Russia"></div>
-                <div class="flag-box"><img src="https://flagcdn.com/w160/id.png" class="img-fluid" alt="Indonesia"></div>
-                <div class="flag-box"><img src="https://flagcdn.com/w160/ca.png" class="img-fluid" alt="Canada"></div>
+    <section class="py-5 mt-5">
+        <div class="container bg-white p-5 rounded-5 shadow-sm text-center">
+            <h2 class="fw-800 mb-4">Supported Countries</h2>
+            <div class="d-flex flex-wrap justify-content-center align-items-center">
+                <img src="https://flagcdn.com/w160/pk.png" class="flag-box" alt="Pakistan">
+                <img src="https://flagcdn.com/w160/us.png" class="flag-box" alt="USA">
+                <img src="https://flagcdn.com/w160/gb.png" class="flag-box" alt="UK">
+                <img src="https://flagcdn.com/w160/ae.png" class="flag-box" alt="UAE">
+                <img src="https://flagcdn.com/w160/in.png" class="flag-box" alt="India">
+                <img src="https://flagcdn.com/w160/ru.png" class="flag-box" alt="Russia">
+                <img src="https://flagcdn.com/w160/id.png" class="flag-box" alt="Indonesia">
+                <img src="https://flagcdn.com/w160/ca.png" class="flag-box" alt="Canada">
             </div>
         </div>
     </section>
 
-    <section class="py-5 bg-white">
+    <footer class="footer mt-5">
         <div class="container">
-            <h2 class="text-center fw-bold mb-5">User Reviews</h2>
-            <div class="row g-4">
-                <div class="col-md-4"><div class="review-card"><p>"Sab se sasti aur fast service hai. Code 2 second mein mil jata hai."</p><h6>- Hamza Ali</h6></div></div>
-                <div class="col-md-4"><div class="review-card"><p>"Best OTP service in Pakistan. Interface is very easy to use."</p><h6>- Zainab Khan</h6></div></div>
-                <div class="col-md-4"><div class="review-card"><p>"Recommended for everyone who needs virtual numbers for WhatsApp."</p><h6>- Usman Sheikh</h6></div></div>
+            <div class="row g-5">
+                <div class="col-lg-5">
+                    <h4 class="text-white fw-bold mb-4">WASI OTP</h4>
+                    <p>Pakistan's most trusted virtual number provider. Owned and managed by <strong>Awais Haider</strong> from Chakwal, Punjab.</p>
+                    <div class="mt-4">
+                        <a href="#" class="text-white me-3 fs-4"><i class="bi bi-facebook"></i></a>
+                        <a href="#" class="text-white me-3 fs-4"><i class="bi bi-instagram"></i></a>
+                    </div>
+                </div>
+                <div class="col-lg-3 offset-lg-1">
+                    <h5 class="text-white mb-4">Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="/term" class="text-decoration-none text-muted">Terms of Service</a></li>
+                        <li class="mb-2"><a href="/About" class="text-decoration-none text-muted">About Us</a></li>
+                        <li class="mb-2"><a href="/Feedback" class="text-decoration-none text-muted">User Reviews</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3">
+                    <h5 class="text-white mb-4">Support</h5>
+                    <p class="small mb-1">WhatsApp Support:</p>
+                    <p class="text-white fw-bold">+994 40 187 9953</p>
+                    <p class="small mb-1">Direct Call:</p>
+                    <p class="text-white fw-bold">+92 334 200 2756</p>
+                </div>
             </div>
-        </div>
-    </section>
-
-    <footer class="footer">
-        <div class="container">
-            <div class="row g-4">
-                <div class="col-lg-4"><h5>WASI OTP</h5><p>Owned by <strong>Awais Haider</strong>. Pakistan's most trusted virtual number provider.</p></div>
-                <div class="col-lg-4"><h5>Contact Support</h5><p>Chakwal, Punjab, Pakistan<br>WA: +994401879953<br>Call: +923342002756</p></div>
-                <div class="col-lg-4"><h5>Links</h5><ul class="list-unstyled"><li><a href="/term" class="text-white-50">Terms</a></li><li><a href="/About" class="text-white-50">About</a></li></ul></div>
+            <hr class="my-5 opacity-10">
+            <div class="text-center small">
+                &copy; 2024-2026 WASI OTP Service. Built by Awais Haider.
             </div>
-            <hr class="mt-5 border-secondary text-center">
-            <div class="text-center small text-white-50">&copy; 2026 WASI OTP. Designed by Awais Haider.</div>
         </div>
     </footer>
 
-    <a href="https://wa.me/994401879953" class="whatsapp-float" target="_blank"><i class="bi bi-whatsapp"></i></a>
-    <a href="tel:+923342002756" class="call-float"><i class="bi bi-telephone-fill"></i></a>
+    <!-- Floating Actions -->
+    <a href="https://wa.me/994401879953" class="float-btn wa-float" target="_blank"><i class="bi bi-whatsapp"></i></a>
+    <a href="tel:+923342002756" class="float-btn call-float"><i class="bi bi-telephone-fill"></i></a>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-        </html>
+</html>
